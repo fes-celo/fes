@@ -1,0 +1,26 @@
+---
+/**
+ * Single tab item — reference: the underlined category row ("All · Fintech
+ * · Public · Startups...") on the Figma components canvas (node 302:2).
+ * Consumer renders a row of these and owns which one is active.
+ */
+interface Props {
+  href: string
+  active?: boolean
+  class?: string
+}
+
+const { href, active = false, class: className } = Astro.props
+---
+
+<a
+  href={href}
+  aria-current={active ? 'true' : undefined}
+  class:list={[
+    'text-body-sm font-medium underline-offset-4',
+    active ? 'text-ink underline decoration-2' : 'text-ink-muted no-underline hover:text-ink-secondary',
+    className,
+  ]}
+>
+  <slot />
+</a>

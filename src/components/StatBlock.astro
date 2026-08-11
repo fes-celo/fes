@@ -1,0 +1,26 @@
+---
+/**
+ * Single stat card — value + label. Content/layout ported from the old
+ * React prototype's StatsBlock.tsx (fes-website/src/components), reskinned
+ * onto the new token system. Not yet pulled from Figma directly — the
+ * components canvas (node 302:2) didn't surface a Stat Block instance in
+ * the screenshot; reconcile once a live desktop selection is available.
+ */
+interface Props {
+  value: string
+  label: string
+  class?: string
+}
+
+const { value, label, class: className } = Astro.props
+---
+
+<div
+  class:list={[
+    'flex flex-col gap-6 rounded-[var(--radius-card)] bg-surface p-8 shadow-[var(--shadow-card)]',
+    className,
+  ]}
+>
+  <dd class="text-h1 text-ink">{value}</dd>
+  <dt class="text-body text-ink-secondary">{label}</dt>
+</div>

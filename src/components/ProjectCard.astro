@@ -1,0 +1,75 @@
+---
+/**
+ * Reference: the "Growth & Communication System" card states on the Figma
+ * components canvas (node 302:2) — dark, light, and accent fills, each with
+ * a stacked tag row, title, description, and a circular arrow chip pinned
+ * bottom-right. Pulled from screenshot only, same caveat as Button.astro —
+ * spacing here is estimated, not extracted.
+ */
+import Tag from './Tag.astro'
+
+interface Props {
+  href: string
+  title: string
+  description: string
+  tags?: string[]
+  variant?: 'light' | 'dark' | 'accent'
+  class?: string
+}
+
+const { href, title, description, tags = [], variant = 'light', class: className } = Astro.props
+
+const surfaceClasses: Record<string, string> = {
+  light: 'bg-surface text-ink',
+  dark: 'bg-ink text-ink-inverse',
+  accent: 'bg-accent-default text-on-accent',
+}
+
+const tagTone: Record<string, 'onLight' | 'onDark'> = {
+  light: 'onLight',
+  dark: 'onDark',
+  accent: 'onDark',
+}
+
+const chipClasses: Record<string, string> = {
+  light: 'bg-ink text-ink-inverse',
+  dark: 'bg-white/10 text-ink-inverse',
+  accent: 'bg-white/15 text-on-accent',
+}
+---
+
+<a
+  href={href}
+  class:list={[
+    'group relative flex min-h-[320px] flex-col justify-between gap-8 rounded-[var(--radius-card)] p-8 transition-shadow hover:shadow-[var(--shadow-card-hover)]',
+    surfaceClasses[variant],
+    className,
+  ]}
+>
+  <div class="flex flex-col gap-4">
+    <h3 class="text-h3">{title}</h3>
+    <p class="text-body-sm opacity-80">{description}</p>
+  </div>
+
+  <div class="flex items-end justify-between gap-4">
+    {
+      tags.length > 0 && (
+        <ul class="flex flex-wrap gap-2">
+          {tags.map((t) => (
+            <li>
+              <Tag tone={tagTone[variant]}>{t}</Tag>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <span
+      class:list={[
+        'flex size-9 shrink-0 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5',
+        chipClasses[variant],
+      ]}
+    >
+      <img src="/icons/icon-arrow-white.svg" alt="" class="size-4 rotate-[-45deg]" width="16" height="16" />
+    </span>
+  </div>
+</a>

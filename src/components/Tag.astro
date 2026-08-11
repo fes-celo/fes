@@ -1,0 +1,28 @@
+---
+/**
+ * Reference: small pills stacked on Project Cards in the Figma components
+ * canvas (node 302:2) — e.g. "B2B" "B2C" "RECRUITMENT". Pulled from
+ * screenshot only, same caveat as Button.astro.
+ */
+interface Props {
+  tone?: 'onLight' | 'onDark'
+  class?: string
+}
+
+const { tone = 'onLight', class: className } = Astro.props
+
+const toneClasses: Record<string, string> = {
+  onLight: 'bg-neutral-100 text-ink-secondary',
+  onDark: 'bg-white/10 text-ink-inverse',
+}
+---
+
+<span
+  class:list={[
+    'inline-flex items-center rounded-full px-2.5 py-1 text-meta uppercase tracking-[0.01em]',
+    toneClasses[tone],
+    className,
+  ]}
+>
+  <slot />
+</span>

@@ -1,0 +1,56 @@
+---
+/**
+ * Reference: Figma FES-Brand components canvas (node 302:2) — three fill
+ * variants (tint / accent / dark) each paired with a circular icon chip,
+ * arrow direction signals internal vs external destinations. Pulled from
+ * screenshot only (get_design_context couldn't reach this node without a
+ * live desktop selection) — reconcile against the real component once that
+ * pull is unblocked.
+ */
+interface Props {
+  href: string
+  variant?: 'tint' | 'accent' | 'dark'
+  external?: boolean
+  class?: string
+}
+
+const { href, variant = 'accent', external = false, class: className } = Astro.props
+
+const fillClasses: Record<string, string> = {
+  tint: 'bg-accent-tint text-accent-default hover:bg-accent-tint-hover',
+  accent: 'bg-accent-default text-on-accent hover:bg-accent-hover',
+  dark: 'bg-ink text-ink-inverse hover:bg-neutral-800',
+}
+
+const chipClasses: Record<string, string> = {
+  tint: 'bg-accent-default text-on-accent',
+  accent: 'bg-white/15 text-on-accent',
+  dark: 'bg-white/10 text-ink-inverse',
+}
+
+// Every chip fill (solid accent, or a translucent overlay on accent/ink) is
+// dark enough that the arrow needs to stay white across all three variants.
+const arrowSrc = '/icons/icon-arrow-white.svg'
+---
+
+<a
+  href={href}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener noreferrer' : undefined}
+  class:list={[
+    'inline-flex items-center gap-3 rounded-full py-1.5 pl-5 pr-1.5 text-body-sm font-medium transition-colors',
+    fillClasses[variant],
+    className,
+  ]}
+>
+  <span><slot /></span>
+  <span class:list={['flex size-7 shrink-0 items-center justify-center rounded-full', chipClasses[variant]]}>
+    <img
+      src={arrowSrc}
+      alt=""
+      class:list={['size-3.5', external && 'rotate-[-45deg]']}
+      width="14"
+      height="14"
+    />
+  </span>
+</a>

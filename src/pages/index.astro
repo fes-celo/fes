@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Button from '../components/Button.astro'
+import StatBlock from '../components/StatBlock.astro'
+import TestimonialCard from '../components/TestimonialCard.astro'
+import ProjectCard from '../components/ProjectCard.astro'
+
+// Placeholder content only — Phase 0B checkpoint is a styled empty shell,
+// not final Phase 1 copy. Values below are real (ported from the old
+// prototype's content/site.ts) so the shell isn't rendering lorem ipsum,
+// but hero/positioning copy is still pending sign-off.
+const stats = [
+  { value: '+502', label: 'media placements per year' },
+  { value: '€3.5M', label: 'tracked client ROI' },
+  { value: '10', label: 'years in market' },
+]
+---
+
+<BaseLayout
+  title="FES Agency"
+  description="Porto-based communications agency for the Portuguese tech ecosystem."
+>
+  <section class="mx-auto max-w-[1280px] px-6 py-24 lg:px-[60px] lg:py-32" data-anim="reveal">
+    <p class="font-fono text-eyebrow uppercase text-accent-default">FES Agency</p>
+    <h1 class="mt-4 max-w-3xl text-display" data-anim="split-text">
+      Hero positioning — pending Phase 0A copy sign-off.
+    </h1>
+    <p class="mt-6 max-w-xl text-lead text-ink-secondary">Subheadline placeholder.</p>
+    <div class="mt-10">
+      <Button href="/contact/" variant="accent">Meet the Agency</Button>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-[1280px] px-6 pb-24 lg:px-[60px]" data-anim="reveal">
+    <h2 class="text-h2">
+      We drive <span class="text-accent-default">results</span>
+    </h2>
+    <dl class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
+      {stats.map((stat) => <StatBlock value={stat.value} label={stat.label} />)}
+    </dl>
+  </section>
+
+  <section class="mx-auto max-w-[1280px] px-6 pb-24 lg:px-[60px]" data-anim="reveal">
+    <h2 class="text-h2">Systems</h2>
+    <p class="mt-4 max-w-xl text-body text-ink-secondary">
+      Compact pointer toward Systems — placeholder, Phase 0A copy pending.
+    </p>
+    <div class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <ProjectCard
+        href="/systems/growth-communication/"
+        title="Growth & Communication System"
+        description="Turn communication into a growth engine."
+        tags={['B2B', 'B2C', 'Recruitment']}
+        variant="dark"
+      />
+      <ProjectCard
+        href="/systems/influence-reputation/"
+        title="Influence & Reputation System"
+        description="Communication that grows the business, not just the following."
+        tags={['B2B', 'B2C', 'Recruitment']}
+        variant="accent"
+      />
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-[1280px] px-6 pb-24 lg:px-[60px]" data-anim="reveal">
+    <h2 class="text-h2">What clients say</h2>
+    <div class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <TestimonialCard
+        quote="Placeholder testimonial — real quotes exist in the old prototype's content file, pending migration."
+        name="Client name"
+        role="Role, Company"
+      />
+    </div>
+  </section>
+</BaseLayout>

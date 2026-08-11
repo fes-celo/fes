@@ -1,0 +1,137 @@
+---
+import { ClientRouter } from 'astro:transitions'
+import SEO from '../components/SEO.astro'
+import '../styles/global.css'
+
+interface Props {
+  title: string
+  description: string
+  ogImage?: string
+  noindex?: boolean
+}
+
+const { title, description, ogImage, noindex } = Astro.props
+
+// Nav is four items per the confirmed brief (Agency · Systems · Projects ·
+// Contact) — this drops Resources from earlier plan/brief versions, which
+// still has 72 redirect-map rows pointing at /resources/. Flagged upstream;
+// Resources + Tech Refresh get a footer-only home until that's resolved.
+const navItems = [
+  { label: 'Agency', href: '/agency/' },
+  { label: 'Systems', href: '/systems/' },
+  { label: 'Projects', href: '/projects/' },
+  { label: 'Contact', href: '/contact/' },
+]
+
+const footerItems = [
+  { label: 'Resources', href: '/resources/' },
+  { label: 'Tech Refresh', href: '/tech-refresh/' },
+  { label: 'Careers', href: '/careers/' },
+]
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+
+    <link
+      rel="preload"
+      href="/fonts/Aeonik-Regular.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/Aeonik-Medium.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <SEO title={title} description={description} ogImage={ogImage} noindex={noindex} />
+    <ClientRouter />
+
+    {
+      /*
+        Cloudflare Web Analytics — pageviews only, no custom events (lead
+        measurement is the /contact/thank-you pattern, built in Phase 3).
+        Token depends on the Cloudflare Pages project, which isn't wired up
+        yet. Uncomment once PUBLIC_CF_BEACON_TOKEN is set.
+      */
+    }
+    {
+      import.meta.env.PUBLIC_CF_BEACON_TOKEN && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={`{"token": "${import.meta.env.PUBLIC_CF_BEACON_TOKEN}"}`}
+        />
+      )
+    }
+  </head>
+  <body class="min-h-screen bg-canvas text-ink">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent-default focus:px-4 focus:py-2 focus:text-on-accent"
+    >
+      Skip to content
+    </a>
+
+    <header class="border-b border-line-subtle">
+      <div class="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-6 py-5 lg:px-[60px]">
+        <a href="/" class="shrink-0">
+          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-6 w-auto" />
+        </a>
+        <nav aria-label="Primary">
+          <ul class="flex items-center gap-8">
+            {
+              navItems.map((item) => (
+                <li>
+                  <a href={item.href} class="text-body-sm font-medium text-ink-secondary hover:text-ink">
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="border-t border-line-subtle">
+      <div class="mx-auto flex max-w-[1280px] flex-col gap-8 px-6 py-16 lg:flex-row lg:items-start lg:justify-between lg:px-[60px]">
+        <div>
+          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-6 w-auto" />
+          <p class="mt-4 max-w-xs text-body-sm text-ink-muted">
+            Porto-based communications agency for the Portuguese tech ecosystem.
+          </p>
+        </div>
+        <nav aria-label="Footer">
+          <ul class="flex flex-col gap-3">
+            {
+              footerItems.map((item) => (
+                <li>
+                  <a href={item.href} class="text-body-sm text-ink-secondary hover:text-ink">
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+      </div>
+      <div class="border-t border-line-subtle px-6 py-6 text-center text-meta text-ink-muted lg:px-[60px]">
+        © {new Date().getFullYear()} FES Agency. All rights reserved.
+      </div>
+    </footer>
+  </body>
+</html>

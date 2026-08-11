@@ -1,0 +1,44 @@
+---
+/**
+ * Content/layout ported from the old React prototype's TestimonialCard.tsx,
+ * reskinned onto the new token system. Not yet pulled from Figma directly —
+ * same caveat as StatBlock.astro.
+ */
+interface Props {
+  quote: string
+  name: string
+  role: string
+  tag?: string
+  avatarSrc?: string
+  class?: string
+}
+
+const { quote, name, role, tag, avatarSrc, class: className } = Astro.props
+---
+
+<figure
+  class:list={[
+    'flex h-full min-h-[420px] w-full flex-col justify-between rounded-[var(--radius-card)] bg-surface-sunken p-8',
+    className,
+  ]}
+>
+  <div>
+    {tag && <p class="pb-2 text-meta uppercase tracking-[0.01em] text-accent-default">{tag}</p>}
+    <blockquote class="text-h3 font-normal text-ink">{quote}</blockquote>
+  </div>
+  <figcaption class="flex items-center gap-4 pt-8">
+    {
+      avatarSrc ? (
+        <img src={avatarSrc} alt={`Portrait of ${name}`} class="size-12 shrink-0 rounded-full object-cover" />
+      ) : (
+        <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-body-sm font-medium text-ink-secondary">
+          {name.charAt(0)}
+        </span>
+      )
+    }
+    <div>
+      <p class="text-body-sm font-medium text-accent-default">{name}</p>
+      <p class="text-body-sm text-ink-secondary">{role}</p>
+    </div>
+  </figcaption>
+</figure>

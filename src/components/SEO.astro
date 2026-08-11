@@ -1,0 +1,44 @@
+---
+interface Props {
+  title: string
+  description: string
+  ogImage?: string
+  noindex?: boolean
+}
+
+const { title, description, ogImage = '/og-default.jpg', noindex = false } = Astro.props
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site)
+const ogImageURL = new URL(ogImage, Astro.site)
+const siteTitle = title === 'FES Agency' ? title : `${title} · FES Agency`
+---
+
+<title>{siteTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonicalURL} />
+{noindex && <meta name="robots" content="noindex, nofollow" />}
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content={siteTitle} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={ogImageURL} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:site_name" content="FES Agency" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={siteTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImageURL} />
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'FES Agency',
+  url: Astro.site?.toString(),
+  logo: new URL('/fes-logo-dark.svg', Astro.site).toString(),
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Porto',
+    addressCountry: 'PT',
+  },
+})} />

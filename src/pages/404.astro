@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Button from '../components/Button.astro'
+---
+
+<BaseLayout
+  title="Page not found"
+  description="This page doesn't exist — but here's where to go instead."
+  noindex
+>
+  <section class="mx-auto flex max-w-[1280px] flex-col items-start gap-6 px-6 py-32 lg:px-[60px]">
+    <p class="font-fono text-eyebrow uppercase text-accent-default">404</p>
+    <h1 class="text-h1">This page doesn't exist.</h1>
+    <p class="max-w-xl text-lead text-ink-secondary">
+      The link may be out of date, or the page moved during our site migration. Start with Systems —
+      it's the fastest way to see what we do.
+    </p>
+    <Button href="/systems/" variant="accent">Go to Systems</Button>
+  </section>
+</BaseLayout>
