@@ -1,0 +1,173 @@
+---
+/**
+ * Addons strip (Figma node 927:1393, which lays the four cards out as a
+ * static 4-column grid). Runs as an infinite draggable marquee instead —
+ * deliberately the one motion section on the page that never touches
+ * ScrollTrigger, so there is a stretch of the page the reader drives with
+ * their hands rather than the scrollbar.
+ *
+ * Loop mechanics are src/lib/horizontalLoop.ts — GSAP's own documented
+ * helper, already vendored for LogoMarquee. Drag is constrained to `type:
+ * 'x'` inside that helper, which is what keeps a touch user's vertical
+ * page scroll working when their finger starts on a card.
+ */
+import SectionLabel from './SectionLabel.astro'
+
+export interface Addon {
+  title: string
+  description: string
+}
+
+interface Props {
+  heading?: string
+  addons: Addon[]
+  /** Sets of cards rendered. Raise if the strip looks sparse on wide screens. */
+  repeat?: number
+  class?: string
+}
+
+const { heading = 'Addons', addons, repeat = 3, class: className } = Astro.props as Props
+
+// Flattened so every card is a direct sibling — horizontalLoop measures and
+// wraps the cells individually, and that's also what the drag snaps to.
+const cells = Array.from({ length: repeat }).flatMap((_, set) =>
+  addons.map((addon) => ({ addon, isDuplicate: set > 0 }))
+)
+---
+
+<section class:list={['addons flex w-full flex-col gap-[var(--space-heading-gap)]', className]}>
+  <SectionLabel class="mx-[var(--space-gutter)]">{heading}</SectionLabel>
+
+  {
+    /* Hard-clipped, not faded, and asymmetric on purpose: the LEFT edge
+       matches the "Addons" heading's inset (same margin as the h2 above),
+       so the strip starts exactly where the heading does — but the RIGHT
+       edge runs to the true viewport edge with no padding, so cards clip
+       flush against the screen there rather than stopping at the gutter. */
+  }
+  <div class="addons__marquee relative ml-[var(--space-gutter)] overflow-hidden">
+    <div
+      class="addons__track flex w-max cursor-grab select-none active:cursor-grabbing"
+      data-addons-track
+    >
+      {
+        cells.map(({ addon, isDuplicate }) => (
+          <article
+            class="addons__card flex flex-col justify-between gap-10"
+            aria-hidden={isDuplicate ? 'true' : undefined}
+          >
+            <h3 class="text-h3 text-neutral-900">{addon.title}</h3>
+            <p class="text-body text-neutral-900">{addon.description}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .addons__card {
+    /* Fixed size in CSS, per horizontalLoop's measure note: the loop
+       geometry has to be correct before any content reflows it. Mobile
+       matches SystemProblemCards' ("Sound familiar?") own mobile card; the
+       desktop rule below matches its PINNED card, which is the state the two
+       sections are actually seen in next to each other. */
+    width: 80vw;
+    max-width: 26rem;
+    height: 28.625rem;
+    margin-right: 1.75rem;
+    flex-shrink: 0;
+    padding: var(--space-card-p);
+    border-radius: var(--radius-card);
+    background-color: var(--color-azure-50);
+  }
+
+  /* 3:4 at the same 30rem height as SystemProblemCards' pinned cards, so
+     both card rows on the page are one size. Kept as literals rather than
+     shared tokens: this component is a sibling, not a child, of that one — a
+     custom property can't cross between them without being promoted to a
+     global, which would put page-section geometry into the token layer. */
+  @media (min-width: 1024px) {
+    .addons__card {
+      width: 22.5rem;
+      max-width: none;
+      height: 30rem;
+    }
+  }
+</style>
+
+<script>
+  import type { HorizontalLoop } from '../lib/horizontalLoop'
+
+  // Still passed through even with no autoplay: horizontalLoop's `speed`
+  // sets the underlying timeline's total duration, which is what maps drag
+  // distance to visual movement (and what the inertia/snap math is scaled
+  // against) — it isn't only an autoplay pace.
+  const SPEED = 0.35
+
+  let loops: HorizontalLoop[] = []
+  let cleanups: Array<() => void> = []
+
+  /**
+   * horizontalLoop pulls in Draggable + InertiaPlugin (~40KB), and this
+   * strip sits near the bottom of a very long page. Loading them eagerly put
+   * them on the critical path and cost the page ~4 Lighthouse mobile points
+   * through CPU contention during first paint — the LCP here is TEXT, so
+   * every KB of module parsing before it delays the headline.
+   *
+   * Imported on approach instead. The 400px rootMargin means the strip is
+   * always already looping by the time it's actually on screen.
+   */
+  async function init() {
+    const tracks = Array.from(document.querySelectorAll<HTMLElement>('[data-addons-track]'))
+    if (tracks.length === 0) return
+
+    await new Promise<void>((resolve) => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return
+          observer.disconnect()
+          resolve()
+        },
+        { rootMargin: '400px' }
+      )
+      tracks.forEach((t) => observer.observe(t))
+      // A teardown mid-wait must not leave this promise (and the observer)
+      // dangling across a client-side navigation.
+      cleanups.push(() => {
+        observer.disconnect()
+        resolve()
+      })
+    })
+
+    // The page may have been swapped out while we waited.
+    if (!document.body.contains(tracks[0]!)) return
+
+    const { horizontalLoop } = await import('../lib/horizontalLoop')
+    if (!document.body.contains(tracks[0]!)) return
+
+    // Always paused — this strip never auto-advances, only drag moves it.
+    // horizontalLoop's own drag/inertia/snap-to-nearest work identically
+    // whether the underlying repeat:-1 timeline is playing or not; dragging
+    // just scrubs its progress directly.
+    tracks.forEach((track) => {
+      const loop = horizontalLoop(track.children, {
+        speed: SPEED,
+        draggable: true,
+        paused: true,
+      })
+      if (!loop) return
+      loops.push(loop)
+    })
+  }
+
+  function teardown() {
+    loops.forEach((loop) => loop.destroy())
+    loops = []
+    cleanups.forEach((fn) => fn())
+    cleanups = []
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

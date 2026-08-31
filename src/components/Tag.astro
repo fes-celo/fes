@@ -3,23 +3,32 @@
  * Reference: small pills stacked on Project Cards in the Figma components
  * canvas (node 302:2) — e.g. "B2B" "B2C" "RECRUITMENT". Pulled from
  * screenshot only, same caveat as Button.astro.
+ *
+ * tone="overlay" is a second treatment for the small uppercase label pinned
+ * top-left over a ProjectCard thumbnail (e.g. "VIDEO-SERIES") — a white
+ * rounded-full chip rather than a tinted rounded-button chip, since it has
+ * to read over an arbitrary image rather than a flat card surface. Radius
+ * lives per-tone (not a shared base class) so overlay's rounded-full and
+ * onLight/onDark's rounded-button never collide as two utility classes on
+ * the same element.
  */
 interface Props {
-  tone?: 'onLight' | 'onDark'
+  tone?: 'onLight' | 'onDark' | 'overlay'
   class?: string
 }
 
 const { tone = 'onLight', class: className } = Astro.props
 
 const toneClasses: Record<string, string> = {
-  onLight: 'bg-neutral-100 text-ink-secondary',
-  onDark: 'bg-white/10 text-ink-inverse',
+  onLight: 'rounded-[var(--radius-button)] bg-neutral-100 text-ink-secondary',
+  onDark: 'rounded-[var(--radius-button)] bg-white/10 text-neutral-300',
+  overlay: 'rounded-full bg-white text-ink shadow-[var(--shadow-card)]',
 }
 ---
 
 <span
   class:list={[
-    'inline-flex items-center rounded-full px-2.5 py-1 text-meta uppercase tracking-[0.01em]',
+    'inline-flex items-center px-2 py-1.5 text-[length:var(--text-meta)] font-normal uppercase tracking-[0.01em]',
     toneClasses[tone],
     className,
   ]}

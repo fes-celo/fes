@@ -1,0 +1,301 @@
+---
+/**
+ * Plain text legal page — white canvas, no header/footer dividers (see
+ * BaseLayout's `bordered` prop). Nav is the same hideHeader + inline <nav>
+ * pattern as the Projects page (same padding/margins), not BaseLayout's
+ * default bordered header.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import { navItems } from '../../lib/nav'
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description="How FES Agency collects, uses and protects personal data of users of this website."
+  hideHeader
+>
+  <nav aria-label="Primary" class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)]">
+    <div class="flex items-center justify-between gap-6">
+      <a href="/" class="shrink-0">
+        <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+      </a>
+      <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+        {
+          navItems.map((item) => (
+            <li>
+              <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <button
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        data-nav-toggle
+      >
+        Menu
+      </button>
+    </div>
+  </nav>
+
+  <section class="bg-surface px-[var(--space-gutter)] pt-10 pb-[var(--space-section-y)]">
+    <div class="mx-auto flex max-w-[760px] flex-col gap-10">
+      <h1 class="text-h1 text-ink">Privacy Policy</h1>
+
+      <div class="flex flex-col gap-10 text-body text-ink-secondary [&_a]:text-ink [&_a]:underline [&_a:hover]:text-ink-secondary">
+        <div class="flex flex-col gap-4">
+          <p>
+            This Privacy Policy governs the processing of the personal data of users (hereinafter "User" or
+            "Users"), collected in the context of the use of this website https://fesagency.pt/ (hereinafter
+            "Website"), by Press Play, Unipessoal, Lda. (hereinafter "FES Agency").
+          </p>
+          <p>
+            This Privacy Policy applies exclusively to the processing of personal data carried out by FES Agency in
+            the context of the use of the website, in which personal information is deemed to relate to a natural
+            person, of any nature and regardless of its support, identified or identifiable.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Our Commitment</h2>
+          <p>
+            We ensure compliance with the obligations under Regulation (EU) 2016/679 of the European Parliament and
+            of the Council, General Data Protection Regulation (hereinafter "GDPR"), and other legislation on
+            personal data protection and privacy.
+          </p>
+          <p>
+            The respect for your privacy, the protection of your personal data and the compliance with the legal
+            obligations applicable in this area is a priority for us, which is why we are committed to only
+            processing your personal data that is strictly necessary for us to provide you with the best service,
+            ensuring respect for your privacy, transparency in information and the application of best practices in
+            the field of security and protection of personal data.
+          </p>
+          <p>
+            Where your personal data is processed by contractors, we will require them to provide the same level of
+            security and privacy safeguards in respect of the protection of personal data.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Data Controller</h2>
+          <p>
+            The Data Controller of the Users personal data is Press Play, Unipessoal, Lda., with the trade name FES
+            Agency, with headquarters at Praça das Flores, 91, 4.º D, 4300-401 Porto, with a share capital of € 500,
+            registered at the Commercial Registry Office under the sole registration and tax identification number
+            513 906 169.
+          </p>
+          <p>
+            FES Agency guarantees compliance with the regulations governing the protection of personal data by
+            providing the following information regarding the processing of personal data of Users communicated or
+            otherwise collected in the context of the use of this Website.
+          </p>
+          <p>
+            If you need to contact us, you may do it via the following e-mail address: <a href="mailto:hello@fesagency.pt">hello@fesagency.pt</a>.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Purposes, lawfulness of the processing and storage period</h2>
+          <p>
+            The User can access, navigate, and use this website without necessarily having to provide any personal
+            information, without prejudice to the navigation data necessary for the correct management of the
+            website. However, the use of certain website tools may require the provision of personal data.
+          </p>
+          <p>
+            In this context, the processing of your personal data has the following purposes, the basis of
+            lawfulness and retention periods:
+          </p>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Website Management</h3>
+            <p>
+              The computer systems and software procedures used to operate this Website acquire, during their
+              normal operation, some personal data whose transmission is implicit in the use of Internet
+              communication protocols. This data (such as for example, domain names, IP addresses, operating system
+              used, type of device and browser used for connection) is not accompanied by any additional personal
+              information.
+            </p>
+            <p>
+              The processing of this personal data is necessary to allow the use of the website, and that
+              processing is based on the execution of a contract whose terms are governed by the Terms and
+              conditions and, in the absence thereof, by the general principles of law. Your data will be stored in
+              accordance with the information provided in the cookies policy.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Newsletters</h3>
+            <p>
+              The personal data provided by the user via the form are collected and processed for the periodic
+              sending, by email, of newsletters and advertising material; and to receive updates on our activities
+              and products. For the sake of complete information, we would like to point out that when sending out
+              communications, FES Agency makes use of Mailchimp Platform.
+            </p>
+            <p>
+              The processing of personal data is carried out based on your consent when you subscribe to our
+              electronic communications. You may remove your consent at any time by opt-out available in the
+              newsletters you receive by email, at which point FES Agency will no longer store your personal data
+              for this purpose.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Contact and Complaints Management</h3>
+            <p>
+              The processing of this data is necessary for the reception, analysis, follow-up and response to
+              requests for information and/or complaints. This processing is based on the legitimate interest of
+              FES Agency in duly following up on your requests and in compliance with legal obligations.
+            </p>
+            <p>
+              The data is only stored for the time strictly necessary to manage and fulfill the purposes for which
+              it is collected, in compliance with the regulations in force and legal obligations.
+            </p>
+            <p>
+              In any case, FES Agency adopts procedures that prevent the storage of data indefinitely and therefore
+              limits the storage period in accordance with the principle of data minimization and storage
+              limitation. Once the defined storage period has expired, we undertake to delete, destroy, or
+              anonymize your personal data, except for the data that we are required by law to keep for a longer,
+              legally determined period.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Categories of Data</h2>
+          <p>
+            In the context of the mentioned purposes, we only process data that is strictly necessary for the
+            pursuit of these purposes, namely:
+          </p>
+          <ul class="list-disc pl-6">
+            <li>Personal identification and contact data (e.g., name, email); and/or</li>
+            <li>Traffic data (via Cookies).</li>
+          </ul>
+          <p>
+            FES Agency does not process sensitive data categories revealing racial or ethnic origin, political
+            opinions, religious or philosophical beliefs, or trade union membership, as well as the processing of
+            genetic data, biometric data for the purpose of uniquely identifying a natural person, data concerning
+            health or data concerning a natural person's sex life or sexual orientation.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Personal Data Sharing</h2>
+          <p>
+            The processing of the data collected is carried out by internal staff, identified for this purpose, and
+            authorised to process the data in accordance with specific instructions given in compliance with
+            current legislation.
+          </p>
+          <p>
+            In certain cases, we may disclose your personal data, to the extent strictly necessary, to entities
+            that provide services to us ("Processors") for the purposes mentioned above, under the terms of the
+            contracts entered with them.
+          </p>
+          <p>
+            In the event that your personal data is to be shared with service providers located outside the
+            European Union, we will ensure that your personal data receives a high level of protection under
+            applicable data protection legislation by arranging for the transfer under an adequacy decision of the
+            European Commission or under the standard data protection clauses (or similar) approved by the European
+            Commission.
+          </p>
+          <p>
+            Your data may also be communicated to authorities or third parties when the transmission is carried out
+            in order to comply with a legal and/or contractual obligation, a decision of the Comissão Nacional de
+            Proteção de Dados ("CNPD") or another relevant supervisory entity, or a judicial order.
+          </p>
+          <p>In any case, personal data will never be disseminated, with other companies or brands for other commercial purposes.</p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Rights of the data subject</h2>
+          <p>
+            In accordance with the law, and as the data subject of personal data, User may at any time request the
+            right to access, rectification, erasure of your personal data, restriction of processing, portability,
+            objection and not to be subject to automated decisions, depending on their applicability.
+          </p>
+          <p>In cases where the User has given consent for certain processing of your personal data, you may withdraw it at any time.</p>
+          <p>
+            To exercise any of these rights, you should do so by request to the following email address: <a href="mailto:hello@fesagency.pt">hello@fesagency.pt</a>
+          </p>
+          <p>
+            You may also contact us on all matters relating to the processing of your data and the exercise of your
+            rights under applicable law and, in particular, under this Privacy Policy, via the email address
+            indicated.
+          </p>
+          <p>
+            Without prejudice to any other administrative or judicial remedy, you may also lodge a complaint with
+            the CNPD if you believe that the processing of your personal data by us violates the legal regime in
+            force.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Cookies</h2>
+          <p>
+            We recommend that the User read our <a href="/cookies-policy/">Cookies Policy</a>, which is an integral
+            part of this policy, for more information on how we process your personal data through this
+            functionality.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Security Measures</h2>
+          <p>
+            We have a variety of information security measures implemented in line with national and international
+            best practices to protect your personal data, including technological controls, administrative,
+            technical, and physical measures and procedures that ensure the protection of your personal data,
+            preventing misuse, unauthorised access to data, disclosure, loss, improper or inadvertent alteration or
+            destruction.
+          </p>
+          <p>
+            In terms of information security, we assume the same commitment to continuous improvement by which we
+            are guided in our daily activities.
+          </p>
+          <p>Among others, we highlight the following measures:</p>
+          <ul class="list-disc pl-6">
+            <li>Restricted access to your personal data;</li>
+            <li>Storage and transmission of your personal data safely;</li>
+            <li>Protection of information systems through devices that prevent unauthorised access to your personal data;</li>
+            <li>Implementation of mechanisms that guarantee the safeguarding of the integrity and quality of your personal data;</li>
+            <li>Permanent monitoring of the information systems, with the objective of preventing, detecting and avoiding the improper use of your personal data;</li>
+            <li>Protection of equipment for storage, processing, and communication of personal data, in order to avoid loss of availability.</li>
+          </ul>
+          <p>
+            It is, however, the responsibility of the Users to guarantee and ensure that the devices and equipment
+            used to access this Website are adequately protected against harmful software, computer viruses and
+            worms.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Hyperlinks</h2>
+          <p>
+            We may provide hyperlinks to other websites of interest, but we are not responsible for the privacy
+            policy, cookie policy or terms of use of those websites.
+          </p>
+          <p>
+            By accessing other websites through the hyperlinks provided, the operators of these websites may
+            collect information about you that will be used by them. We highly recommend that when accessing other
+            websites, Users consult all the information and conditions mentioned above.
+          </p>
+          <p>
+            When you choose to follow us on social networks, when you interact with us on them, or when you access
+            the site through them, your personal data may be processed by the organisations managing the social
+            networks or the functionalities provided, in accordance with their respective privacy policies, which
+            we recommend you to read.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Updates to the Privacy Policy</h2>
+          <p>This Privacy Policy may be revised and updated at any time and these changes will be duly announced on the website.</p>
+          <p class="text-ink-muted">Date of last update: 19/02/2024</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

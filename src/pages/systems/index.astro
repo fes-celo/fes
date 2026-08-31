@@ -1,0 +1,234 @@
+---
+/**
+ * Systems page (Figma desktop node 770:778). Hero nav is overlaid on its
+ * own light background image rather than BaseLayout's bordered header —
+ * same hideHeader pattern as the homepage Hero and the Agency page, see
+ * BaseLayout's hideHeader prop.
+ *
+ * Hero is `position: sticky` with `h-screen` (was `relative` with a
+ * content-driven `min-h-[720px] lg:min-h-[1080px]`) — ported from the
+ * homepage Hero (see Hero.astro) per user request, so it always occupies
+ * the full viewport and every section below scrolls up and covers it on
+ * the z-axis, exactly like the homepage, Agency and Careers pages.
+ *
+ * "What we do" is SystemsWhatWeDo (theme="light") — see that component for
+ * the Figma reference (node 1024:4457).
+ */
+import { Image } from 'astro:assets'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import { navItems } from '../../lib/nav'
+import ourWorkCta from '../../assets/systems/our-work-cta.jpg'
+import heroLight from '../../assets/hero/hero-light.jpg'
+import DualCta from '../../components/DualCta.astro'
+import SystemsWhatWeDo from '../../components/SystemsWhatWeDo.astro'
+
+// Questions shipped exactly as authored in the Figma FAQ frame (node
+// 770:839) — the left column's paragraph duplicates the Agency page's
+// "Direct" pillar text verbatim there too; kept as-is per the same
+// literal-content convention used for the homepage's testimonials. Figma
+// only had the questions (numbered, not expandable) — answers below are
+// placeholder copy written to demo the accordion; swap in the real thing
+// whenever it's ready.
+const faqs = [
+  {
+    question: 'Do you only work with tech companies?',
+    answer:
+      "Tech is where we've spent the last decade, so it's where our systems are sharpest. We take on non-tech clients when the problem is one we've already solved before — otherwise we'll say so upfront.",
+  },
+  {
+    question: 'What exactly is a "System"?',
+    answer:
+      "A System is a fixed set of services built to solve one recurring problem — growth, reputation, or brand — designed to work together from the start instead of being assembled project by project.",
+  },
+  {
+    question: 'How long before I see results?',
+    answer:
+      'Depends on the System. Reputation and brand work compound over months; growth and communication metrics usually start moving within the first 4–6 weeks.',
+  },
+  {
+    question: 'What if I only need one specific thing?',
+    answer:
+      "Systems are built from individual services, so you can start with just the piece you need. Most clients end up expanding once they see how the rest connects.",
+  },
+  {
+    question: 'Do you offer fixed pricing or packages?',
+    answer:
+      'Each System has a starting scope and price, adjusted to your size and goals after a first call. No hidden retainers, no surprise line items.',
+  },
+  {
+    question: 'Can I combine more than one System?',
+    answer:
+      "Yes — a lot of clients run two Systems in parallel once the first is working. We just make sure the combined workload still makes sense for both sides.",
+  },
+]
+---
+
+<BaseLayout
+  title="Systems"
+  description="Growth & Communication, Influence & Reputation, and Creative Project Blueprint — the three systems FES Agency builds for Portuguese tech companies."
+  hideHeader
+  bordered
+>
+  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]">
+    <Image
+      src={heroLight}
+      alt=""
+      width={2560}
+      height={1440}
+      class="pointer-events-none absolute inset-0 size-full object-cover"
+    />
+
+    <nav aria-label="Primary" class="relative z-10">
+      <div class="flex items-center justify-between gap-6">
+        <a href="/" class="shrink-0">
+          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        </a>
+        <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+          {
+            navItems.map((item) => (
+              <li>
+                <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          data-nav-toggle
+        >
+          Menu
+        </button>
+      </div>
+    </nav>
+
+    <div class="relative z-10">
+      <h1 class="max-w-[22ch] text-display text-ink" data-anim="split-text">The same problems kept showing up. So we built systems for them.</h1>
+      <p class="mt-7 max-w-[820px] text-lead text-ink-secondary" data-anim="reveal">
+        Every system carries what we learned building growth, reputation, and brand for tech companies — already
+        tested, ready to apply to yours.
+      </p>
+    </div>
+  </section>
+
+  <SystemsWhatWeDo theme="light" class="relative z-10" />
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
+    <div class="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-20">
+      <div class="flex flex-col gap-6">
+        <h2 class="text-h3 text-ink">FAQ</h2>
+        <p class="text-lead text-neutral-400">
+          We don't reach for jargon to sound smarter than the message requires. If something isn't going to work, we
+          say so before it happens, not after. Our voice is direct, no detours.
+        </p>
+      </div>
+      <div class="flex flex-col" data-faq-accordion>
+        {
+          faqs.map((f, i) => (
+            <div class="border-b border-line">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-4 py-7 text-left"
+                aria-expanded={i === 0 ? 'true' : 'false'}
+                aria-controls={`faq-answer-${i}`}
+                data-faq-trigger
+              >
+                <span class="text-h3 text-ink">{f.question}</span>
+                <span
+                  class="flex size-6 shrink-0 items-center justify-center rounded-full border border-neutral-200 text-neutral-400 transition-transform duration-200"
+                  data-faq-icon
+                >
+                  <img src="/icons/icon-plus.svg" alt="" class="size-3" width="12" height="12" />
+                </span>
+              </button>
+              <div id={`faq-answer-${i}`} data-faq-panel>
+                <div class="overflow-hidden">
+                  <p class="pb-7 text-body text-neutral-400">{f.answer}</p>
+                </div>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <DualCta
+    leftHeading="Not sure which System fits? Let's talk."
+    leftHref="/contact/"
+    leftLabel="Get in touch"
+    rightHeading="Real world proof?"
+    rightHref="/projects/"
+    rightLabel="Our work"
+    rightImage={ourWorkCta}
+  />
+</BaseLayout>
+
+<style>
+  /* FAQ accordion: grid-template-rows 0fr/1fr animates height without
+     measuring scrollHeight in JS — the inner overflow-hidden div clips the
+     collapsed content. Driven entirely by the trigger's aria-expanded, so
+     the JS below only has to flip that attribute. */
+  [data-faq-panel] {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 300ms ease;
+  }
+  [data-faq-trigger][aria-expanded='true'] + [data-faq-panel] {
+    grid-template-rows: 1fr;
+  }
+  [data-faq-trigger][aria-expanded='true'] [data-faq-icon] {
+    transform: rotate(45deg);
+  }
+</style>
+
+<script>
+  // FAQ accordion — single-open: expanding one trigger collapses the
+  // others. Height animation lives in the <style> block above, keyed off
+  // the trigger's aria-expanded; this just flips that attribute.
+  let faqCleanup: (() => void) | null = null
+
+  function setupFaqAccordion() {
+    const root = document.querySelector<HTMLElement>('[data-faq-accordion]')
+    if (!root) return
+
+    const triggers = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-faq-trigger]'))
+    if (triggers.length === 0) return
+
+    function onClick(trigger: HTMLButtonElement) {
+      const isOpen = trigger.getAttribute('aria-expanded') === 'true'
+      triggers.forEach((t) => t.setAttribute('aria-expanded', t === trigger && !isOpen ? 'true' : 'false'))
+    }
+
+    const listeners = triggers.map((trigger) => {
+      const handler = () => onClick(trigger)
+      trigger.addEventListener('click', handler)
+      return { trigger, handler }
+    })
+
+    faqCleanup = () => {
+      listeners.forEach(({ trigger, handler }) => trigger.removeEventListener('click', handler))
+    }
+  }
+
+  function teardownFaqAccordion() {
+    faqCleanup?.()
+    faqCleanup = null
+  }
+
+  function init() {
+    setupFaqAccordion()
+  }
+
+  function teardown() {
+    teardownFaqAccordion()
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

@@ -1,0 +1,211 @@
+---
+/**
+ * Dark-page Addons strip (Figma node 975:618, the Influence & Reputation
+ * dark variant). Same draggable infinite-loop mechanics as
+ * SystemAddonsMarquee (src/lib/horizontalLoop.ts), plus two things that
+ * page doesn't have: a "Talk to us" CTA next to the heading, and autoplay —
+ * the loop eases forward by exactly one card on a timer instead of only
+ * responding to drag. A separate component rather than a prop on
+ * SystemAddonsMarquee: the light page's marquee is deliberately the one
+ * hands-only section on the site (see that component's own docstring), and
+ * folding autoplay into it as an opt-in would blur that intent for every
+ * future consumer.
+ *
+ * Card colors are dark literals (neutral-900/neutral-800), not tokens —
+ * this component only ever renders inside the dark page's own dark-zone
+ * wrapper, so there's no light-mode state for it to adapt to.
+ */
+export interface Addon {
+  title: string
+  description: string
+}
+
+interface Props {
+  heading?: string
+  addons: Addon[]
+  ctaLabel?: string
+  ctaHref?: string
+  /** Sets of cards rendered. Raise if the strip looks sparse on wide screens. */
+  repeat?: number
+  class?: string
+}
+
+const {
+  heading = 'Addons',
+  addons,
+  ctaLabel = 'Talk to us',
+  ctaHref = '/contact/',
+  repeat = 3,
+  class: className,
+} = Astro.props as Props
+
+// Flattened so every card is a direct sibling — horizontalLoop measures and
+// wraps the cells individually, and that's also what the drag/autoplay snap to.
+const cells = Array.from({ length: repeat }).flatMap((_, set) =>
+  addons.map((addon) => ({ addon, isDuplicate: set > 0 }))
+)
+---
+
+<section class:list={['addons-carousel flex w-full flex-col gap-[var(--space-heading-gap)]', className]}>
+  <div class="mx-[var(--space-gutter)] flex items-center justify-between gap-6 border-t border-current/20 pt-4 text-ink-muted-inverse">
+    <h2 class="text-lead">{heading}</h2>
+    <a
+      href={ctaHref}
+      class="group flex shrink-0 items-center gap-2 text-body-sm text-neutral-300 transition-colors hover:text-white"
+    >
+      <span
+        class="chip-arrow size-3 shrink-0 bg-neutral-300 transition-colors group-hover:bg-white"
+        aria-hidden="true"
+      ></span>
+      {ctaLabel}
+    </a>
+  </div>
+
+  {
+    /* Same hard-clip / asymmetric-inset treatment as SystemAddonsMarquee:
+       left edge lines up with the heading, right edge runs to the true
+       viewport edge. */
+  }
+  <div class="addons-carousel__marquee relative ml-[var(--space-gutter)] overflow-hidden">
+    <div class="addons-carousel__track flex w-max cursor-grab select-none active:cursor-grabbing" data-addons-track>
+      {
+        cells.map(({ addon, isDuplicate }) => (
+          <article class="addons-carousel__card flex flex-col justify-between gap-10" aria-hidden={isDuplicate ? 'true' : undefined}>
+            <h3 class="text-h3 text-neutral-100">{addon.title}</h3>
+            <p class="text-body text-neutral-400">{addon.description}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .chip-arrow {
+    mask-image: url('/icons/icon-arrow-white.svg');
+    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-position: center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+    transform: rotate(-45deg);
+  }
+
+  .addons-carousel__card {
+    width: 80vw;
+    max-width: 26rem;
+    height: 28.625rem;
+    margin-right: 1.75rem;
+    flex-shrink: 0;
+    padding: var(--space-card-p);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-neutral-800);
+    background-color: var(--color-neutral-900);
+  }
+
+  @media (min-width: 1024px) {
+    .addons-carousel__card {
+      width: 22.5rem;
+      max-width: none;
+      height: 30rem;
+    }
+  }
+</style>
+
+<script>
+  import type { HorizontalLoop } from '../lib/horizontalLoop'
+
+  const SPEED = 0.35
+  /** How long each card holds in place before the next ease-forward. */
+  const HOLD_S = 3.2
+  const ADVANCE = { duration: 0.9, ease: 'power2.inOut' }
+
+  let loops: HorizontalLoop[] = []
+  let cleanups: Array<() => void> = []
+
+  async function init() {
+    const tracks = Array.from(document.querySelectorAll<HTMLElement>('[data-addons-track]'))
+    if (tracks.length === 0) return
+
+    await new Promise<void>((resolve) => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return
+          observer.disconnect()
+          resolve()
+        },
+        { rootMargin: '400px' }
+      )
+      tracks.forEach((t) => observer.observe(t))
+      cleanups.push(() => {
+        observer.disconnect()
+        resolve()
+      })
+    })
+
+    if (!document.body.contains(tracks[0]!)) return
+
+    const { horizontalLoop } = await import('../lib/horizontalLoop')
+    if (!document.body.contains(tracks[0]!)) return
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    tracks.forEach((track) => {
+      const loop = horizontalLoop(track.children, {
+        speed: SPEED,
+        draggable: true,
+        paused: true,
+      })
+      if (!loop) return
+      loops.push(loop)
+
+      // Reduced motion: drag still works (paused: true above already
+      // covers that), but nothing advances on its own.
+      if (reducedMotion) return
+
+      let timer = 0
+      let hovering = false
+
+      function tick() {
+        if (hovering) return
+        loop!.next(ADVANCE)
+      }
+
+      timer = window.setInterval(tick, HOLD_S * 1000)
+
+      const onEnter = () => {
+        hovering = true
+      }
+      const onLeave = () => {
+        hovering = false
+      }
+      track.addEventListener('mouseenter', onEnter)
+      track.addEventListener('mouseleave', onLeave)
+      // Keyboard/touch focus inside the strip pauses it the same way hover
+      // does — nothing here is individually focusable, but a future card
+      // link shouldn't have its target yanked out from under it mid-read.
+      track.addEventListener('focusin', onEnter)
+      track.addEventListener('focusout', onLeave)
+
+      cleanups.push(() => {
+        window.clearInterval(timer)
+        track.removeEventListener('mouseenter', onEnter)
+        track.removeEventListener('mouseleave', onLeave)
+        track.removeEventListener('focusin', onEnter)
+        track.removeEventListener('focusout', onLeave)
+      })
+    })
+  }
+
+  function teardown() {
+    loops.forEach((loop) => loop.destroy())
+    loops = []
+    cleanups.forEach((fn) => fn())
+    cleanups = []
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

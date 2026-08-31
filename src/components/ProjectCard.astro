@@ -1,75 +1,274 @@
 ---
 /**
  * Reference: the "Growth & Communication System" card states on the Figma
- * components canvas (node 302:2) — dark, light, and accent fills, each with
- * a stacked tag row, title, description, and a circular arrow chip pinned
- * bottom-right. Pulled from screenshot only, same caveat as Button.astro —
- * spacing here is estimated, not extracted.
+ * components canvas (node 302:2) for variant="light|dark|accent" — dark,
+ * light, and accent fills, each with a stacked tag row, title, description,
+ * and a circular arrow chip pinned bottom-right.
+ *
+ * variant="featured" is a second layout pulled from the homepage's Selected
+ * Projects frame (node 770:273): full-bleed image, a small client-brand icon
+ * chip, title and description below — no card background/padding/arrow chip.
+ * Added here rather than as a new component since it's the same "project
+ * card" concept with a different image-bearing layout.
+ *
+ * The icon chip is homepage-only — the /projects/ grid's card (Figma node
+ * 770:948) has no icon at all, just title+description under the thumbnail.
+ * The whole icon <span> is gated on the `icon` prop (not just the <Image>
+ * inside it) so omitting `icon` drops the leading icon column entirely
+ * instead of leaving an empty colored box.
  */
+import type { ImageMetadata } from 'astro'
+import { Image } from 'astro:assets'
 import Tag from './Tag.astro'
 
 interface Props {
   href: string
   title: string
-  description: string
+  description?: string
   tags?: string[]
-  variant?: 'light' | 'dark' | 'accent'
+  variant?: 'light' | 'dark' | 'accent' | 'dark-card' | 'featured'
+  image?: ImageMetadata
+  imageAlt?: string
+  imageAspect?: string
+  /** Rendered width in CSS px at the largest breakpoint — requests a right-sized derivative instead of the raw source. */
+  imageWidth?: number
+  imageHeight?: number
+  /**
+   * `sizes` for the thumbnail's srcset. Must describe the CARD's rendered
+   * width at each breakpoint, so it belongs to the grid that lays the cards
+   * out, not to this component — /projects/ runs 3-up at lg where the
+   * homepage runs 2-up and 4-up. Defaults to the always-correct-but-
+   * pessimistic 100vw; pass the real value from the grid.
+   */
+  imageSizes?: string
+  icon?: ImageMetadata
+  iconBg?: string
+  /** variant="featured" only — row 1 (large cards) runs 26px/24px, row 2 (small cards) runs 24px/18px. */
+  size?: 'lg' | 'sm'
+  /**
+   * variant="featured" only — small uppercase micro-label (e.g.
+   * "VIDEO-SERIES") pinned top-left over the thumbnail. Per-project data,
+   * not decoration: omitted entirely when a project has no tag.
+   */
+  tag?: string
   class?: string
 }
 
-const { href, title, description, tags = [], variant = 'light', class: className } = Astro.props
+const {
+  href,
+  title,
+  description,
+  tags = [],
+  variant = 'light',
+  image,
+  imageAlt = '',
+  imageAspect = 'aspect-[886/580]',
+  imageWidth = 886,
+  imageHeight = 580,
+  imageSizes = '100vw',
+  icon,
+  iconBg = 'var(--color-neutral-100)',
+  size = 'lg',
+  tag,
+  class: className,
+} = Astro.props
+
+// Derivative widths around the card's own rendered size: half for narrow
+// columns, 2x for the DPR-2 case that `imageWidth * 2` used to cover on its
+// own. That single fixed 2x source was the whole srcset before, so a phone
+// downloaded the 1772px-wide render of a 343px-wide card.
+const imageWidths = [0.5, 1, 1.5, 2].map((m) => Math.round(imageWidth * m))
+
+// Below lg, title runs at the SAME size as this card's own description (see
+// featuredDescriptionClasses below) rather than its larger desktop size — a
+// single-column mobile layout reads title and description as one block, so
+// the two-tier size difference just looked inconsistent card-to-card. Each
+// size restores its own bigger desktop title at lg.
+const featuredTitleClasses: Record<string, string> = {
+  lg: 'text-lead font-medium',
+  sm: 'text-body font-medium',
+}
+// font-normal is explicit even though text-body/text-lead already carry
+// their own font-weight — defends against an ambient `font-medium` on a
+// parent leaking through the shared `--tw-font-weight` custom property,
+// which utilities resolve through as a fallback rather than a hard value.
+const featuredDescriptionClasses: Record<string, string> = {
+  lg: 'text-body font-normal',
+  sm: 'text-body-sm font-normal',
+}
 
 const surfaceClasses: Record<string, string> = {
   light: 'bg-surface text-ink',
   dark: 'bg-ink text-ink-inverse',
   accent: 'bg-accent-default text-on-accent',
+  // Homepage "What we do" cards (node 770:233 etc.) — a lighter dark card
+  // sitting on the section's own neutral-950 background, distinct from the
+  // solid "dark" variant above.
+  'dark-card': 'border border-neutral-800 bg-neutral-900 text-ink-inverse',
+}
+
+// "What we do" cards run larger, regular-weight type (Figma: 48px/24px)
+// than the default light/dark/accent System card preset (26-38px/14px).
+// Title uses container query units (not the sitewide viewport-fluid scale)
+// so it sizes to the card's own rendered width — see the [container-type]
+// wrapper below. Calibrated so "Digital Communication" fits on one line at
+// typical card widths; adjust the divisor in the <style> block if a future
+// title needs re-tuning.
+const titleSizeClasses: Record<string, string> = {
+  'dark-card': 'card-title font-normal',
+}
+const descriptionSizeClasses: Record<string, string> = {
+  'dark-card': 'text-lead font-normal opacity-80',
 }
 
 const tagTone: Record<string, 'onLight' | 'onDark'> = {
   light: 'onLight',
   dark: 'onDark',
   accent: 'onDark',
+  'dark-card': 'onDark',
 }
 
+// Outlined circle, light stroke, transparent fill by default; on hover the
+// circle fills solid and the arrow inverts to a dark tone.
 const chipClasses: Record<string, string> = {
-  light: 'bg-ink text-ink-inverse',
-  dark: 'bg-white/10 text-ink-inverse',
-  accent: 'bg-white/15 text-on-accent',
+  light: 'border-ink/30 group-hover:border-ink group-hover:bg-ink',
+  dark: 'border-white/40 group-hover:border-white group-hover:bg-white',
+  accent: 'border-on-accent/40 group-hover:border-on-accent group-hover:bg-on-accent',
+  'dark-card': 'border-neutral-400 group-hover:border-neutral-100 group-hover:bg-neutral-100',
+}
+const chipIconClasses: Record<string, string> = {
+  light: 'bg-ink group-hover:bg-white',
+  dark: 'bg-white group-hover:bg-ink',
+  accent: 'bg-on-accent group-hover:bg-accent-default',
+  'dark-card': 'bg-neutral-200 group-hover:bg-ink',
 }
 ---
 
-<a
-  href={href}
-  class:list={[
-    'group relative flex min-h-[320px] flex-col justify-between gap-8 rounded-[var(--radius-card)] p-8 transition-shadow hover:shadow-[var(--shadow-card-hover)]',
-    surfaceClasses[variant],
-    className,
-  ]}
->
-  <div class="flex flex-col gap-4">
-    <h3 class="text-h3">{title}</h3>
-    <p class="text-body-sm opacity-80">{description}</p>
-  </div>
-
-  <div class="flex items-end justify-between gap-4">
-    {
-      tags.length > 0 && (
-        <ul class="flex flex-wrap gap-2">
-          {tags.map((t) => (
-            <li>
-              <Tag tone={tagTone[variant]}>{t}</Tag>
-            </li>
-          ))}
-        </ul>
-      )
-    }
-    <span
+{
+  variant === 'featured' ? (
+    <a href={href} class:list={['group flex flex-col gap-6', className]}>
+      <div class:list={['relative overflow-hidden rounded-[var(--radius-card)] bg-accent-tint', imageAspect]}>
+        {image && (
+          <Image
+            src={image}
+            alt={imageAlt}
+            width={imageWidth * 2}
+            height={imageHeight * 2}
+            widths={imageWidths}
+            sizes={imageSizes}
+            class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          />
+        )}
+        {tag && (
+          <Tag tone="overlay" class="absolute left-4 top-4 z-10">
+            {tag}
+          </Tag>
+        )}
+      </div>
+      {
+        /* items-start (not items-center): the title's top edge aligns with
+           the logo's top edge regardless of description line count — a
+           1-line vs 2-line description grows the block downward, not
+           around a shared center. */
+      }
+      <div class="flex items-start gap-4">
+        {icon && (
+          <span
+            class="flex size-[54px] shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-control)]"
+            style={`background-color:${iconBg}`}
+          >
+            {
+              // astro:assets' image service 400s optimizing SVGs (same issue
+              // LogoMarquee.astro works around) — an SVG icon piped through
+              // <Image> renders as a broken image, so serve it unoptimized.
+              // object-contain, not object-cover: an SVG logo is already
+              // sized to its own artboard and cropping it clips the mark.
+              icon.format === 'svg' ? (
+                <img src={icon.src} alt="" width="108" height="108" class="size-full object-contain" />
+              ) : (
+                <Image src={icon} alt="" width={108} height={108} class="size-full object-cover" />
+              )
+            }
+          </span>
+        )}
+        <div class="flex flex-col gap-1">
+          <h3 class:list={[featuredTitleClasses[size], 'text-ink']}>{title}</h3>
+          {description && <p class:list={[featuredDescriptionClasses[size], 'text-ink-muted']}>{description}</p>}
+        </div>
+      </div>
+    </a>
+  ) : (
+    <a
+      href={href}
       class:list={[
-        'flex size-9 shrink-0 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5',
-        chipClasses[variant],
+        // A 3:4 ratio is a column proportion, not a card proportion: held at
+        // full width it made each "What we do" card 844x1125 at a 900px
+        // viewport, turning that section into ~4 viewports of scrolling for
+        // three cards. The ratio now applies only from `sm`, where the grid
+        // is genuinely multi-column; below that the card is content-height
+        // with a floor so short copy still reads as a card.
+        'card-container group relative flex min-h-[22rem] flex-col justify-between gap-8 rounded-[var(--radius-card)] p-[var(--space-card-p)] transition-shadow hover:shadow-[var(--shadow-card-hover)] sm:aspect-[3/4] sm:min-h-0',
+        surfaceClasses[variant],
+        className,
       ]}
     >
-      <img src="/icons/icon-arrow-white.svg" alt="" class="size-4 rotate-[-45deg]" width="16" height="16" />
-    </span>
-  </div>
-</a>
+      <div class="flex flex-col gap-4">
+        <h3 class:list={[titleSizeClasses[variant] ?? 'text-h3']}>{title}</h3>
+        <p class:list={[descriptionSizeClasses[variant] ?? 'text-body-sm opacity-80']}>{description}</p>
+      </div>
+
+      <div class="flex items-end justify-between gap-4">
+        {tags.length > 0 && (
+          <ul class="flex flex-wrap gap-2">
+            {tags.map((t) => (
+              <li>
+                <Tag tone={tagTone[variant]}>{t}</Tag>
+              </li>
+            ))}
+          </ul>
+        )}
+        <span
+          class:list={[
+            'flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5',
+            chipClasses[variant],
+          ]}
+        >
+          <span class:list={['chip-arrow size-4 transition-colors duration-200', chipIconClasses[variant]]} />
+        </span>
+      </div>
+    </a>
+  )
+}
+
+<style>
+  /*
+    Title fit: fluid font-size sized to the CARD's own rendered width via a
+    CSS container query (not the sitewide viewport-vw scale), so "Digital
+    Communication System" reliably breaks after "Communication" instead of
+    wrapping a third line on narrow columns. container-type on the card
+    establishes the query context; cqw on the title reads that width.
+    Divisor (11) is hand-tuned for "Digital Communication" at Aeonik
+    Regular — re-tune it if a future title needs to fit differently.
+  */
+  .card-container {
+    container-type: inline-size;
+  }
+  .card-title {
+    font-size: clamp(1.25rem, calc((100cqw - 4rem) / 11), 3.5rem);
+    line-height: 1.1;
+  }
+
+  /* Recolorable arrow: masked shape filled with background-color instead of
+     an <img>, so the hover-state color swap (chipIconClasses) can actually
+     repaint it — an <img> can't be recolored via CSS. */
+  .chip-arrow {
+    mask-image: url('/icons/icon-arrow-white.svg');
+    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-position: center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+  }
+</style>

@@ -1,0 +1,628 @@
+---
+/**
+ * Systems → Influence & Reputation (Figma node 975:494).
+ * Dark variant, now the shipped page — the light version (Figma node
+ * 927:1254) has been retired. Kept its three additions over the plain
+ * light layout (see the three inline comments below marking them: the
+ * Addons CTA + auto-rotating carousel, the Selected Projects arrows, and
+ * the dark→light reveal on Impact + Selected Projects).
+ *
+ * COLOR STRATEGY: everything from Hero through Addons is wrapped in
+ * `.dark-zone`, a single scoped rule that redefines the site's semantic
+ * --color-surface/ink/ink-secondary/line tokens to their dark equivalents.
+ * Custom properties inherit through the DOM regardless of Astro's style
+ * scoping (scoping only limits which elements the *selector* matches, not
+ * how the properties it sets cascade), so every shared component below —
+ * Heading, SectionIntro, ProjectCard, SystemProblemCards, PhasesScroll,
+ * SystemExpertiseRotator — renders dark automatically through the same
+ * `text-ink`/`bg-surface`/`bg-line` classes those components always use,
+ * with no per-component dark prop needed. (SystemExpertiseRotator and the
+ * two pinned sections' progress bars were the only hardcoded-not-token
+ * colors among them; fixed at the component level, see git history.)
+ *
+ * Impact, Selected Projects, the Contact CTA and the Footer are NOT in
+ * `.dark-zone` — the Figma frame keeps those white even in the dark
+ * variant, EXCEPT Impact reads dark on first arrival (matching the Addons
+ * section above it) and only turns light once scrolled further. Impact +
+ * Selected Projects share one `.reveal-zone` (see that section below) —
+ * ONE background-color covering both, so they can never be caught
+ * mid-scroll with one dark and one light — which starts dark and flips to
+ * the same light palette the CTA/Footer already use the instant the
+ * zone's (=Impact's) own top edge reaches the top of the viewport. Same
+ * mechanism (a boolean `--light-progress` custom property, ScrollTrigger
+ * `start: 'top top'`, onEnter/onLeaveBack, fast CSS transition) as the
+ * homepage's own light→dark invert-zone (src/pages/index.astro), just
+ * running the other direction.
+ */
+import { Image } from 'astro:assets'
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import { navItems } from '../../../lib/nav'
+import Heading from '../../../components/Heading.astro'
+import SectionIntro from '../../../components/SectionIntro.astro'
+import ProjectCard from '../../../components/ProjectCard.astro'
+import SystemExpertiseRotator from '../../../components/SystemExpertiseRotator.astro'
+import SystemProblemCards from '../../../components/SystemProblemCards.astro'
+import PhasesScroll from '../../../components/PhasesScroll.astro'
+import BuiltForRotator from '../../../components/BuiltForRotator.astro'
+import SystemAddonsCarousel from '../../../components/SystemAddonsCarousel.astro'
+import DualCta from '../../../components/DualCta.astro'
+
+import heroBgDark from '../../../assets/systems/influence-reputation-dark/hero-bg.jpg'
+import contactCta from '../../../assets/systems/influence-reputation/contact-cta.jpg'
+import cardExperts from '../../../assets/systems/influence-reputation/card-1-experts.jpg'
+import cardCompetitors from '../../../assets/systems/influence-reputation/card-2-competitors.jpg'
+import cardReactive from '../../../assets/systems/influence-reputation/card-3-reactive.jpg'
+import cardNarrative from '../../../assets/systems/influence-reputation/card-4-narrative.jpg'
+import builtForBg from '../../../assets/systems/built-for-bg.webp'
+
+import dashlaneThumb from '../../../assets/projects/dashlane.png'
+import blipThumb from '../../../assets/projects/blip-tedx.png'
+import coverflexThumb from '../../../assets/projects/coverflex.png'
+
+const expertiseWords = ['Expertise', 'Influence', 'Reputation', 'Opportunities']
+
+const problemCards = [
+  {
+    title: 'Experts barely known outside their own organisation',
+    label: 'Ideal for those who want to:',
+    statement: 'Position a leader as an expert.',
+    image: cardExperts,
+  },
+  {
+    title: 'Competitors with a bigger media presence',
+    label: 'Ideal for those who want to:',
+    statement: 'Raise visibility in strategic markets.',
+    image: cardCompetitors,
+  },
+  {
+    title: 'Reactive communication with no continuity',
+    label: 'Ideal for those who want to:',
+    statement: 'Build a consistent public presence.',
+    image: cardReactive,
+  },
+  {
+    title: 'No consistent narrative',
+    label: 'Ideal for those who want to:',
+    statement: 'Strengthen media relationships. Bring partners and communities closer.',
+    image: cardNarrative,
+  },
+]
+
+const approachSteps = [
+  {
+    number: '— 01',
+    title: 'Reputation Strategy',
+    description:
+      'A reputation audit and stakeholder map define what the organisation should be known for, before any communication work begins.',
+  },
+  {
+    number: '— 02',
+    title: 'Strategic Media Relations',
+    description:
+      'Up to six media relations activations, with direct contact and editorial follow-up with journalists.',
+  },
+  {
+    number: '— 03',
+    title: 'Executive Positioning',
+    description:
+      'Positioning, interviews and opinion pieces so the spokesperson holds public space with the same weight as the organisation.',
+    order: ['number', 'title', 'description'] as const,
+  },
+  {
+    number: '— 04',
+    title: 'Strategic Relationships',
+    description:
+      'Roundtables, partnerships and community work that turn visibility into the relationships that open doors.',
+    order: ['title', 'number', 'description'] as const,
+  },
+  {
+    number: '— 05',
+    title: 'Measure & Strengthen',
+    description: 'Media coverage, AVE and sentiment assessed every month, with a report and continuity plan.',
+  },
+]
+
+const builtForPhrases = [
+  'Reputation strategy',
+  'Stakeholder engagement',
+  'Editorial planning for media',
+  'Continuous support',
+  'Impact analysis',
+  'Spokesperson positioning',
+  'Relationships with journalists',
+]
+
+const addons = [
+  {
+    title: 'Executive presence on LinkedIn',
+    description:
+      "Strategic management of a spokesperson's editorial presence, to reinforce authority and amplify the system's initiatives.",
+  },
+  {
+    title: 'Roundtables and executive events',
+    description:
+      'Design and production of private gatherings, strategic dinners, roundtables and exclusive initiatives that bring leaders, partners and stakeholders closer.',
+  },
+  {
+    title: 'Podcast and video series',
+    description: 'Turning the institutional narrative into recurring content that builds authority.',
+  },
+  {
+    title: 'Reputation Intelligence',
+    description: 'Share of voice, trends, competitor tracking and reputation intelligence.',
+  },
+]
+
+// Anchorage Digital, Bridge In, New Work and the AI & History study have no
+// entry, thumbnail or category in the shared taxonomy (src/lib/projects.ts)
+// or a real case-study page yet — same reasoning as the original four (see
+// git history): adding them there would put untagged projects into the
+// /projects/ filter. ProjectCard's own no-image state renders the tinted
+// block until real thumbnails and case-study pages exist.
+// TODO(marcelo): real thumbnails + case-study pages for Anchorage Digital,
+// Bridge In, New Work and the AI & History study.
+const selectedProjects = [
+  {
+    href: '/projects/dashlane/',
+    title: 'Dashlane',
+    description:
+      "Communication strategy and press relations to strengthen Dashlane's profile in Portugal, positioning the brand and its leadership as references in cybersecurity and digital protection.",
+    thumbnail: dashlaneThumb,
+  },
+  {
+    href: '/projects/anchorage-digital/',
+    title: 'Anchorage Digital',
+    description:
+      "Communication and public relations to give Anchorage Digital visibility in Portugal, covering the company's key milestones and the evolution of the digital assets sector.",
+    thumbnail: undefined,
+  },
+  {
+    href: '/projects/bridge-in/',
+    title: 'Bridge In',
+    description:
+      "Positioning Bridge In and its leadership with the media, supporting the company's growth in Portugal and its expansion across Europe.",
+    thumbnail: undefined,
+  },
+  {
+    href: '/projects/blip-tedx/',
+    title: 'Blip',
+    description:
+      "Communication and press relations to consolidate Blip's presence in the Portuguese media and strengthen the tech company's reputation.",
+    thumbnail: blipThumb,
+  },
+  {
+    href: '/projects/coverflex/',
+    title: 'Coverflex',
+    description:
+      "Press relations to strengthen Coverflex's profile, communicating key growth milestones and initiatives tied to the future of work.",
+    thumbnail: coverflexThumb,
+  },
+  {
+    href: '/projects/new-work/',
+    title: 'New Work',
+    description:
+      "Communication support for New Work in Portugal, giving visibility to the company's activity and consolidating its presence in the domestic market.",
+    thumbnail: undefined,
+  },
+  {
+    href: '/projects/ai-history-study/',
+    title: 'AI Impact on History Study',
+    description:
+      'Communication strategy for the Portuguese launch of an international study — by the University of Notre Dame and the University of Coimbra — on the impact of artificial intelligence, engaging national media and stakeholders.',
+    thumbnail: undefined,
+  },
+]
+---
+
+<BaseLayout
+  title="Influence & Reputation System"
+  description="Build the reputation that drives opportunities. A six-month system for companies and leaders who need the market to recognise what they are already good at."
+  hideHeader
+>
+  <div class="dark-zone">
+    {/* ---------- 1. Hero ---------- */}
+    <section
+      class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)] supports-[height:100dvh]:min-h-dvh"
+    >
+      <Image
+        src={heroBgDark}
+        alt=""
+        width={2560}
+        height={1440}
+        widths={[640, 960, 1280, 1920, 2560]}
+        sizes="100vw"
+        loading="eager"
+        fetchpriority="high"
+        class="pointer-events-none absolute inset-0 size-full object-cover"
+      />
+      {
+        /* Figma's own hero gradient (37%→92%, transparent to #0f0f0f) —
+           darkens the lower two-thirds so the headline stays legible over
+           whatever the photo is doing underneath it. */
+      }
+      <div
+        class="pointer-events-none absolute inset-0 bg-gradient-to-b from-[rgba(15,15,15,0)] from-[37%] to-[#0f0f0f] to-[92%]"
+      >
+      </div>
+
+      <nav aria-label="Primary" class="relative z-10">
+        <div class="flex items-center justify-between gap-6">
+          <a href="/" class="shrink-0">
+            <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+          </a>
+          <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+            {
+              navItems.map((item) => (
+                <li>
+                  <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+          <button
+            type="button"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobile-menu"
+            class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+            data-nav-toggle
+          >
+            Menu
+          </button>
+        </div>
+      </nav>
+
+      <p class="relative z-10 mt-16 max-w-[48ch] text-lead text-ink" data-anim="reveal">
+        Reputation isn't won through isolated actions. It's built through consistent work, over time.
+      </p>
+
+      <div class="relative z-10 flex flex-col gap-9 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+        <div class="flex flex-col gap-9">
+          <Heading as="h1" indent={false} class="max-w-[16ch] text-display text-ink lg:max-w-[50vw]" data-anim="split-text">
+            Build the reputation that drives opportunities
+          </Heading>
+          <p class="text-body text-ink" data-anim="reveal">Influence &amp; Reputation System</p>
+        </div>
+        <p class="shrink-0 text-body text-ink lg:text-right" data-anim="reveal">Duration: 6 months (minimum)</p>
+      </div>
+    </section>
+
+    {/* ---------- 2. Expertise ---------- */}
+    <SystemExpertiseRotator words={expertiseWords} />
+
+    {/* ---------- 3. Introduction ---------- */}
+    <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+      <div class="flex flex-col gap-10 lg:flex-row lg:gap-7">
+        <Heading as="p" class="text-h2 text-ink lg:w-1/2">
+          A system that helps companies and leaders build reputation and earn relevance in their market.
+        </Heading>
+        <div class="flex flex-col gap-6 text-lead text-ink lg:w-1/2">
+          <p>
+            Reputation isn't won through isolated actions. It's earned through consistent, continuous work aligned
+            with the goals of the business.
+          </p>
+          <p>It's the result of what the market sees, reads, hears and says about an organisation over time.</p>
+        </div>
+      </div>
+    </section>
+
+    {/* ---------- 3b. Sound familiar ---------- */}
+    <SystemProblemCards cards={problemCards} class="bg-surface" />
+
+    {/* ---------- 4. Our approach ---------- */}
+    <PhasesScroll steps={approachSteps} class="bg-surface" />
+
+    {/* ---------- 5. Built for ---------- */}
+    <BuiltForRotator phrases={builtForPhrases} backgroundImage={builtForBg} />
+
+    {
+      /* ---------- 6. Addons: CTA + auto-rotating carousel
+         (SystemAddonsCarousel), not the drag-only SystemAddonsMarquee used
+         elsewhere on the site. ---------- */
+    }
+    <SystemAddonsCarousel
+      addons={addons}
+      ctaLabel="Talk to us"
+      ctaHref="/contact/"
+      class="bg-surface pt-[var(--space-section-y)] pb-[var(--space-section-y)]"
+    />
+  </div>
+
+  {
+    /* ---------- 7. Impact + 8. Selected projects — merged into ONE
+       `.reveal-zone`, per feedback: the dark→light flip needs to be a
+       single continuous background covering BOTH sections (never a part-
+       dark/part-light split visible at once), and it has to fire when
+       IMPACT's own top edge reaches the top of the viewport — while Impact
+       is still arriving on screen it stays dark, matching everything
+       above it inside .dark-zone; only once scrolled past does the whole
+       zone (Impact's tail + Selected Projects) repaint light together.
+       Same `--light-progress` mechanism as the homepage's invert-zone,
+       just the other direction and with `start: 'top top'` instead of
+       'top center' — see the <style>/<script> blocks below.
+
+       Selected Projects also gets prev/next arrows, shown at every
+       breakpoint (matching the Figma frame) — they scroll the mobile/
+       tablet strip; on desktop, where the grid doesn't overflow, a click
+       is just a harmless no-op. ---------- */
+  }
+  <div class="reveal-zone" data-reveal-zone>
+    <section class="w-full px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+      <SectionIntro eyebrow="Impact" eyebrowSize="text-body">
+        The result isn't just more visibility
+        <div slot="aside" class="flex flex-col gap-6 text-balance text-lead text-ink">
+          <p>
+            It's a stronger reputation — better recognised, and better prepared to open doors to new business, talent
+            and partnerships.
+          </p>
+          <p>
+            Over the course of the Influence &amp; Reputation System, the organisation and its leaders build a more
+            consistent public presence, reinforce credibility, and get closer to the audiences that most influence
+            their growth.
+          </p>
+        </div>
+      </SectionIntro>
+    </section>
+
+    <section class="w-full px-[var(--space-gutter)] pb-[var(--space-section-y)]">
+      <div class="flex flex-col gap-9">
+        <div class="flex items-start justify-between gap-6 border-t border-line pt-4">
+          <Heading as="h2" indent={false} class="text-lead text-ink">
+            Selected projects
+          </Heading>
+          <div class="flex shrink-0 gap-2">
+            <button
+              type="button"
+              data-projects-prev
+              aria-label="Previous project"
+              class="flex size-10 items-center justify-center rounded-[var(--radius-control)] border border-line transition-colors hover:bg-surface-hover"
+            >
+              <span class="reveal-arrow size-4 rotate-180 bg-ink" aria-hidden="true"></span>
+            </button>
+            <button
+              type="button"
+              data-projects-next
+              aria-label="Next project"
+              class="flex size-10 items-center justify-center rounded-[var(--radius-control)] border border-line transition-colors hover:bg-surface-hover"
+            >
+              <span class="reveal-arrow size-4 bg-ink" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+        <ul
+          class="projects-strip -mx-[var(--space-gutter)] flex gap-7 overflow-x-auto px-[var(--space-gutter)] lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0"
+          data-projects-row
+        >
+          {
+            selectedProjects.map((project) => (
+              <li class="w-[80vw] shrink-0 sm:w-[60vw] lg:w-auto" data-project-card>
+                <ProjectCard
+                  href={project.href}
+                  title={project.title}
+                  description={project.description}
+                  variant="featured"
+                  size="sm"
+                  image={project.thumbnail}
+                  imageAspect="aspect-[430/294]"
+                  imageWidth={430}
+                  imageHeight={294}
+                  imageSizes="(min-width: 1024px) 22vw, 80vw"
+                />
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  {/* ---------- 9. Contact ---------- */}
+  <DualCta
+    leftHeading="Want to talk about your reputation?"
+    leftHref="/contact/"
+    leftLabel="Get in touch"
+    rightHeading="Not sure Influence & Reputation is the fit?"
+    rightHref="/systems/"
+    rightLabel="See all Systems"
+    rightImage={contactCta}
+  />
+</BaseLayout>
+
+<style>
+  /* Static dark palette for Hero → Addons — see the file-level comment for
+     why one scoped rule is enough to re-theme every shared component
+     nested inside it. Values mirror the homepage invert-zone's dark
+     endpoint (src/pages/index.astro) so both pages agree on what "dark"
+     means. Impact and Selected Projects are NOT in here — see
+     `.reveal-zone` below. */
+  .dark-zone {
+    --color-surface: var(--color-neutral-950);
+    --color-ink: var(--color-white);
+    --color-ink-secondary: var(--color-neutral-300);
+    --color-ink-muted: var(--color-neutral-400);
+    --color-line: var(--color-neutral-800);
+    --color-accent-tint: var(--color-neutral-900);
+    background-color: var(--color-surface);
+  }
+
+  .projects-strip {
+    scrollbar-width: none;
+  }
+  .projects-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reveal-arrow {
+    mask-image: url('/icons/icon-arrow-white.svg');
+    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-position: center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+  }
+
+  /* Dark → light reveal, driven by --light-progress (0 or 1, set by the
+     script below via ScrollTrigger). Both endpoints of every color-mix are
+     fully opaque, high-contrast palettes — the 0 default is a safe, fully
+     readable resting state with no JS (matches Addons directly above,
+     inside .dark-zone), not a transitional half-state. Wraps Impact AND
+     Selected Projects together — one shared background-color, so the two
+     sections can never be caught mid-scroll with one dark and one light. */
+  .reveal-zone {
+    --light-progress: 0;
+
+    --color-surface: color-mix(in srgb, var(--color-white) calc(var(--light-progress) * 100%), var(--color-neutral-950));
+    --color-ink: color-mix(in srgb, var(--color-neutral-950) calc(var(--light-progress) * 100%), var(--color-white));
+    --color-ink-secondary: color-mix(in srgb, var(--color-neutral-700) calc(var(--light-progress) * 100%), var(--color-neutral-300));
+    --color-ink-muted: color-mix(in srgb, var(--color-neutral-500) calc(var(--light-progress) * 100%), var(--color-neutral-400));
+    --color-line: color-mix(in srgb, var(--color-neutral-200) calc(var(--light-progress) * 100%), var(--color-neutral-800));
+    /* Anchorage Digital / Bridge In's no-thumbnail placeholder tint. */
+    --color-accent-tint: color-mix(in srgb, var(--color-accent-50) calc(var(--light-progress) * 100%), var(--color-neutral-900));
+
+    background-color: var(--color-surface);
+    transition: background-color 200ms ease-out;
+  }
+  /* :global() — ProjectCard's title/description/placeholder-tint live in a
+     component with its own scope hash, same reasoning as the homepage
+     invert-zone's identical rule. */
+  .reveal-zone :global(*) {
+    transition:
+      color 200ms ease-out,
+      background-color 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal-zone,
+    .reveal-zone :global(*) {
+      transition-duration: 1ms;
+    }
+  }
+</style>
+
+<script>
+  // Staggered reveal for the projects row.
+  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../lib/sectionMotion'
+
+  bindSection('[data-projects-row]', ({ root, mm }) => {
+    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
+    if (cards.length === 0) return
+
+    mm.add(MOTION_FULL, () => {
+      const tween = gsap.from(cards, {
+        opacity: 0,
+        y: 24,
+        duration: 0.8,
+        stagger: 0.08,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: root, start: 'top 85%', once: true },
+      })
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+
+    mm.add(MOTION_FALLBACK, () => {
+      const tween = gsap.from(cards, {
+        opacity: 0,
+        duration: 0.4,
+        scrollTrigger: { trigger: root, start: 'top 90%', once: true },
+      })
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+  })
+</script>
+
+<script>
+  // Selected Projects arrows — scroll the mobile/tablet strip by one card
+  // (matches homepage's testimonial prev/next: src/pages/index.astro).
+  // Hidden at lg via the button wrapper's own `lg:hidden`, since the grid
+  // there doesn't overflow.
+  let cardStepCleanup: (() => void) | null = null
+
+  function setupProjectsNav() {
+    const strip = document.querySelector<HTMLElement>('[data-projects-row]')
+    const prevBtn = document.querySelector<HTMLButtonElement>('[data-projects-prev]')
+    const nextBtn = document.querySelector<HTMLButtonElement>('[data-projects-next]')
+    if (!strip || !prevBtn || !nextBtn) return
+
+    function cardStep() {
+      const first = strip!.firstElementChild as HTMLElement | null
+      const gap = parseFloat(getComputedStyle(strip!).columnGap || '0')
+      return first ? first.getBoundingClientRect().width + gap : strip!.clientWidth
+    }
+
+    const onPrev = () => strip!.scrollBy({ left: -cardStep(), behavior: 'smooth' })
+    const onNext = () => strip!.scrollBy({ left: cardStep(), behavior: 'smooth' })
+    prevBtn.addEventListener('click', onPrev)
+    nextBtn.addEventListener('click', onNext)
+
+    cardStepCleanup = () => {
+      prevBtn.removeEventListener('click', onPrev)
+      nextBtn.removeEventListener('click', onNext)
+    }
+  }
+
+  function teardownProjectsNav() {
+    cardStepCleanup?.()
+    cardStepCleanup = null
+  }
+
+  document.addEventListener('astro:page-load', setupProjectsNav)
+  document.addEventListener('astro:before-swap', teardownProjectsNav)
+</script>
+
+<script>
+  // Dark → light reveal on Impact + Selected Projects. Not gated through
+  // sectionMotion's MOTION_FULL/MOTION_FALLBACK matchMedia pair — like the
+  // homepage's identical inversion, this is a plain color toggle, not a
+  // travel effect, so it runs the same way at every viewport width and
+  // only reduced motion (handled in CSS above) shortens the transition.
+  //
+  // `start: 'top top'` — matches the homepage's own trigger point exactly
+  // (src/pages/index.astro's setupDarkInversion): while Impact is still
+  // arriving from below (any part of it below the viewport's top edge,
+  // even if the whole section is already visible), the zone stays dark.
+  // The flip fires the instant the zone's (=Impact's) own top edge
+  // reaches the top of the screen — not sooner, not "the middle."
+  import { gsap } from 'gsap'
+  import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+  gsap.registerPlugin(ScrollTrigger)
+
+  let revealTrigger: ScrollTrigger | null = null
+
+  function setupReveal() {
+    const zone = document.querySelector<HTMLElement>('[data-reveal-zone]')
+    if (!zone) return
+
+    const setLight = (on: boolean) => zone.style.setProperty('--light-progress', on ? '1' : '0')
+
+    revealTrigger = ScrollTrigger.create({
+      trigger: zone,
+      start: 'top top',
+      onEnter: () => setLight(true),
+      onLeaveBack: () => setLight(false),
+      // A reload (or resize) partway down the page doesn't replay onEnter —
+      // seed from wherever scroll actually is, same as the homepage.
+      onRefresh: (self) => setLight(self.progress > 0),
+    })
+  }
+
+  function teardownReveal() {
+    revealTrigger?.kill()
+    revealTrigger = null
+  }
+
+  document.addEventListener('astro:page-load', setupReveal)
+  document.addEventListener('astro:before-swap', teardownReveal)
+</script>

@@ -1,0 +1,214 @@
+---
+/**
+ * Sitewide full-screen mobile menu (Figma FES-Brand, node 1072:284). One
+ * instance rendered globally in BaseLayout and shared by every page's own
+ * `[data-nav-toggle]` button — the default header's, Hero's, and every
+ * hideHeader page's inline nav — so there is exactly one panel and one
+ * open/close implementation instead of a per-page dropdown.
+ *
+ * The trigger buttons stay put wherever they already live; this panel owns
+ * its own logo + Close control (matching the Figma section) rather than
+ * trying to keep a page-level button clickable above a fixed z-index
+ * overlay — simpler than fighting stacking contexts across hideHeader
+ * pages that pin their hero at its own z-index.
+ */
+import { navItems, footerItems, socialItems } from '../lib/nav'
+
+const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
+---
+
+<div
+  id="mobile-menu"
+  class="fixed inset-0 z-[100] hidden overflow-y-auto bg-neutral-950"
+  data-mobile-menu
+  aria-hidden="true"
+>
+  <div class="flex min-h-full flex-col gap-10 px-[var(--space-gutter)] pb-10 pt-[var(--space-gutter)]">
+    <div class="flex shrink-0 items-center justify-between gap-6">
+      <a href="/" class="shrink-0">
+        <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+      </a>
+      <button
+        type="button"
+        aria-label="Close menu"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg"
+        data-mobile-menu-close
+      >
+        Close
+      </button>
+    </div>
+
+    <div class="flex flex-1 flex-col justify-between gap-10">
+      <div class="flex flex-col gap-10">
+        <ul class="flex flex-col">
+          {
+            navItems.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  class="block py-1 text-[2.375rem] font-medium leading-[1.12] tracking-[-0.01em] text-azure-50 transition-colors hover:text-white"
+                  data-mobile-menu-item
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <ul class="flex flex-col gap-2">
+          {
+            secondaryItems.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  class="block text-[1.1875rem] font-normal leading-[1.3] text-azure-50 transition-colors hover:text-white"
+                  data-mobile-menu-item
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <ul class="flex flex-wrap items-center gap-x-6 gap-y-3">
+          {
+            socialItems.map((s) => (
+              <li>
+                <a
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-[0.875rem] text-azure-50 transition-colors hover:text-white"
+                  data-mobile-menu-item
+                >
+                  {s.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <a
+          href="/contact/"
+          class="block rounded-[var(--radius-card)] bg-accent-600 p-6 text-[1.0625rem] font-medium text-azure-50 transition-colors hover:bg-accent-700"
+          data-mobile-menu-item
+        >
+          Say Hello!
+        </a>
+        <a
+          href="mailto:hello@fesagency.pt"
+          class="text-[1.0625rem] text-neutral-300 underline transition-colors hover:text-white"
+          data-mobile-menu-item
+        >
+          hello@fesagency.pt
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { gsap } from '../lib/sectionMotion'
+  import { getLenis } from '../lib/lenis'
+
+  let cleanup: (() => void) | null = null
+
+  function setupMobileMenu() {
+    const panel = document.querySelector<HTMLElement>('[data-mobile-menu]')
+    const closeBtn = panel?.querySelector<HTMLButtonElement>('[data-mobile-menu-close]')
+    // Every page's own trigger — the default header's, Hero's, and every
+    // hideHeader page's inline nav all mark theirs with data-nav-toggle.
+    const openTriggers = document.querySelectorAll<HTMLButtonElement>('[data-nav-toggle]')
+    if (!panel || !closeBtn || openTriggers.length === 0) return
+
+    const items = panel.querySelectorAll<HTMLElement>('[data-mobile-menu-item]')
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    let isOpen = false
+    let escHandler: ((e: KeyboardEvent) => void) | null = null
+
+    gsap.set(panel, { autoAlpha: 0 })
+    gsap.set(items, { autoAlpha: 0, y: reduceMotion ? 0 : 16 })
+
+    function open() {
+      if (isOpen) return
+      isOpen = true
+      panel!.classList.remove('hidden')
+      panel!.setAttribute('aria-hidden', 'false')
+      openTriggers.forEach((t) => t.setAttribute('aria-expanded', 'true'))
+      document.documentElement.style.overflow = 'hidden'
+      getLenis()?.stop()
+
+      gsap.killTweensOf([panel, ...items])
+      const tl = gsap.timeline()
+      tl.to(panel, { autoAlpha: 1, duration: reduceMotion ? 0 : 0.35, ease: 'power2.out' })
+      tl.to(
+        items,
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: reduceMotion ? 0 : 0.5,
+          stagger: reduceMotion ? 0 : 0.04,
+          ease: 'power3.out',
+        },
+        reduceMotion ? 0 : '-=0.15',
+      )
+
+      closeBtn!.focus()
+      escHandler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') close()
+      }
+      document.addEventListener('keydown', escHandler)
+    }
+
+    function close() {
+      if (!isOpen) return
+      isOpen = false
+      openTriggers.forEach((t) => t.setAttribute('aria-expanded', 'false'))
+      document.documentElement.style.overflow = ''
+      getLenis()?.start()
+
+      if (escHandler) {
+        document.removeEventListener('keydown', escHandler)
+        escHandler = null
+      }
+
+      gsap.killTweensOf([panel, ...items])
+      const tl = gsap.timeline({
+        onComplete: () => {
+          panel!.classList.add('hidden')
+          panel!.setAttribute('aria-hidden', 'true')
+        },
+      })
+      tl.to(items, {
+        autoAlpha: 0,
+        y: reduceMotion ? 0 : 10,
+        duration: reduceMotion ? 0 : 0.2,
+        stagger: reduceMotion ? 0 : 0.02,
+        ease: 'power2.in',
+      })
+      tl.to(panel, { autoAlpha: 0, duration: reduceMotion ? 0 : 0.3, ease: 'power2.in' }, reduceMotion ? 0 : '-=0.1')
+    }
+
+    openTriggers.forEach((t) => t.addEventListener('click', open))
+    closeBtn.addEventListener('click', close)
+    items.forEach((el) => el.addEventListener('click', close))
+
+    cleanup = () => {
+      openTriggers.forEach((t) => t.removeEventListener('click', open))
+      closeBtn.removeEventListener('click', close)
+      items.forEach((el) => el.removeEventListener('click', close))
+      if (escHandler) document.removeEventListener('keydown', escHandler)
+      document.documentElement.style.overflow = ''
+    }
+  }
+
+  function teardownMobileMenu() {
+    cleanup?.()
+    cleanup = null
+  }
+
+  document.addEventListener('astro:page-load', setupMobileMenu)
+  document.addEventListener('astro:before-swap', teardownMobileMenu)
+</script>

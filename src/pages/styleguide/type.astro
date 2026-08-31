@@ -1,0 +1,143 @@
+---
+/**
+ * Live typography reference — the one page to point at when asking for a
+ * type change. Every step is rendered at the CURRENT viewport width, next to
+ * its name, its anchors, and (scanned from source at build time, so it can't
+ * go stale) every file that uses it.
+ *
+ * Standalone on purpose: no BaseLayout, so the site header/footer don't add
+ * type to a page whose whole job is showing type.
+ */
+import '../../styles/global.css'
+import { typeScale } from '../../lib/typeScale'
+
+const sources = import.meta.glob('/src/**/*.astro', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
+
+const scanned = Object.entries(sources).filter(([path]) => !path.includes('/styleguide/'))
+
+/** Files using each step, most uses first. */
+const usage = new Map<string, { file: string; count: number }[]>()
+for (const step of typeScale) {
+  // `(?![\w-])` so `text-body` doesn't swallow `text-body-sm`.
+  const re = new RegExp(`\\b${step.className}(?![\\w-])`, 'g')
+  const hits = scanned
+    .map(([path, code]) => ({ file: path.replace('/src/', ''), count: (code.match(re) ?? []).length }))
+    .filter((h) => h.count > 0)
+    .sort((a, b) => b.count - a.count || a.file.localeCompare(b.file))
+  usage.set(step.token, hits)
+}
+
+/** Arbitrary font sizes — text that escaped the scale. */
+const offScale = scanned
+  .flatMap(([path, code]) =>
+    [...code.matchAll(/text-\[([^\]]+(?:rem|px|em))\]/g)].map((m) => ({
+      file: path.replace('/src/', ''),
+      value: m[1],
+    })),
+  )
+  .reduce<Record<string, string[]>>((acc, { file, value }) => {
+    ;(acc[value] ??= []).push(file)
+    return acc
+  }, {})
+
+const sample = 'Systems that make creative work repeatable.'
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Type scale — FES</title>
+  </head>
+  <body class="bg-surface text-ink">
+    <div
+      class="sticky top-0 z-10 flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-line bg-surface/90 px-[var(--space-gutter)] py-4 backdrop-blur"
+    >
+      <h1 class="text-h3">Type scale</h1>
+      <p class="text-body-sm text-ink-secondary">
+        Viewport <b data-vw class="font-medium text-ink">—</b>px · sizes below are live at this width
+      </p>
+      <p class="text-body-sm text-ink-muted">
+        Shift+T on any page opens the inspector — hover text to read its step, click to copy the reference.
+      </p>
+    </div>
+
+    <main class="flex flex-col gap-16 px-[var(--space-gutter)] py-12">
+      {
+        typeScale.map((step) => (
+          <section class="grid gap-4 border-b border-line-subtle pb-12 lg:grid-cols-[16rem_1fr] lg:gap-10">
+            <div class="flex flex-col gap-1">
+              <p class="text-h4 font-medium">{step.className}</p>
+              <p class="text-meta text-ink-secondary">
+                {step.anchors}px · <span data-live={step.token}>—</span> here
+              </p>
+              <p class="text-body-sm text-ink-secondary">{step.role}</p>
+              <details class="mt-2">
+                <summary class="cursor-pointer text-meta text-ink-muted">
+                  {usage.get(step.token)!.reduce((n, h) => n + h.count, 0)} uses in{' '}
+                  {usage.get(step.token)!.length} files
+                </summary>
+                <ul class="mt-2 flex flex-col gap-0.5">
+                  {usage.get(step.token)!.map((h) => (
+                    <li class="text-meta text-ink-muted">
+                      {h.file} <span class="text-ink-disabled">×{h.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
+            <p class={step.className}>{sample}</p>
+          </section>
+        ))
+      }
+
+      <section class="flex flex-col gap-3">
+        <h2 class="text-h3">Off the scale</h2>
+        <p class="text-body-sm text-ink-secondary">
+          Arbitrary <code>text-[…]</code> sizes found in source. Each one is a size with no name — if it
+          should stay, it wants a token.
+        </p>
+        <ul class="flex flex-col gap-1">
+          {
+            Object.entries(offScale).length === 0 ? (
+              <li class="text-body-sm text-ink-muted">None.</li>
+            ) : (
+              Object.entries(offScale).map(([value, files]) => (
+                <li class="text-meta text-ink-secondary">
+                  <b class="text-ink">text-[{value}]</b> — {[...new Set(files)].join(', ')}
+                </li>
+              ))
+            )
+          }
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      // Same offscreen-probe trick the inspector uses: custom properties come
+      // back as unresolved `clamp(...)` from getComputedStyle, so the only way
+      // to read the pixel value is to apply it and measure.
+      function render() {
+        const vw = document.querySelector('[data-vw]')
+        if (vw) vw.textContent = String(window.innerWidth)
+
+        const probe = document.createElement('span')
+        probe.style.cssText = 'position:absolute;visibility:hidden;top:-9999px'
+        document.body.append(probe)
+        document.querySelectorAll<HTMLElement>('[data-live]').forEach((el) => {
+          probe.style.fontSize = `var(--text-${el.dataset.live})`
+          el.textContent = `${parseFloat(getComputedStyle(probe).fontSize).toFixed(1)}px`
+        })
+        probe.remove()
+      }
+
+      render()
+      window.addEventListener('resize', render)
+    </script>
+  </body>
+</html>

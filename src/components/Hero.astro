@@ -1,0 +1,137 @@
+---
+/**
+ * Homepage hero (Figma node 770:390). Pinned via CSS `position: sticky` so
+ * later sections scroll up and cover it — no JS needed for the pin itself.
+ * The nav is part of this section's own content (overlaid, transparent,
+ * light text) rather than BaseLayout's default bordered header — see
+ * hideHeader on BaseLayout.
+ *
+ * Background is the paper-design Heatmap shader (@paper-design/shaders),
+ * live only on this page — other pages use stills exported from the same
+ * Paper project instead of paying the WebGL cost everywhere. The shape
+ * (public/hero/hero-heatmap-shape.webp) and the uniform values below are
+ * copied from the Paper editor. Speed is intentionally low (0.15) since
+ * ShaderMount halts its rAF loop entirely at speed 0, and pauses whenever
+ * the section is offscreen or the tab is hidden either way.
+ */
+import { navItems } from '../lib/nav'
+import Heading from './Heading.astro'
+---
+
+{
+  /* h-dvh behind a @supports guard rather than a bare h-screen: 100vh on
+     mobile is the tallest viewport, so the pinned hero overflowed under the
+     address bar and resized as it collapsed. dvh tracks the live viewport,
+     which is the right unit for a hero that has to stay exactly full-bleed
+     while later sections scroll over it. svh would be stable but leaves a
+     strip of the next section showing once the bar hides. The h-screen
+     fallback keeps pre-dvh browsers on today's behaviour. */
+}
+<section class="sticky top-0 z-0 flex h-screen min-h-[720px] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(to_right,#4A40F2,#0E004D)] px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 supports-[height:100dvh]:h-dvh lg:pb-[120px]">
+  <div id="hero-shader" aria-hidden="true" class="pointer-events-none absolute inset-0 size-full"></div>
+
+  <nav aria-label="Primary" class="relative z-10">
+    <div class="flex items-center justify-between gap-6">
+      <a href="/" class="shrink-0">
+        <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+      </a>
+      <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+        {
+          navItems.map((item) => (
+            <li>
+              <a href={item.href} class="text-body text-azure-50 hover:text-white">
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <button
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        data-nav-toggle
+      >
+        Menu
+      </button>
+    </div>
+  </nav>
+
+  <div class="relative z-10">
+    {
+      /* max-w in ch, not a fixed px value: text-display's font-size is
+         fluid (see global.css), so a fixed px cap wraps progressively
+         tighter as the viewport (and font) grows past the 1440 reference —
+         2 lines at 1440 became 4 at 2560. ch scales with the element's own
+         font-size, so the wrap point stays proportional. */
+    }
+    <Heading as="h1" indent={false} class="max-w-[22ch] text-display text-neutral-50 lg:max-w-[50vw]" data-anim="split-text">
+      We make tech companies impossible to ignore
+    </Heading>
+    <p class="mt-6 max-w-2xl text-lead text-neutral-50" data-anim="reveal">
+      We help startups, tech companies and disruptive businesses effectively communicate their brand and their
+      people.
+    </p>
+  </div>
+</section>
+
+<script>
+  import {
+    ShaderMount,
+    heatmapFragmentShader,
+    toProcessedHeatmap,
+    getShaderColorFromString,
+    ShaderFitOptions,
+  } from '@paper-design/shaders'
+
+  const container = document.getElementById('hero-shader')
+
+  async function mountHeroShader() {
+    if (!container) return
+
+    const { blob } = await toProcessedHeatmap('/hero/hero-heatmap-shape.webp')
+    const image = new Image()
+    image.src = URL.createObjectURL(blob)
+    await image.decode()
+
+    new ShaderMount(
+      container,
+      heatmapFragmentShader,
+      {
+        u_image: image,
+        // Fill is set to a gradient in Paper (4A40F2 → 0E004D), and the shader
+        // itself only takes a solid u_colorBack — so colorBack is transparent
+        // here and the section's own CSS background gradient shows through
+        // wherever the heatmap's opacity is less than 1.
+        u_colorBack: [0, 0, 0, 0],
+        u_colors: [
+          getShaderColorFromString('#0E004D'),
+          getShaderColorFromString('#4A40F2'),
+          getShaderColorFromString('#2E0EB2'),
+          getShaderColorFromString('#0E004D'),
+        ],
+        u_colorsCount: 4,
+        u_angle: 90,
+        u_noise: 0,
+        u_innerGlow: 0.22,
+        u_outerGlow: 0.29,
+        u_contour: 0.309,
+        u_fit: ShaderFitOptions.cover,
+        u_scale: 1,
+        u_rotation: 0,
+        u_originX: 0.5,
+        u_originY: 0.5,
+        u_offsetX: 0,
+        u_offsetY: 0,
+        u_worldWidth: 0,
+        u_worldHeight: 0,
+      },
+      undefined,
+      0.5,
+    )
+  }
+
+  mountHeroShader()
+</script>

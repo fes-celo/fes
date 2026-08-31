@@ -1,0 +1,30 @@
+---
+/**
+ * Quiet section eyebrow — "We drive results", "What we do", "Trusted by",
+ * "Addons". A rule (border-current/20, so it always tints to whatever text
+ * color this label ends up using) sits above a muted text-h3 label.
+ *
+ * NOT for content subheadings like "FAQ" or "Overview" — those stay full
+ * ink and drop the rule, so they read as a different tier from these
+ * section-opening labels. See docs/parked-decisions.md if that distinction
+ * ever needs revisiting.
+ */
+import Heading from './Heading.astro'
+
+interface Props {
+  as?: 'h1' | 'h2' | 'p'
+  /** Use the dark-surface muted color (ink-muted-inverse) instead of ink-muted. */
+  dark?: boolean
+  class?: string
+}
+
+const { as = 'h2', dark = false, class: className } = Astro.props as Props
+---
+
+<Heading
+  as={as}
+  indent={false}
+  class:list={['border-t border-current/20 pt-4 text-lead', dark ? 'text-ink-muted-inverse' : 'text-ink-muted', className]}
+>
+  <slot />
+</Heading>

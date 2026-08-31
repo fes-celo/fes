@@ -1,0 +1,151 @@
+---
+/**
+ * Category filter for the /projects/ grid. Verified against Figma directly
+ * (node 671:421 "All Projects" button, 671:434 "Close" button, 770:921
+ * Projects page desktop, 867:378 mobile) rather than the earlier unstyled
+ * wireframe screenshots — corrects the first pass, which wrongly gave the
+ * trigger a pill/border chrome that doesn't exist in the real design.
+ *
+ * Trigger is plain text + icon, no background/border in either state:
+ * - Closed: label + a two-arrow "sort" icon (671:421) whose bottom arrow
+ *   drops 2px away from the top arrow on hover — the exact path data comes
+ *   from the two exported variants (11.12px tall at rest, 13.12px on
+ *   hover; only the bottom arrow's y-position differs between them), so
+ *   it's inlined as SVG with a `group-hover:translate-y` on the bottom
+ *   path rather than swapping image assets.
+ * - Open ("Close"): label + a plain cross that rotates -45deg → -135deg on
+ *   hover (671:434) — a 90° spin, per Code Connect's rotate classes on the
+ *   two variants. The cross itself is a symmetric plus (identical path in
+ *   both variants), exported as /icons/icon-cross.svg — NOT the existing
+ *   /icons/icon-plus.svg, which turned out to be a circular "+"-in-a-badge
+ *   icon (used elsewhere for the nav toggle) that reads as an invisible
+ *   dot at 10px, not a cross.
+ *
+ * The border-bottom under the open "Close" row (Figma: border-neutral-100,
+ * 28px bottom padding) is conditional on aria-expanded via a scoped style
+ * rule — no conflicting utility classes to fight since the button has no
+ * border/padding utilities of its own to override.
+ *
+ * All interaction (open/close, keyboard, selecting a category, filtering
+ * ProjectsGrid) is wired in the consuming page's own <script>, matching
+ * the Systems page's nav-toggle/FAQ-accordion convention rather than
+ * shipping a script per component instance.
+ */
+import FilterTab from './FilterTab.astro'
+
+interface Props {
+  categories: string[]
+  class?: string
+}
+
+const { categories, class: className } = Astro.props
+---
+
+<div class:list={['flex flex-col', className]} data-projects-filter>
+  <button
+    type="button"
+    data-filter-trigger
+    aria-expanded="false"
+    aria-controls="projects-filter-panel"
+    class="group inline-flex w-fit items-center gap-2 self-start text-h3 font-medium text-ink"
+  >
+    <span class="items-center gap-2" data-filter-state-closed>
+      <span data-filter-trigger-label>All Projects</span>
+      <span class="relative inline-flex h-[13.1213px] w-[6.06066px] shrink-0 items-center justify-center overflow-visible">
+        <svg viewBox="0 0 6.06066 13.1213" width="6.06066" height="13.1213" fill="none" class="overflow-visible">
+          <path d="M0.53033 3.56066L3.03033 1.06066L5.53033 3.56066" stroke="currentColor" stroke-width="1.5" />
+          <path
+            d="M0.53033 7.56066L3.03033 10.0607L5.53033 7.56066"
+            stroke="currentColor"
+            stroke-width="1.5"
+            class="transition-transform duration-200 group-hover:translate-y-[2px]"
+          />
+        </svg>
+      </span>
+    </span>
+    <span class="items-center gap-2" data-filter-state-open>
+      <span>Close</span>
+      <span class="flex size-[14.142px] shrink-0 items-center justify-center">
+        <img
+          src="/icons/icon-cross.svg"
+          alt=""
+          width="10"
+          height="10"
+          class="size-[10px] rotate-[-45deg] transition-transform duration-200 group-hover:rotate-[-135deg]"
+        />
+      </span>
+    </span>
+  </button>
+
+  <div id="projects-filter-panel" data-filter-panel>
+    <div class="overflow-hidden">
+      {
+        /* Flat siblings (not <li>-wrapped word/dot pairs) so ONE gap value
+           governs every adjacent item uniformly, matching Figma exactly:
+           mobile is a single 16px gap in both directions (867:769 gap-16),
+           desktop keeps that 16px row-gap but widens the column-gap to
+           28px (770:931 gap-[16px_28px], row-gap first in the CSS
+           shorthand). font-normal overrides text-h1's own baked-in medium
+           weight — Figma's category row is Aeonik:Regular, not Medium. */
+      }
+      <div class="flex flex-wrap items-center gap-4 pt-4 text-h1 font-normal lg:gap-x-7" data-filter-list>
+        {
+          categories.map((cat, i) => [
+            <FilterTab category={cat} active={i === 0}>
+              {cat}
+            </FilterTab>,
+            i < categories.length - 1 && (
+              <span
+                class="text-[length:var(--text-separator)] leading-[var(--text-separator--line-height)] text-neutral-300"
+                aria-hidden="true"
+              >
+                ·
+              </span>
+            ),
+          ])
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Same grid-template-rows 0fr/1fr collapse used by the Systems page FAQ
+     accordion — animates height without measuring scrollHeight in JS.
+     Keyed purely off the trigger's aria-expanded. */
+  [data-filter-panel] {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 300ms ease;
+  }
+  [data-filter-trigger][aria-expanded='true'] + [data-filter-panel] {
+    grid-template-rows: 1fr;
+  }
+
+  /* Close-row divider (Figma: border-neutral-100, 28px bottom padding),
+     only present while open — the trigger has no border/padding utilities
+     of its own in the closed state, so this doesn't fight any Tailwind
+     class, just adds the rule conditionally. */
+  [data-filter-trigger][aria-expanded='true'] {
+    width: 100%;
+    border-bottom: 1px solid var(--color-line-subtle);
+    padding-bottom: 1.75rem;
+  }
+
+  /* State-group swap, driven by aria-expanded rather than a JS-toggled
+     `hidden` class: `hidden` (display:none) and `inline-flex` on the same
+     element don't reliably resolve to "off" in this build's utility order
+     when both are unconditionally present — confirmed live (both groups
+     rendered at once). A plain attribute-selector rule sidesteps that
+     entirely, same mechanism as the border-bottom rule above. */
+  [data-filter-state-closed],
+  [data-filter-state-open] {
+    display: none;
+  }
+  [data-filter-trigger]:not([aria-expanded='true']) [data-filter-state-closed] {
+    display: inline-flex;
+  }
+  [data-filter-trigger][aria-expanded='true'] [data-filter-state-open] {
+    display: inline-flex;
+  }
+</style>

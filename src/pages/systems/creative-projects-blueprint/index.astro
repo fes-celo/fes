@@ -1,0 +1,325 @@
+---
+/**
+ * Systems → Creative Projects Blueprint (hub).
+ *
+ * Structurally a copy of src/pages/systems/index.astro — same
+ * hideHeader + sticky, full-viewport hero on its own light background,
+ * same "What we do" card grid, same FAQ accordion, same closing DualCta —
+ * scaled down from "3 systems" to "3 blueprints", per user request: this
+ * page should read as the Systems hub's sibling, one level down, for the
+ * "Creative Project Blueprint" card that hub already lists but has never
+ * linked anywhere (see src/pages/systems/index.astro, `systems[2].href`).
+ * That card, and the homepage's matching one, now both point here.
+ *
+ * The three cards below link to the three Blueprint pages built alongside
+ * this one (./branding/, ./events-activations/, ./podcast-video-series/),
+ * the same way the Systems hub's cards link to Digital Communication and
+ * Influence & Reputation.
+ *
+ * COPY: written to fit this template's slots using each Blueprint's own
+ * tagline and duration (source docs in `Novos Sistemas/Creative Projects
+ * Blueprint*.txt`) — not lifted from a Figma frame, since no hub frame for
+ * this page exists yet. FAQ entries are new, addressing the one question a
+ * Blueprint-specific hub actually needs to answer that the Systems hub's
+ * FAQ doesn't: how a scoped Blueprint differs from an ongoing System.
+ */
+import { Image } from 'astro:assets'
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import { navItems } from '../../../lib/nav'
+import ourWorkCta from '../../../assets/systems/our-work-cta.jpg'
+import heroBg from '../../../assets/systems/creative-projects-blueprint/hero-bg.jpg'
+import brandingBg from '../../../assets/systems/creative-projects-blueprint/branding/hero-bg.jpg'
+import eventsBg from '../../../assets/systems/creative-projects-blueprint/events-activations/hero-bg.jpg'
+import videoSeriesBg from '../../../assets/systems/creative-projects-blueprint/podcast-video-series/hero-bg.jpg'
+import DualCta from '../../../components/DualCta.astro'
+
+const blueprints = [
+  {
+    href: '/systems/creative-projects-blueprint/branding/',
+    title: 'Branding',
+    subheading: 'Build a brand people remember, trust and choose.',
+    questions: ['No brand yet, or one that no longer fits?', 'Preparing for a new phase of growth?', 'Duration: 8–10 weeks'],
+    bg: brandingBg,
+  },
+  {
+    href: '/systems/creative-projects-blueprint/events-activations/',
+    title: 'Events & Brand Activations',
+    subheading: 'Create experiences that move people, and business.',
+    questions: ['Launching something and need the room to feel it?', 'Contacts nobody ever follows up on?', 'Duration: up to 3 months'],
+    bg: eventsBg,
+  },
+  {
+    href: '/systems/creative-projects-blueprint/podcast-video-series/',
+    title: 'Podcast & Video-Series',
+    subheading: 'Turn expertise into influence.',
+    questions: ['Have the expertise but not the visibility?', 'One episode that disappears in a week?', 'Duration: up to 3 months'],
+    bg: videoSeriesBg,
+  },
+]
+
+const faqs = [
+  {
+    question: "What's the difference between a System and a Blueprint?",
+    answer:
+      'Systems run for six months and stay on as the engine behind growth or reputation. Blueprints are scoped to one deliverable — a brand, an event, a series — with a clear start and end.',
+  },
+  {
+    question: 'Can I run a Blueprint alongside a System?',
+    answer:
+      'Yes, and it often works that way. A brand refresh or a flagship event usually happens right before a System takes over the ongoing communication.',
+  },
+  {
+    question: 'How long does a Blueprint take?',
+    answer:
+      'Branding runs 8–10 weeks. Events & Brand Activations and Podcast & Video-Series both run up to three months, depending on scope.',
+  },
+  {
+    question: 'Do you handle production, or just strategy?',
+    answer: "Both. Every Blueprint includes strategy and execution — we don't hand over a deck and walk away.",
+  },
+  {
+    question: 'What happens after the Blueprint ends?',
+    answer:
+      'You get a review and clear next steps. Most clients either commission an extension — more episodes, a second activation — or fold the output into an ongoing System.',
+  },
+  {
+    question: 'Can I combine more than one Blueprint?',
+    answer:
+      'Yes. Branding often comes first when the other two would otherwise be built on an identity that\'s about to change.',
+  },
+]
+---
+
+<BaseLayout
+  title="Creative Projects Blueprint"
+  description="Branding, Events & Brand Activations, and Podcast & Video-Series — three scoped creative Blueprints FES Agency builds for Portuguese tech companies."
+  hideHeader
+  bordered
+>
+  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]">
+    <Image
+      src={heroBg}
+      alt=""
+      width={2560}
+      height={1440}
+      widths={[640, 960, 1280, 1920, 2560]}
+      sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
+      class="pointer-events-none absolute inset-0 size-full object-cover"
+    />
+
+    <nav aria-label="Primary" class="relative z-10">
+      <div class="flex items-center justify-between gap-6">
+        <a href="/" class="shrink-0">
+          <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        </a>
+        <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+          {
+            navItems.map((item) => (
+              <li>
+                <a href={item.href} class="text-body text-azure-50 hover:text-white">
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          data-nav-toggle
+        >
+          Menu
+        </button>
+      </div>
+    </nav>
+
+    <div class="relative z-10">
+      <h1 class="max-w-[22ch] lg:max-w-[46ch] text-display text-neutral-50" data-anim="split-text">Not every problem needs a six-month system. Some need one project, built right.</h1>
+      <p class="mt-7 max-w-[820px] text-lead text-neutral-50" data-anim="reveal">
+        Three creative Blueprints — branding, events, and podcast or video series — each scoped to a single outcome,
+        with a clear start and a clear end.
+      </p>
+    </div>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-14">
+      <h2 class="text-h3 text-ink">The blueprints</h2>
+      <div class="grid grid-cols-1 gap-7 lg:grid-cols-3">
+        {
+          blueprints.map((b) => (
+            <a
+              href={b.href}
+              class="bp-card group relative flex min-h-[420px] flex-col justify-between overflow-hidden rounded-[var(--radius-card)] bg-neutral-50 p-[var(--space-card-p)] lg:min-h-[572px]"
+            >
+              <Image
+                src={b.bg}
+                alt=""
+                width={1200}
+                height={882}
+                sizes="(min-width: 1024px) 33vw, 100vw"
+                class="absolute inset-0 size-full object-cover"
+              />
+
+              <h3 class="bp-card-title relative z-10 font-medium text-ink">{b.title}</h3>
+              <p class="relative z-10 max-w-[85%] text-body font-normal text-neutral-900">{b.subheading}</p>
+
+              <div class="relative z-10 flex items-end justify-between gap-4">
+                <ul class="flex flex-col gap-2 text-body-sm text-neutral-900">
+                  {b.questions.map((q) => (
+                    <li>→ {q}</li>
+                  ))}
+                </ul>
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-full border border-ink/30 transition-colors duration-200 group-hover:border-ink group-hover:bg-ink group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                  <span class="chip-arrow size-4 bg-ink transition-colors duration-200 group-hover:bg-white" />
+                </span>
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
+    <div class="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-20">
+      <div class="flex flex-col gap-6">
+        <h2 class="text-h3 text-ink">FAQ</h2>
+        <p class="text-lead text-neutral-400">
+          Blueprints aren't a smaller version of a System. They're a different shape of engagement — built for a
+          moment with an end date, not an open-ended retainer.
+        </p>
+      </div>
+      <div class="flex flex-col" data-faq-accordion>
+        {
+          faqs.map((f, i) => (
+            <div class="border-b border-line">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-4 py-7 text-left"
+                aria-expanded={i === 0 ? 'true' : 'false'}
+                aria-controls={`faq-answer-${i}`}
+                data-faq-trigger
+              >
+                <span class="text-h3 text-ink">{f.question}</span>
+                <span
+                  class="flex size-6 shrink-0 items-center justify-center rounded-full border border-neutral-200 text-neutral-400 transition-transform duration-200"
+                  data-faq-icon
+                >
+                  <img src="/icons/icon-plus.svg" alt="" class="size-3" width="12" height="12" />
+                </span>
+              </button>
+              <div id={`faq-answer-${i}`} data-faq-panel>
+                <div class="overflow-hidden">
+                  <p class="pb-7 text-body text-neutral-400">{f.answer}</p>
+                </div>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <DualCta
+    leftHeading="Have a project in mind?"
+    leftHref="/contact/"
+    leftLabel="Get in touch"
+    rightHeading="Not sure which System fits?"
+    rightHref="/systems/"
+    rightLabel="See all Systems"
+    rightImage={ourWorkCta}
+  />
+</BaseLayout>
+
+<style>
+  /* "The blueprints" card — duplicated verbatim from SystemsWhatWeDo.astro's
+     .wwd-card/.wwd-card-title (container-query title sizing), since Astro
+     scopes component <style> blocks per-component and this page can't reach
+     them directly. Keep in sync if that design ever changes. */
+  .bp-card {
+    container-type: inline-size;
+  }
+  .bp-card-title {
+    font-size: clamp(1.125rem, calc((100cqw - 3.5rem) / 9.5), 2.75rem);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+  }
+  .chip-arrow {
+    mask-image: url('/icons/icon-arrow-white.svg');
+    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-position: center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+  }
+
+  /* FAQ accordion: grid-template-rows 0fr/1fr animates height without
+     measuring scrollHeight in JS — the inner overflow-hidden div clips the
+     collapsed content. Driven entirely by the trigger's aria-expanded, so
+     the JS below only has to flip that attribute. */
+  [data-faq-panel] {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 300ms ease;
+  }
+  [data-faq-trigger][aria-expanded='true'] + [data-faq-panel] {
+    grid-template-rows: 1fr;
+  }
+  [data-faq-trigger][aria-expanded='true'] [data-faq-icon] {
+    transform: rotate(45deg);
+  }
+</style>
+
+<script>
+  // FAQ accordion — single-open: expanding one trigger collapses the
+  // others. Height animation lives in the <style> block above, keyed off
+  // the trigger's aria-expanded; this just flips that attribute.
+  let faqCleanup: (() => void) | null = null
+
+  function setupFaqAccordion() {
+    const root = document.querySelector<HTMLElement>('[data-faq-accordion]')
+    if (!root) return
+
+    const triggers = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-faq-trigger]'))
+    if (triggers.length === 0) return
+
+    function onClick(trigger: HTMLButtonElement) {
+      const isOpen = trigger.getAttribute('aria-expanded') === 'true'
+      triggers.forEach((t) => t.setAttribute('aria-expanded', t === trigger && !isOpen ? 'true' : 'false'))
+    }
+
+    const listeners = triggers.map((trigger) => {
+      const handler = () => onClick(trigger)
+      trigger.addEventListener('click', handler)
+      return { trigger, handler }
+    })
+
+    faqCleanup = () => {
+      listeners.forEach(({ trigger, handler }) => trigger.removeEventListener('click', handler))
+    }
+  }
+
+  function teardownFaqAccordion() {
+    faqCleanup?.()
+    faqCleanup = null
+  }
+
+  function init() {
+    setupFaqAccordion()
+  }
+
+  function teardown() {
+    teardownFaqAccordion()
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

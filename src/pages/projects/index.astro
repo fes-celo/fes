@@ -1,0 +1,163 @@
+---
+/**
+ * Projects page (reference: desktop/mobile "filter open"/"filter closed"
+ * screenshots; nav per Figma's 770:1036 "Banner" — a plain nav row directly
+ * on the white page, no hero). Uses the same hideHeader + inline <nav>
+ * pattern as the Systems page (light background, dark text) rather than
+ * BaseLayout's default bordered header — see BaseLayout's hideHeader prop
+ * and docs/conventions.md. Unlike Systems/Agency/Home, this nav isn't
+ * inside a hero <section> (Projects has no hero image), just its own
+ * top-of-page block.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import ProjectsFilter from '../../components/ProjectsFilter.astro'
+import ProjectsGrid from '../../components/ProjectsGrid.astro'
+import { navItems } from '../../lib/nav'
+import { projects, projectCategories } from '../../lib/projects'
+---
+
+<BaseLayout
+  title="Projects"
+  description="Real work for startups, tech companies and disruptive businesses — see what FES Agency has built."
+  hideHeader
+  bordered
+>
+  <nav aria-label="Primary" class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)]">
+    <div class="flex items-center justify-between gap-6">
+      <a href="/" class="shrink-0">
+        <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+      </a>
+      <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+        {
+          navItems.map((item) => (
+            <li>
+              <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <button
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        data-nav-toggle
+      >
+        Menu
+      </button>
+    </div>
+  </nav>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pt-10 pb-[var(--space-section-y)]" data-anim="reveal">
+    <h1 class="sr-only">Projects</h1>
+    <ProjectsFilter categories={projectCategories} />
+    <ProjectsGrid projects={projects} class="mt-10 lg:mt-14" />
+  </section>
+</BaseLayout>
+
+<script>
+  // Setup/teardown pair per feature, wired through astro:page-load /
+  // astro:before-swap (see docs/conventions.md).
+  let filterCleanup: (() => void) | null = null
+
+  function setupProjectsFilter() {
+    const trigger = document.querySelector<HTMLButtonElement>('[data-filter-trigger]')
+    const label = document.querySelector<HTMLElement>('[data-filter-trigger-label]')
+    const panel = document.querySelector<HTMLElement>('[data-filter-panel]')
+    const options = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-filter-panel] [data-category]'))
+    const items = Array.from(document.querySelectorAll<HTMLElement>('[data-project-item]'))
+    if (!trigger || !label || !panel || options.length === 0) return
+
+    let activeCategory = options[0]?.dataset.category ?? 'All'
+
+    // Which state-group (closed "All Projects…"/open "Close") is visible is
+    // driven entirely by CSS keyed off aria-expanded (see ProjectsFilter's
+    // scoped <style>) — this just flips the attribute and updates the label.
+    function setOpen(open: boolean) {
+      trigger!.setAttribute('aria-expanded', open ? 'true' : 'false')
+      label!.textContent = activeCategory === 'All' ? 'All Projects' : activeCategory
+    }
+
+    function applyFilter(category: string) {
+      items.forEach((item) => {
+        const cats = (item.dataset.category ?? '').split(',')
+        const match = category === 'All' || cats.includes(category)
+        if (match) {
+          item.classList.remove('hidden')
+          item.classList.add('opacity-0')
+          // Double rAF: forces the browser to paint the opacity-0 state
+          // before it's removed, so the fade-in transition actually runs
+          // instead of the two class changes collapsing into one frame.
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => item.classList.remove('opacity-0'))
+          })
+        } else {
+          item.classList.add('hidden')
+        }
+      })
+    }
+
+    function selectCategory(category: string) {
+      activeCategory = category
+      options.forEach((opt) => {
+        const isActive = opt.dataset.category === category
+        opt.setAttribute('aria-current', isActive ? 'true' : 'false')
+        opt.classList.toggle('text-ink', isActive)
+        opt.classList.toggle('text-neutral-300', !isActive)
+        opt.classList.toggle('hover:text-ink-secondary', !isActive)
+      })
+      applyFilter(category)
+      setOpen(false)
+    }
+
+    function onTriggerClick() {
+      setOpen(trigger!.getAttribute('aria-expanded') !== 'true')
+    }
+
+    function onTriggerKeydown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && trigger!.getAttribute('aria-expanded') === 'true') {
+        setOpen(false)
+        trigger!.focus()
+      }
+    }
+
+    function onOptionClick(e: MouseEvent) {
+      e.preventDefault()
+      const opt = e.currentTarget as HTMLAnchorElement
+      const category = opt.dataset.category
+      if (category) selectCategory(category)
+    }
+
+    trigger.addEventListener('click', onTriggerClick)
+    trigger.addEventListener('keydown', onTriggerKeydown)
+    const optionListeners = options.map((opt) => {
+      opt.addEventListener('click', onOptionClick)
+      return opt
+    })
+
+    filterCleanup = () => {
+      trigger!.removeEventListener('click', onTriggerClick)
+      trigger!.removeEventListener('keydown', onTriggerKeydown)
+      optionListeners.forEach((opt) => opt.removeEventListener('click', onOptionClick))
+    }
+  }
+
+  function teardownProjectsFilter() {
+    filterCleanup?.()
+    filterCleanup = null
+  }
+
+  function init() {
+    setupProjectsFilter()
+  }
+
+  function teardown() {
+    teardownProjectsFilter()
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

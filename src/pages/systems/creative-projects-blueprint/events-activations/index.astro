@@ -1,0 +1,459 @@
+---
+/**
+ * Creative Projects Blueprint → Events & Brand Activations.
+ *
+ * LIGHT variant — ported from the original dark build (now preserved as-is
+ * at ./dark/, per the same light/dark pairing convention used by the other
+ * Creative Projects Blueprint pages).
+ * See ../branding/index.astro's header comment for the full rationale
+ * shared across all three Creative Projects Blueprint pages (no
+ * `.dark-zone`/`.reveal-zone`, flat `bg-white` hero with no photo/scrim,
+ * SystemAddonsMarquee instead of SystemAddonsCarousel, no Selected Projects
+ * arrows) — not repeated here.
+ *
+ * COPY: rewritten from the client-supplied source doc "Creative Projects
+ * Blueprint — Events & Brand Activations.md" (Portuguese, 2026 revision) —
+ * see the dark variant's header comment for the full sourcing/mapping
+ * notes. Not client-approved yet.
+ */
+import { Image } from 'astro:assets'
+import type { ImageMetadata } from 'astro'
+import BaseLayout from '../../../../layouts/BaseLayout.astro'
+import { navItems } from '../../../../lib/nav'
+import Heading from '../../../../components/Heading.astro'
+import SectionIntro from '../../../../components/SectionIntro.astro'
+import SystemExpertiseRotator from '../../../../components/SystemExpertiseRotator.astro'
+import SystemProblemCards from '../../../../components/SystemProblemCards.astro'
+import PhasesScroll from '../../../../components/PhasesScroll.astro'
+import BuiltForRotator from '../../../../components/BuiltForRotator.astro'
+import SystemAddonsMarquee from '../../../../components/SystemAddonsMarquee.astro'
+import DualCta from '../../../../components/DualCta.astro'
+
+import ourWorkCta from '../../../../assets/systems/our-work-cta.jpg'
+import heroBg from '../../../../assets/systems/creative-projects-blueprint/events-activations/hero-bg.jpg'
+import builtForBg from '../../../../assets/systems/built-for-bg.webp'
+
+// Selected projects thumbnails — dropped flat (no subfolders) into
+// src/assets/systems/creative-projects-blueprint/events-activations/selected-projects/,
+// keeping their original client-supplied filenames. Matched below by a
+// whitespace-normalised filename per project (see `eventCategories`), so
+// adding/renaming an image never needs a matching import line here.
+// Projects with no matching file are dropped from the section entirely
+// (not shown as an empty placeholder) — see `resolveCategoryProjects`.
+type ImageModule = { default: ImageMetadata }
+const selectedProjectImages = import.meta.glob<ImageModule>(
+  '../../../../assets/systems/creative-projects-blueprint/events-activations/selected-projects/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}',
+  { eager: true },
+)
+
+// Collapses repeated whitespace, trims, and normalises to NFC — several of
+// the dropped files have stray double spaces / trailing spaces before the
+// extension (e.g. "C-DAYS .jpg", "European Innovation Academy  Large.jpeg"),
+// and macOS decomposes accented filenames to NFD on disk (e.g. "Ativação"),
+// which otherwise fails a strict === against the NFC string literals below.
+const normalizeFilename = (name: string) => name.normalize('NFC').replace(/\s+/g, ' ').trim()
+
+function findSelectedProjectImage(file: string) {
+  const target = normalizeFilename(file)
+  const match = Object.entries(selectedProjectImages).find(([path]) => {
+    const base = path.split('/').pop() ?? ''
+    return normalizeFilename(base.replace(/\.[^.]+$/, '')) === target
+  })
+  return match?.[1].default
+}
+
+const expertiseWords = ['Experience', 'Engagement', 'Relationships', 'Opportunity']
+
+const problemCards = [
+  {
+    title: 'Reinforce brand positioning and notoriety',
+    label: 'Ideal for those who want to:',
+    statement: 'Launch a product, brand or initiative.',
+  },
+  {
+    title: 'Create authentic connections',
+    label: 'Ideal for those who want to:',
+    statement: 'Strengthen relationships with clients, partners and stakeholders. Energise communities.',
+  },
+  {
+    title: 'Generate business and collaboration opportunities',
+    label: 'Ideal for those who want to:',
+    statement: 'Generate leads and commercial opportunities.',
+  },
+  {
+    title: 'Communicate memorable, differentiating messages',
+    label: 'Ideal for those who want to:',
+    statement: "Create high-impact experiences aligned with the organisation's strategic objectives.",
+  },
+  {
+    title: 'Maximise the return on investment',
+    label: 'Ideal for those who want to:',
+    statement: 'Strengthen organisational culture and employer branding. Attract, engage and retain talent.',
+  },
+]
+
+// Fed to PhasesScroll only — bullet lists from the source doc's "Como
+// implementamos" condensed into one sentence per phase.
+const approachSteps = [
+  // "Strategy & Objectives", not the source doc's fuller "Estratégia &
+  // Definição de Objetivos": PhasesScroll clamps titles to two lines in a
+  // ~317px column, and "Strategy & Success Definition" ran to three — the
+  // third was being cut off mid-word.
+  {
+    number: '— 01',
+    title: 'Strategy & Objectives',
+    description:
+      "We start with the objective, not the stage: goals, priority audience, success indicators, budget and timeline.",
+  },
+  {
+    number: '— 02',
+    title: 'Experience Design',
+    description:
+      'We turn the objective into an experience — creative concept, narrative, format, agenda, moments of interaction, activations, attendee journeys and a plan for collecting data and feedback.',
+  },
+  // NOTE: the source doc's caveat that supplier services (venue, AV,
+  // catering, furniture, decor) are coordinated by FES but budgeted
+  // separately does not fit this row's length budget and is dropped here.
+  // TODO(marcelo): that's a commercial disclaimer — confirm where it should
+  // live instead (proposal, or a footnote under this section).
+  {
+    number: '— 03',
+    title: 'Production & Planning',
+    description:
+      'We manage the full build — venue, technical visits, suppliers, audiovisual, catering and signage — into one operational plan.',
+  },
+  {
+    number: '— 04',
+    title: 'Live Execution',
+    description:
+      'On-site we coordinate suppliers, attendees, programme and timings — and handle whatever the day throws up in real time.',
+  },
+  {
+    number: '— 05',
+    title: 'Impact Review',
+    description:
+      "The event ends; the impact doesn't. We analyse results, gather feedback, and turn the learnings into recommendations.",
+  },
+]
+
+// No explicit "O que entregamos" list in this doc (unlike Branding/
+// Podcast) — phrases here are drawn from "Como implementamos" instead.
+const builtForPhrases = [
+  'Strategy & objectives',
+  'Experience design',
+  'Venue & supplier coordination',
+  'Audiovisual & technology',
+  'On-site coordination',
+  'Impact report',
+]
+
+const addons = [
+  {
+    title: 'Event Branding',
+    description: 'Naming, visual identity, graphic system and exclusive materials for the event.',
+  },
+  {
+    title: 'Design Application',
+    description:
+      'Applying an existing visual identity across all event materials — merchandising, signage, decor, presentations, credentials and other graphic elements.',
+  },
+  {
+    title: 'Communication Plan',
+    description:
+      "Developing the event's communication plan and its materials, including invitations, email marketing, social media content, internal and external communications, presentations and other supporting materials.",
+  },
+  {
+    title: 'Registration Platform',
+    description: 'Building and managing a custom platform with a landing page, registration form and participant tracking.',
+  },
+  {
+    title: 'Paid Media',
+    description: 'Planning and managing paid campaigns to raise awareness, drive sign-ups, generate business opportunities, or attract candidates.',
+  },
+  {
+    title: 'Public Relations',
+    description:
+      'Managing communication with the media — drafting and distributing press releases, contacting journalists, managing interviews, and handling relationships with stakeholders and strategic partners — plus tracking media and institutional coverage.',
+  },
+  {
+    title: 'Photography & Video Production',
+    description: 'Photography and video, including content adapted for social media.',
+  },
+  {
+    title: 'Interviews, Podcasts & Videocasts',
+    description:
+      "Planning and producing interviews, testimonials and exclusive content that extend the event's communication, reinforce the brand, and create reusable assets for future marketing and communication.",
+  },
+  {
+    title: 'Speaker & Guest Curation',
+    description: "Identifying, selecting and inviting speakers and guests aligned with the event's objectives and the organisation's positioning.",
+  },
+]
+
+// Client-supplied list of real events, grouped by category. Image-and-title
+// only (no description/case study exists per project) and not linked — see
+// findSelectedProjectImage above for how the thumbnail is resolved. Some
+// projects (the CoE conference, We Want You — Natixis) appear under two
+// categories on purpose, per the client's own list.
+const eventCategories = [
+  {
+    label: 'Conferences & Congresses',
+    projects: [
+      { title: 'European Innovation Academy', file: 'European Innovation Academy Large' },
+      { title: 'C-DAYS', file: 'C-DAYS' },
+      {
+        title: '18th Council of Europe — Conference of Ministers Responsible for Sport',
+        file: '18th Council of Europe - Conference of Ministers Responsible for Sport Large',
+      },
+      { title: 'Data Makers Fest', file: 'Data Makers Fest' },
+    ],
+  },
+  {
+    label: 'Corporate Events',
+    projects: [
+      { title: 'EDP — Hack the Eletron', file: 'EDP - Hack the Eletron' },
+      { title: 'We Want You — Natixis', file: 'We Want You Venue - Natixis' },
+    ],
+  },
+  {
+    label: 'Dinners, Galas & Ceremonies',
+    projects: [
+      {
+        title: '18th Council of Europe — Conference of Ministers Responsible for Sport',
+        file: '18th Council of Europe - Conference of Ministers Responsible for Sport - Jantar',
+      },
+    ],
+  },
+  {
+    label: 'Innovation & Technology',
+    projects: [
+      { title: 'BIT Hackathon by MC', file: 'BIT Hackathon by MC' },
+      { title: 'Sogrape Impact Hack', file: 'Sogrape Impact Hack' },
+      { title: 'Hack For Good Gulbenkian', file: 'Hack For Good Gulbenkian Large' },
+      { title: 'ICPC Porto World Finals', file: 'ICPC Porto World Finals' },
+      { title: 'Demium Startups Lisbon', file: 'Demium Startups Lisbon' },
+      { title: 'NEXO Summit', file: 'NEXO Summit' },
+    ],
+  },
+  {
+    label: 'Launches & Brand Activations',
+    projects: [
+      { title: 'TEDx — Blip', file: 'TedX - Blip' },
+      { title: 'Web Summit Activation — Dashlane', file: 'Ativação Web Summit - Dashlane' },
+      { title: 'Web Summit Activation — ScaleUp Porto', file: 'Ativação Web Summit - ScaleUp Porto' },
+      { title: 'We Want You — Natixis', file: 'We Want You Ativação- Natixis- Large' },
+    ],
+  },
+]
+---
+
+<BaseLayout
+  title="Events & Brand Activations — Creative Projects Blueprint"
+  description="Create experiences that move people, and business. A Blueprint that aligns strategy, experience design and production to generate real impact around the right audience."
+  hideHeader
+>
+  {/* ---------- 1. Hero ---------- */}
+  <section
+    class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)] supports-[height:100dvh]:min-h-dvh"
+  >
+    <Image
+      src={heroBg}
+      alt=""
+      width={2560}
+      height={1440}
+      widths={[640, 960, 1280, 1920, 2560]}
+      sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
+      class="pointer-events-none absolute inset-0 size-full object-cover"
+    />
+
+    <nav aria-label="Primary" class="relative z-10">
+      <div class="flex items-center justify-between gap-6">
+        <a href="/" class="shrink-0">
+          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        </a>
+        <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+          {
+            navItems.map((item) => (
+              <li>
+                <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          data-nav-toggle
+        >
+          Menu
+        </button>
+      </div>
+    </nav>
+
+    <p class="relative z-10 mt-16 max-w-[48ch] text-lead text-ink" data-anim="reveal">
+      When organisations invest in events without clearly defining what they want to achieve, the results can fall
+      short.
+    </p>
+
+    <div class="relative z-10 flex flex-col gap-9 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+      <div class="flex flex-col gap-9">
+        <Heading as="h1" indent={false} class="max-w-[20ch] text-display text-ink lg:max-w-[50vw]" data-anim="split-text">
+          Create experiences that bring people closer and generate value
+        </Heading>
+        <p class="text-body text-ink" data-anim="reveal">Creative Projects Blueprint · Events & Brand Activations</p>
+      </div>
+      <p class="shrink-0 text-body text-ink lg:text-right" data-anim="reveal">Duration: 3 months (minimum)</p>
+    </div>
+  </section>
+
+  {/* ---------- 2. Expertise ---------- */}
+  <SystemExpertiseRotator words={expertiseWords} />
+
+  {/* ---------- 3. Introduction ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-10 lg:flex-row lg:gap-7">
+      <Heading as="p" class="text-h2 text-ink lg:w-1/2">
+        Design and run events and activations with a clear purpose, aligned with each organisation's goals and
+        built to create impact with the right audience.
+      </Heading>
+      <div class="flex flex-col gap-6 text-lead text-ink lg:w-1/2">
+        <p>
+          That's why we create experiences with a clear purpose — aligned with each organisation's objectives and
+          designed to generate real impact.
+        </p>
+        <p>
+          Whether to strengthen brand positioning, increase visibility, create business opportunities, attract
+          talent, or strengthen a community's ties, every project is built to achieve concrete results.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ---------- 3b. Sound familiar ---------- */}
+  <SystemProblemCards cards={problemCards} class="bg-surface" />
+
+  {/* ---------- 4. Our approach ---------- */}
+  <PhasesScroll steps={approachSteps} class="bg-surface" />
+
+  {/* ---------- 5. Built for ---------- */}
+  <BuiltForRotator phrases={builtForPhrases} backgroundImage={builtForBg} />
+
+  {/* ---------- 6. Addons ---------- */}
+  <SystemAddonsMarquee addons={addons} class="bg-surface pb-[var(--space-section-y)]" />
+
+  {/* ---------- 7. Impact ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <SectionIntro eyebrow="Impact" eyebrowSize="text-body">
+      An event isn't a moment in isolation
+      <div slot="aside" class="flex flex-col gap-6 text-balance text-lead text-ink">
+        <p>It's an accelerator for relationships, reputation and growth.</p>
+        <p>
+          By the end of this Blueprint, the organisation has built an experience that generates impact before,
+          during and after the event — turning every interaction into an opportunity to strengthen the brand,
+          bring people closer and create value for the business.
+        </p>
+      </div>
+    </SectionIntro>
+  </section>
+
+  {/* ---------- 8. Selected projects ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]">
+    <div class="flex flex-col gap-14" data-projects-row>
+      <Heading as="h2" indent={false} class="text-lead text-ink">
+        Selected projects
+      </Heading>
+      {
+        eventCategories.map((category) => {
+          // Only projects with a matching dropped file render — a project
+          // with no photo yet is left out of the section entirely rather
+          // than showing as an empty placeholder.
+          const projectsWithImages = category.projects
+            .map((project) => ({ ...project, image: findSelectedProjectImage(project.file) }))
+            .filter((project) => project.image)
+          if (projectsWithImages.length === 0) return null
+
+          return (
+            <div class="flex flex-col gap-6">
+              <p class="text-body-sm font-medium uppercase tracking-wide text-ink-secondary">{category.label}</p>
+              <ul class="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+                {projectsWithImages.map((project) => (
+                  <li class="flex flex-col gap-4" data-project-card>
+                    <div class="relative aspect-[430/294] overflow-hidden rounded-[var(--radius-card)] bg-accent-tint">
+                      <Image
+                        src={project.image!}
+                        alt=""
+                        width={860}
+                        height={588}
+                        widths={[430, 645, 860]}
+                        sizes="(min-width: 1024px) 22vw, 45vw"
+                        class="size-full object-cover"
+                      />
+                    </div>
+                    <p class="text-body-sm font-medium text-ink">{project.title}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })
+      }
+    </div>
+  </section>
+
+  {/* ---------- 9. Contact ---------- */}
+  <DualCta
+    leftHeading="Have an event in mind?"
+    leftHref="/contact/"
+    leftLabel="Get in touch"
+    rightHeading="Want to see more of our work?"
+    rightHref="/fes-agency-portfolio.pdf"
+    rightLabel="See our portfolio"
+    rightImage={ourWorkCta}
+  />
+</BaseLayout>
+
+<script>
+  // Staggered reveal for the projects row.
+  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../../lib/sectionMotion'
+
+  bindSection('[data-projects-row]', ({ root, mm }) => {
+    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
+    if (cards.length === 0) return
+
+    mm.add(MOTION_FULL, () => {
+      const tween = gsap.from(cards, {
+        opacity: 0,
+        y: 24,
+        duration: 0.8,
+        stagger: 0.08,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: root, start: 'top 85%', once: true },
+      })
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+
+    mm.add(MOTION_FALLBACK, () => {
+      const tween = gsap.from(cards, {
+        opacity: 0,
+        duration: 0.4,
+        scrollTrigger: { trigger: root, start: 'top 90%', once: true },
+      })
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+  })
+</script>

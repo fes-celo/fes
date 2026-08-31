@@ -1,0 +1,638 @@
+---
+/**
+ * "Our approach" — the pinned, scroll-driven phase list every Systems page
+ * uses (Figma node 997:1738), also the Approach section of the case-study
+ * template (src/pages/projects/[slug].astro). It consumes the shared
+ * `{ number, title, description }[]` shape from src/lib/phases.ts. A second,
+ * horizontal-carousel approach section used to sit beside this one on
+ * Influence & Reputation; it was retired so each page has exactly ONE
+ * "Our approach", and this is it.
+ *
+ * Mechanics: every step renders as its own row (title | description) stacked
+ * in a single vertical track — ALL steps stay visible at once, unlike a
+ * crossfaded single-step view. A single ScrollTrigger pins the section for
+ * `(steps.length - 1) * VH_PER_STEP` of scroll and, on every scrub frame,
+ * translates the track by `-(fractionalIndex - 1) * rowHeight` — every row
+ * has the SAME fixed height (--phase-row-h), which is what makes that one
+ * transform keep the "active" row parked in the same on-screen slot
+ * (slot 1: one row of history always visible above it, blank only when
+ * there IS no previous step) while the rest slide past above/below,
+ * dimmed. The physical slide is driven directly off scroll progress (no
+ * separate easing layer chasing it) — only the DIM ⇄ ACTIVE style flip is
+ * tied to the rounded nearest step (`[data-active]`, a plain CSS
+ * transition), same as the number label below.
+ *
+ * PACING: VH_PER_STEP is deliberately a HALF viewport, not a whole one. The
+ * track only travels one row height (~144px at the 1440px reference) per
+ * step, so budgeting a full viewport of scroll for it made the section feel
+ * stuck — a 6:1 ratio of scroll input to visible travel, which reads as lag
+ * even though nothing is actually lagging behind the scroll. Halving the
+ * budget halves the ratio; it is NOT fixed by adding scrub smoothing, which
+ * would stack more delay on top of the smoothing Lenis already applies to
+ * the scroll value this trigger reads (src/lib/lenis.ts).
+ *
+ * DRAG: the section can also be grabbed and pulled vertically with the
+ * mouse. A Draggable proxy moves the SAME scroll position the wheel would
+ * (clamped to this trigger's own [start, end] so a drag can never scroll the
+ * page out of the pinned section), geared so one row height of drag advances
+ * exactly one step — the content tracks the cursor 1:1. Release throws with
+ * InertiaPlugin and lands on a whole step. Draggable's `snap` rounds to the
+ * SAME increments this trigger's own `snap: { snapTo: 1 / lastIndex }` uses,
+ * so the two agree by construction: when the throw ends, the scroll is
+ * already at a snap point and ScrollTrigger's snap is a no-op. That is what
+ * keeps this to one snapping authority rather than two fighting for the last
+ * word.
+ *
+ * "Phase" + the number is a single persistent element beside the track,
+ * not duplicated per row: since the active row is always in the same slot,
+ * the label just needs `margin-top: var(--phase-row-h)` to start at that
+ * slot's top edge, and its number crossfades in place exactly as before.
+ * `align-items: flex-start` (not `center`) on both the label/track row and
+ * each step's own title/description row is what lines the label's two
+ * lines up with the title's two lines — centering either one throws that
+ * off whenever the description is a different height than the title.
+ *
+ * Titles are forced to exactly two lines: the title column is narrow
+ * enough that even a two-word title wraps (one word per line), and
+ * `-webkit-line-clamp: 2` caps anything longer instead of pushing the
+ * row's fixed height.
+ *
+ * Fallback (reduced motion OR < 1024px, per src/lib/sectionMotion.ts's
+ * MOTION_FALLBACK) is also this component's plain CSS resting state: no
+ * pin, a normal vertical stack, every title at full ink, every description
+ * always visible, no line-clamp, no dimming. The pinned/sliding treatment
+ * above is entirely opt-in, switched on by [data-motion="pinned"] once the
+ * full-motion branch runs.
+ */
+import type { PhaseStep } from '../lib/phases'
+
+interface Props {
+  /** Section heading. A prop, not a constant, so the component stays generic. */
+  heading?: string
+  steps: PhaseStep[]
+  class?: string
+}
+
+const { heading = 'Our approach', steps, class: className } = Astro.props as Props
+
+// `step.number` carries a leading "— " (the convention the page data was
+// authored in, and what the retired horizontal stepper rendered inline before
+// the digits). Here the dash is its own decorative element instead
+// (.phases-scroll__dash, below the digits) — so strip it from the text once,
+// server-side, rather than filtering it out in the client script too.
+const numberOf = (n: string) => n.replace(/^—\s*/, '')
+---
+
+<section
+  class:list={['phases-scroll relative w-full px-[var(--space-gutter)]', className]}
+  data-phases-scroll
+  aria-roledescription="Step sequence"
+>
+  <div class="phases-scroll__inner flex w-full flex-col gap-16 lg:gap-28">
+    {
+      /* Progress rule + heading — same pattern as SystemProblemCards' own
+         (rule IS the scroll progress bar, driven by this section's own pin
+         progress; replaces a plain border-t so there's only one line). */
+    }
+    <div>
+      <div class="phases-scroll__progress relative h-px w-full bg-line" aria-hidden="true">
+        <div class="phases-scroll__progress-fill absolute inset-0 bg-ink" data-pin-progress-fill></div>
+      </div>
+      <h2 class="pt-4 text-lead text-ink">{heading}</h2>
+    </div>
+
+    <div class="phases-scroll__row" data-row>
+      <div class="phases-scroll__label" data-label>
+        <p class="phases-scroll__phase-word text-h2 text-accent-200">Phase</p>
+        <p class="phases-scroll__number text-h2 text-accent-600" data-phase-number>{numberOf(steps[0]?.number ?? '')}</p>
+        <span class="phases-scroll__dash" aria-hidden="true" />
+      </div>
+
+      {
+        /* Resting state (fallback / no-JS / < 1024px / reduced motion) is a
+           plain vertical stack with no clipping — see .phases-scroll__stage's
+           base rule below. The pinned branch turns this same markup into a
+           fixed-height sliding track via [data-motion='pinned']. */
+      }
+      <div class="phases-scroll__viewport" data-viewport>
+        <div class="phases-scroll__stage" data-stage>
+          {
+            steps.map((step) => (
+              <div class="phases-scroll__step" data-step data-number={numberOf(step.number)}>
+                <span class="phases-scroll__step-number text-h3" data-step-number>
+                  {numberOf(step.number)}
+                </span>
+                <div class="phases-scroll__step-text">
+                  <h3 class="phases-scroll__title text-h2" data-title>
+                    {step.title}
+                  </h3>
+                  <p class="phases-scroll__description text-lead" data-description>
+                    {step.description}
+                  </p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .phases-scroll {
+    padding-block: var(--space-section-y);
+
+    /* Fluid row height, same clamp() convention as --problem-card-h —
+       sized to fit a 2-line title (or the description
+       next to it, whichever is taller) plus the row's own block padding.
+       Fixed rather than content-driven: every row (active or not) needs the
+       SAME height for the track's translateY math to keep the active row
+       parked in a constant slot. */
+    --phase-row-h: clamp(10rem, 10vw, 13rem);
+  }
+
+  /*
+    NOT Tailwind's `scale-x-0` / `origin-left` — Tailwind v4's scale
+    utilities use the independent `scale` property, not `transform`, and the
+    two compose multiplicatively (see SystemProblemCards for the full note).
+  */
+  .phases-scroll__progress-fill {
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .phases-scroll__row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-heading-gap);
+  }
+
+  /* Only meaningful for the pinned branch's slot-anchored crossfading
+     number — the fallback list below shows a plain number per row instead
+     (.phases-scroll__step-number), so this stays hidden until
+     [data-motion='pinned'] opts it back in. */
+  .phases-scroll__label {
+    display: none;
+  }
+
+  /* Short accent-200 rule standing in for the em dash the step data carries
+     ahead of its digits (see the frontmatter's numberOf()) — here it's a
+     decorative mark under the number instead of leading text. */
+  .phases-scroll__dash {
+    width: 2.5rem;
+    height: 0.125rem;
+    margin-top: 1rem;
+    background-color: var(--color-accent-200);
+  }
+
+  /* Resting state: a plain vertical stack, title|description side by side,
+     every title full-ink, every description always shown, no line-clamp, no
+     dimming. This IS the base rule — the pinned branch below is what opts
+     INTO the fixed row height, the two-line cap and the dim/active toggle,
+     not the other way round, so a JS failure never hides or truncates copy. */
+  .phases-scroll__stage {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phases-scroll__step {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: clamp(1rem, 3vw, 1.5rem);
+    border-top: 1px solid var(--color-line);
+    padding-block: 2rem;
+    color: var(--color-ink);
+    transition: color 200ms ease-out;
+  }
+
+  .phases-scroll__step:first-child {
+    border-top: none;
+  }
+
+  /* Fallback-only dimming (see the script's IntersectionObserver in
+     MOTION_FALLBACK, below): the observer is the only thing that ever
+     writes the literal string 'false'. An element with no data-active
+     attribute at all — the safe no-JS state — falls through to the
+     full-ink color above instead of getting stranded dim. */
+  .phases-scroll__step[data-active='false'] {
+    color: var(--color-line);
+  }
+
+  .phases-scroll__step-number {
+    flex: 0 0 auto;
+    color: inherit;
+  }
+
+  .phases-scroll__step-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .phases-scroll__title {
+    color: inherit;
+  }
+
+  .phases-scroll__description {
+    max-width: 46ch;
+    color: inherit;
+  }
+
+  /* ---------- Pinned branch ---------- */
+
+  .phases-scroll[data-motion='pinned'] {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    /* Asymmetric (more room at the bottom): this section anchors its
+       heading at the top and fills the rest with the track, not the old
+       vertically-centered single-row stage. */
+    padding-block: var(--space-gutter) var(--space-section-y);
+  }
+
+  @supports (height: 100dvh) {
+    .phases-scroll[data-motion='pinned'] {
+      height: 100dvh;
+    }
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__inner {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__row {
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: row;
+    /* flex-start, not center: the label's own top edge is what has to line
+       up with the ACTIVE row's top edge (see .phases-scroll__label's
+       margin-top below) — centering the row here would offset the label
+       against the track's overall height instead. */
+    align-items: flex-start;
+    /* The whole row (label + track) is the drag surface — see the script's
+       Draggable `trigger`. Only the pinned branch is draggable; the fallback
+       stack is an ordinary block of text and must keep the text cursor. */
+    cursor: grab;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__row:active {
+    cursor: grabbing;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__label {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    /* Slot 1 (one row of history always sits above the active row — blank
+       when there is no previous step): pushing the label down by exactly
+       one row height lands it at that same slot's top edge, where the
+       active row's transform always parks it. No JS position math needed —
+       the anchor slot never moves, only which step's row occupies it does. */
+    margin-top: var(--phase-row-h);
+    height: var(--phase-row-h);
+    /* Matches .phases-scroll__step's own padding-block top value — the
+       step's title/description sit inset from the row's border-box edge by
+       that padding, so the label needs the same inset to land "Phase" on
+       the title's first line instead of the row's outer (unpadded) edge. */
+    padding-top: 2rem;
+  }
+
+  /* The fallback's per-row number and its wrapper are the pinned branch's
+     own persistent .phases-scroll__label instead (restored above) — the
+     wrapper collapses to `contents` so .phases-scroll__title/__description
+     go back to being direct flex children of .phases-scroll__step, which is
+     what every rule below this point expects. */
+  .phases-scroll[data-motion='pinned'] .phases-scroll__step-number {
+    display: none;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__step-text {
+    display: contents;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__viewport {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__step {
+    /* Row (title | description side by side), not the resting/fallback
+       column stack — only makes sense at the widths this branch runs at
+       (MOTION_FULL, >=1024px); the fallback keeps title above description. */
+    flex-direction: row;
+    gap: clamp(2rem, 4vw, 5rem);
+    height: var(--phase-row-h);
+    flex: 0 0 auto;
+    overflow: hidden;
+    /* flex-start, not center: matches the row-level fix above — the title's
+       own top edge (not its vertical center against a possibly-taller or
+       -shorter description) is what has to land on the label's top edge. */
+    align-items: flex-start;
+    color: var(--color-line);
+    transition: color 200ms ease-out;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__title {
+    flex: 0 0 clamp(16rem, 22vw, 26rem);
+    /* Flex items default to `min-width: auto` (their content's min-content
+       size), which can silently exceed the flex-basis above for a title
+       with one very long word — min-width:0 makes the basis the real,
+       final width, and break-word keeps an oversized word wrapping inside
+       it instead of overflowing. */
+    min-width: 0;
+    overflow-wrap: break-word;
+    color: inherit;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    /* Known line-clamp fix: a flush clip can shear descenders (g/y/p/q/j)
+       off the second line — pad past them, cancel with an equal negative
+       margin so the laid-out height doesn't change. */
+    padding-bottom: 0.2em;
+    margin-bottom: -0.2em;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__description {
+    flex: 1 1 auto;
+    /* Pinned never dims the row through this element's own color (only
+       opacity, for the crossfade) — restated explicitly now that the base
+       rule above reads `color: inherit` for the fallback's sake. */
+    color: var(--color-ink-secondary);
+    opacity: 0;
+    transition: opacity 200ms ease-out;
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__step[data-active='true'] {
+    color: var(--color-ink);
+  }
+
+  .phases-scroll[data-motion='pinned'] .phases-scroll__step[data-active='true'] .phases-scroll__description {
+    opacity: 1;
+  }
+</style>
+
+<script>
+  import {
+    bindSection,
+    gsap,
+    ScrollTrigger,
+    MOTION_FULL,
+    MOTION_FALLBACK,
+    shareResizeRefresh,
+  } from '../lib/sectionMotion'
+  // Type-only — erased at compile time. The real Draggable/InertiaPlugin are
+  // loaded dynamically below.
+  import type { Draggable as DraggableType } from 'gsap/Draggable'
+
+  /**
+   * Scroll distance allotted per phase transition, in viewport heights.
+   *
+   * HALF a viewport, not the whole one the first pass used. The track travels
+   * exactly one row height per step (~144px at the 1440px reference), so a
+   * full viewport of scroll per step meant a ~6:1 ratio of input to visible
+   * travel — the section reads as stuck even though it tracks the scroll
+   * position perfectly. This is the knob that fixes that; smoothing is not
+   * (Lenis already smooths the value this trigger reads).
+   */
+  const VH_PER_STEP = 0.5
+
+  /**
+   * Drag is created for fine pointers only.
+   *
+   * A `type: 'y'` Draggable sets `touch-action: pan-x` on its trigger and
+   * every descendant, which kills native vertical touch-scrolling inside the
+   * section — on a touch device that traps the user in a pinned section with
+   * no way to swipe out of it. MOTION_FULL gates on width, and a landscape
+   * tablet clears 1024px, so width alone doesn't rule that out. Mouse and
+   * trackpad are unaffected by this query.
+   */
+  const FINE_POINTER = '(hover: hover) and (pointer: fine)'
+
+  bindSection('[data-phases-scroll]', ({ root, mm }) => {
+    const numberEl = root.querySelector<HTMLElement>('[data-phase-number]')
+    const row = root.querySelector<HTMLElement>('[data-row]')
+    const viewport = root.querySelector<HTMLElement>('[data-viewport]')
+    const stage = root.querySelector<HTMLElement>('[data-stage]')
+    const stepEls = Array.from(root.querySelectorAll<HTMLElement>('[data-step]'))
+    if (!viewport || !stage || stepEls.length === 0) return
+
+    mm.add(MOTION_FULL, () => {
+      root.setAttribute('data-motion', 'pinned')
+      stepEls[0]!.setAttribute('data-active', 'true')
+
+      // A single step: nothing to slide or crossfade, just the static
+      // layout with step 0 already marked active above.
+      if (stepEls.length < 2) {
+        return () => {
+          root.removeAttribute('data-motion')
+          stepEls[0]!.removeAttribute('data-active')
+        }
+      }
+
+      const lastIndex = stepEls.length - 1
+
+      // Every row is the SAME fixed height by design (--phase-row-h), so
+      // the first row's real rendered height IS the row height — measured
+      // once and re-measured on refresh, not read every onUpdate frame
+      // (see SystemProblemCards' measureDistance note on why: toggling
+      // layout to get an honest measurement forces a synchronous reflow,
+      // and onUpdate fires every scroll frame during the pin).
+      let rowHeight = 0
+      const measure = () => {
+        rowHeight = stepEls[0]!.getBoundingClientRect().height
+      }
+      measure()
+
+      let activeIndex = 0
+      function setActive(index: number) {
+        if (index === activeIndex) return
+        stepEls[activeIndex]?.removeAttribute('data-active')
+        stepEls[index]!.setAttribute('data-active', 'true')
+        activeIndex = index
+
+        if (numberEl) {
+          // Killed first, deliberately. Scrubbing (or throwing) quickly walks
+          // several steps in well under this crossfade's own duration, and
+          // without this each call stacked another tween whose onComplete
+          // would write ITS number — so an older tween finishing last left
+          // the label showing a step the track had already scrolled past.
+          gsap.killTweensOf(numberEl)
+          const nextNumber = stepEls[index]!.dataset.number ?? ''
+          gsap.to(numberEl, {
+            opacity: 0,
+            duration: 0.15,
+            ease: 'power2.in',
+            onComplete: () => {
+              numberEl.textContent = nextNumber
+              gsap.to(numberEl, { opacity: 1, duration: 0.25, ease: 'power2.out' })
+            },
+          })
+        }
+      }
+
+      const st = ScrollTrigger.create({
+        trigger: root,
+        start: 'top top',
+        end: () => `+=${window.innerHeight * lastIndex * VH_PER_STEP}`,
+        pin: true,
+        pinSpacing: true,
+        scrub: true,
+        invalidateOnRefresh: true,
+        snap: { snapTo: 1 / lastIndex, duration: 0.35, ease: 'power2.inOut' },
+        onRefresh: measure,
+        onUpdate: (self) => {
+          const fractionalIndex = self.progress * lastIndex
+          // Slot 1 is the anchor: subtracting 1 before scaling by rowHeight
+          // is what leaves slot 0 blank for step 0 (fractionalIndex 0 → a
+          // full row of empty space above) and brings the previous step
+          // into view above the active one for every step after.
+          gsap.set(stage, { y: -(fractionalIndex - 1) * rowHeight })
+          setActive(Math.round(fractionalIndex))
+        },
+      })
+
+      // Belt-and-braces re-measure on resize, so a resize can never leave the
+      // pin length (or rowHeight) stale. Shared and debounced across every
+      // section that asks for one (see shareResizeRefresh) rather than a
+      // listener per component — refresh() re-measures every trigger on the
+      // page, so N private listeners meant N full page-wide refreshes.
+      const releaseResize = shareResizeRefresh()
+
+      // ---------- Grab-and-pull ----------
+      //
+      // A Draggable proxy moves the SAME scroll position the wheel moves, so
+      // there is one position of record, not a drag offset shadowing it.
+      // Read st.start/st.end lazily on every call rather than capturing them:
+      // invalidateOnRefresh recomputes both, and a drag that began before a
+      // refresh would otherwise gear itself off stale numbers.
+      let startScroll = 0
+      const stepScroll = () => (st.end - st.start) / lastIndex
+      /** Drag px → scroll px. One row height of drag == exactly one step, so the content tracks the cursor 1:1. */
+      const gain = () => (rowHeight > 0 ? stepScroll() / rowHeight : 1)
+      /**
+       * The proxy's `y` ACCUMULATES across presses — it is a real element
+       * Draggable keeps translating, never reset between drags — while
+       * `startScroll` is re-read on every press. Mixing the two made the
+       * second drag start from the first one's total offset and slam
+       * straight to the end of the section. `from` is always the Draggable's
+       * own `startY` (the y recorded at press, see recordStartPositions in
+       * Draggable), so what's applied is the delta THIS press produced.
+       *
+       * Dragging UP (a decreasing y) advances forward, hence the subtraction.
+       */
+      const scrollFor = (y: number, from: number) =>
+        gsap.utils.clamp(st.start, st.end, startScroll - (y - from) * gain())
+      const dragYFor = (scroll: number, from: number) => from + (startScroll - scroll) / gain()
+      const nearestStep = (scroll: number) =>
+        st.start + gsap.utils.clamp(0, lastIndex, Math.round((scroll - st.start) / stepScroll())) * stepScroll()
+
+      // Draggable + InertiaPlugin (~40KB with the Vite chunk they pull in) are
+      // imported dynamically rather than statically at the top of this module:
+      // a static import bundles them into this component's EAGER script chunk,
+      // on the critical path before first paint, for a feature that only
+      // matters once the user has scrolled partway down the page. The pin and
+      // the scroll-driven slide work immediately either way; drag capability
+      // attaches a beat later once the chunk arrives.
+      let draggable: DraggableType | undefined
+      let proxy: HTMLDivElement | undefined
+      let cancelled = false
+
+      if (row && window.matchMedia(FINE_POINTER).matches) {
+        Promise.all([import('gsap/Draggable'), import('gsap/InertiaPlugin')]).then(
+          ([{ Draggable }, { InertiaPlugin }]) => {
+            if (cancelled) return
+            gsap.registerPlugin(Draggable, InertiaPlugin)
+
+            proxy = document.createElement('div')
+
+            ;[draggable] = Draggable.create(proxy, {
+              trigger: row,
+              type: 'y',
+              inertia: true,
+              // Same reason as src/lib/horizontalLoop.ts's: the throw must
+              // settle straight onto a step, never sail past one and spring
+              // back off it.
+              overshootTolerance: 0,
+              onPressInit() {
+                // Grabbing mid-settle: kill the trigger's own snap tween, or
+                // it keeps writing the scroll position out from under the drag.
+                st.getTween(true)?.kill()
+                startScroll = st.scroll()
+              },
+              onDrag(this: DraggableType) {
+                st.scroll(scrollFor(this.y, this.startY))
+              },
+              onThrowUpdate(this: DraggableType) {
+                st.scroll(scrollFor(this.y, this.startY))
+              },
+              // Rounds to the SAME increments the trigger's own
+              // `snapTo: 1 / lastIndex` uses, so the throw lands on a position
+              // that is already a ScrollTrigger snap point and its snap becomes
+              // a no-op. One snapping authority, not two fighting over the
+              // last word.
+              snap(this: DraggableType, value: number) {
+                return dragYFor(nearestStep(scrollFor(value, this.startY)), this.startY)
+              },
+            })
+          }
+        )
+      }
+
+      return () => {
+        releaseResize()
+        cancelled = true
+        draggable?.kill()
+        proxy?.remove()
+        st.kill()
+        root.removeAttribute('data-motion')
+        gsap.set(stage, { clearProps: 'transform' })
+        if (numberEl) {
+          gsap.killTweensOf(numberEl)
+          gsap.set(numberEl, { clearProps: 'opacity' })
+        }
+        stepEls.forEach((step) => step.removeAttribute('data-active'))
+        activeIndex = -1
+      }
+    })
+
+    mm.add(MOTION_FALLBACK, () => {
+      gsap.set(stage, { clearProps: 'transform' })
+
+      // Plain, non-pinned list (number left, title+description right — see
+      // the CSS above): the row nearest the viewport's vertical center gets
+      // brightened as the reader scrolls past, same "what's on screen is
+      // lit" idea as the pinned branch's active row, without any
+      // scroll-locking. A ±10% center band (rootMargin shrinks the
+      // observer's root to that band) keeps exactly one step lit at a time
+      // without intersectionRatio math. Every step defaults to full ink in
+      // CSS with no attribute at all, so a script failure here just leaves
+      // every step readable, never stuck dim.
+      stepEls[0]?.setAttribute('data-active', 'true')
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            ;(entry.target as HTMLElement).dataset.active = entry.isIntersecting ? 'true' : 'false'
+          }
+        },
+        { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+      )
+      stepEls.forEach((step) => observer.observe(step))
+
+      return () => {
+        observer.disconnect()
+        stepEls.forEach((step) => step.removeAttribute('data-active'))
+      }
+    })
+  })
+</script>

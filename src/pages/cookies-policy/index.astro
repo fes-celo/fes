@@ -1,0 +1,247 @@
+---
+/**
+ * Plain text legal page — white canvas, no header/footer dividers (see
+ * BaseLayout's `bordered` prop). Nav is the same hideHeader + inline <nav>
+ * pattern as the Projects page (same padding/margins), not BaseLayout's
+ * default bordered header.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import { navItems } from '../../lib/nav'
+---
+
+<BaseLayout
+  title="Cookies Policy"
+  description="How FES Agency uses cookies and similar technologies on this website, and how to manage your preferences."
+  hideHeader
+>
+  <nav aria-label="Primary" class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)]">
+    <div class="flex items-center justify-between gap-6">
+      <a href="/" class="shrink-0">
+        <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+      </a>
+      <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+        {
+          navItems.map((item) => (
+            <li>
+              <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <button
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        data-nav-toggle
+      >
+        Menu
+      </button>
+    </div>
+  </nav>
+
+  <section class="bg-surface px-[var(--space-gutter)] pt-10 pb-[var(--space-section-y)]">
+    <div class="mx-auto flex max-w-[760px] flex-col gap-10">
+      <h1 class="text-h1 text-ink">Cookies Policy</h1>
+
+      <div class="flex flex-col gap-10 text-body text-ink-secondary [&_a]:text-ink [&_a]:underline [&_a:hover]:text-ink-secondary">
+        <div class="flex flex-col gap-4">
+          <p>
+            This Cookies Policy should be read together with our <a href="/privacy-policy/">Privacy Policy</a>.
+          </p>
+          <p>
+            To facilitate navigation on the Website (hereinafter, "Website"), PressPlay, Unipessoal, Lda., with the
+            trade name FES Agency, with headquarters at Praça das Flores, 91, 4.º D, 4300-401 Porto, with a share
+            capital of € 500, registered at the Commercial Registry Office under the sole registration and tax
+            identification number 513 906 169 (hereinafter, "FES Agency"), as owner of the same, informs you that it
+            uses cookies or other data storage and retrieval devices with similar functionality (hereinafter
+            "Cookies").
+          </p>
+          <p>
+            For any questions about our Cookies Policy, you can contact us at the following email address: <a href="mailto:hello@fesagency.pt">hello@fesagency.pt</a>.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">What are cookies?</h2>
+          <p>
+            Cookies are files containing small amounts of information, which are downloaded to the user's device
+            when visiting a web page and which make it possible to identify the access device, as well as the pages
+            and elements accessed, with the aim of enabling a better browsing experience.
+          </p>
+          <p>
+            Cookies are essential for the operation of the Internet, as they offer technical solutions that enable
+            the user to navigate through the different websites; they cannot damage the user equipment/device and
+            may be used to identify and resolve possible errors in the operation of the Platform. They may also be
+            used for advertising or analytical purposes.
+          </p>
+          <p>
+            The cookies used on the website do not collect personal information that allows the identification of
+            the user, only keeping generic information, namely the form or place/country of access of the user and
+            the way he/she uses the website.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Use of Cookies</h2>
+          <p>
+            Specifically, we use cookies set by us - which are called first-party cookies - generated directly by
+            this domain and third-party cookies - which are cookies from a different domain, generated from other
+            websites, belonging to third-party companies.
+          </p>
+          <p>More specifically, we use cookies and other tracking technologies for the following purposes:</p>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Functionality Cookies</h3>
+            <p>
+              These cookies allow the user preferences regarding the use of the Website to be remembered so that it
+              is not necessary to reconfigure the site each time you visit, and to differentiate your experience
+              from that of other users. If you choose these features yourself (for example, if you select the
+              language of the Website), the cookies will be considered as a service expressly requested by you and
+              will therefore be used exclusively for the purpose you selected and without seeking your express
+              consent. If you do not allow these cookies, some of these features may not work properly.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Analytical Cookies</h3>
+            <p>
+              These cookies collect information about how visitors use the Website. The function of these cookies
+              is to obtain statistics and reports so that we can measure and improve the performance of our
+              Website. They help us, for example, to know which pages are the most and least popular, whether you
+              receive error messages from web pages, or which buttons on the Website you click. All information
+              collected by these cookies is aggregated and therefore anonymous.
+            </p>
+            <p>These cookies are only installed on your device when you accept them.</p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Advertising Cookies</h3>
+            <p>
+              These cookies are used to show advertisements that are relevant to you, as well as to help measure the
+              effectiveness of advertising campaigns. They may be set through our Website by our advertising
+              partners. They may be used by these companies to build a profile about your interests and show you
+              relevant adverts on other websites. They do not directly store personal information but are based on
+              exclusively identifying your browser and internet device.
+            </p>
+            <p>
+              These cookies are only placed on your device when you accept them. If you do not allow these cookies,
+              you will have less targeted advertising.
+            </p>
+          </div>
+
+          <p class="pt-2">
+            On the Website services from external providers may be used (such as official YouTube videos or
+            plug-ins and other site drivers and tools) that may collect information from you about navigation on
+            the web pages. When you visit publications with content such as those mentioned above, cookies may be
+            created from these websites. We have no control over the dissemination of these cookies.
+          </p>
+          <p>
+            For more details about the cookies we use, please go to the <a href="#">Cookie Notice &amp; Compliance for GDPR / CCPA</a>.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Cookies Management</h2>
+          <p>
+            You can accept, refuse, or set your cookie preferences via our cookie notice. Once you have selected
+            your settings, you can modify or disable some or all cookies at any time, except for necessary cookies
+            (whose disabling could invalidate the basic functionality of the website).
+          </p>
+          <p>
+            In addition, most internet browsers allow the user to control the cookies stored on their device, as
+            well as to immediately delete them if the user wishes to stop allowing the local storage of cookies
+            through the configuration tools of their browser.
+          </p>
+          <p>To do so, you should follow these instructions:</p>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Internet Explorer Cookie Settings - Disable Cookies</h3>
+            <ul class="list-disc pl-6">
+              <li>Click on the "Tools" menu and choose the "Internet Options" option;</li>
+              <li>Select the "Privacy" tab;</li>
+              <li>Move the bar to the top, where it will say "Block all cookies".</li>
+            </ul>
+            <p class="pt-2">
+              Note: There are several levels of activation and deactivation of cookies in Internet Explorer. For
+              more information about Internet Explorer cookie settings, the user should consult the following
+              Microsoft page: <a href="https://support.microsoft.com/pt-pt/help/17442/windows-internet-explorer-delete-manage-cookies" target="_blank" rel="noopener noreferrer">https://support.microsoft.com/pt-pt/help/17442/windows-internet-explorer-delete-manage-cookies</a>
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Chrome Cookie Settings – Disable cookies</h3>
+            <ul class="list-disc pl-6">
+              <li>Click the Chrome menu on the browser toolbar.</li>
+              <li>Select "Settings".</li>
+              <li>In the "Privacy and security" section, click on "Cookies and other site data";</li>
+              <li>
+                Select one of the options "Block all cookies", "Block third-party cookies" or "Block third-party
+                cookies in Incognito Browsing".
+              </li>
+            </ul>
+            <p class="pt-2">The user can change the following cookie settings in the "Cookies" section:</p>
+            <ul class="list-disc pl-6">
+              <li>Delete cookies;</li>
+              <li>Block cookies by default;</li>
+              <li>Allow cookies by default;</li>
+              <li>Keep cookies and website data by default until leaving the internet browser;</li>
+              <li>Make exceptions for cookies from specific websites or domains.</li>
+            </ul>
+            <p class="pt-2">
+              Note: There are several levels of activation and deactivation of cookies in Google Chrome. For more
+              information about Google Chrome cookie settings, the user should consult: <a href="https://support.google.com/chrome/answer/95647?hl=pt&topic=14666&ctx=topic" target="_blank" rel="noopener noreferrer">https://support.google.com/chrome/answer/95647?hl=pt&amp;topic=14666&amp;ctx=topic</a>
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Mozilla Firefox Cookie Settings – Disable cookies</h3>
+            <ul class="list-disc pl-6">
+              <li>Click on the "Tools" menu;</li>
+              <li>Select "Options";</li>
+              <li>Click on the "Privacy" icon in the upper panel;</li>
+              <li>In the "Cookies" section, disable the option "Accept cookies from websites";</li>
+              <li>Click "OK" to save changes and close.</li>
+            </ul>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Safari Web and iOS Cookie Settings – Disable cookies</h3>
+            <ul class="list-disc pl-6">
+              <li>Click on "Edit";</li>
+              <li>Select "Preferences";</li>
+              <li>On the top panel, select the "Privacy" icon;</li>
+              <li>In the "Accept Cookies" section, select "Never".</li>
+            </ul>
+            <p class="pt-2">
+              Note: There are several levels of activation and deactivation of cookies in Safari. For more
+              information about Safari cookie settings, the user should consult: <a href="https://support.apple.com/pt-pt/HT201265" target="_blank" rel="noopener noreferrer">https://support.apple.com/pt-pt/HT201265</a>
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Other Internet Browsers</h3>
+            <p>
+              If you use a browser other than those mentioned, look in the "help" menu of your internet browser for
+              the functionality to delete cookie data.
+            </p>
+          </div>
+
+          <p class="pt-2">Note: By disabling cookies the website may not function properly.</p>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <h2 class="text-h3 text-ink">Updates Cookies Policy</h2>
+          <p>
+            We may at any time amend or change this Cookies Policy, any such amendments will be duly published on
+            the Website.
+          </p>
+          <p class="text-ink-muted">Date of last update: 19/02/2024</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

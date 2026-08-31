@@ -1,0 +1,389 @@
+---
+/**
+ * "Built for <phrase>" — the accent phrase cycles on a timer (Figma node
+ * 972:312, the updated frame: full-bleed background photo, both the label
+ * and the rotating word rendered as gradient text). Not scroll-linked and
+ * never pinned: it starts when the section comes into view and loops from
+ * there. The background gets a slow, scroll-linked vertical parallax
+ * independent of that loop.
+ *
+ * The transition is a vertical slide, deliberately unlike
+ * SystemExpertiseRotator's 3D flip — two auto-changing words on one page
+ * that changed the same way would read as one component used twice.
+ *
+ * Layout note (the actual hard part here): "Built for" must not shift as
+ * phrases of different lengths cycle through, AND every phrase must start
+ * the same fixed distance from the label — not just avoid shifting the
+ * label, but keep the WORD's own start position constant too. Centering
+ * each phrase within the slot (the first pass) got the first half right and
+ * the second half wrong: centering leaves a variable gap between the label
+ * and each phrase's first character, since a short phrase is inset further
+ * than a long one. Left-aligning within the slot (at the row-layout
+ * breakpoint) fixes it — every phrase's first character now sits at the
+ * same x position, and only the far end (the length) varies.
+ *
+ * All phrases are stacked in a single CSS grid cell rather than measuring a
+ * separate hidden "ghost" sized to the longest phrase — the cell then sizes
+ * itself to the widest and tallest of them, in both axes, at every
+ * breakpoint, with no longest-string heuristic to get wrong.
+ *
+ * Descenders: every gradient-filled element here (the label, and each
+ * per-letter span) needs padding past the font's descent, because
+ * `background-clip: text` paints only inside the element's own box and this
+ * type's 1.04 line-height puts that box above the tails. See the
+ * .built-for__char and descender-pad rules in the style block.
+ */
+import type { ImageMetadata } from 'astro'
+import { Image } from 'astro:assets'
+
+interface Props {
+  /** Static lead-in. A prop so the other Systems pages can reword it. */
+  label?: string
+  phrases: string[]
+  /** Figma's updated frame is a full-bleed photo; optional so the component still works before a page supplies one. */
+  backgroundImage?: ImageMetadata
+  class?: string
+}
+
+const { label = 'Built for', phrases, backgroundImage, class: className } = Astro.props as Props
+---
+
+<section
+  class:list={[
+    'built-for relative flex min-h-screen w-full items-center justify-center overflow-hidden px-[var(--space-gutter)] py-[var(--space-section-y)] supports-[height:100dvh]:min-h-dvh',
+    className,
+  ]}
+  data-built-for
+>
+  {
+    backgroundImage && (
+      <Image
+        src={backgroundImage}
+        alt=""
+        width={2560}
+        height={1440}
+        widths={[960, 1920, 2560]}
+        sizes="100vw"
+        loading="lazy"
+        class="built-for__bg pointer-events-none absolute inset-x-0 size-full object-cover"
+        data-parallax-bg
+      />
+    )
+  }
+  <div class="built-for__scrim pointer-events-none absolute inset-0"></div>
+
+  <div class="relative z-10 flex flex-col items-center gap-2 lg:flex-row lg:gap-6">
+    <p class="built-for__label built-for__descender-pad text-h1 text-center">{label}</p>
+
+    {
+      /* The animated stack is decorative repetition to a screen reader — it
+         would otherwise read all seven phrases as one run-on line, or worse,
+         re-announce on every swap. The real content is the list below it. */
+    }
+    <div class="built-for__slot built-for__descender-pad text-h1" aria-hidden="true">
+      {
+        phrases.map((phrase) => (
+          <span class="built-for__word text-h1" data-phrase>
+            {/* Spaces are plain text, NOT their own span: a run of
+               display:inline-block letter spans has no line-break
+               opportunity between them on its own, so a literal space text
+               node between them is what lets long phrases ("Editorial
+               planning for media") still wrap instead of overflowing
+               the slot's `overflow:hidden` clip. */}
+            {[...phrase].map((char) => (char === ' ' ? ' ' : <span class="built-for__char">{char}</span>))}
+          </span>
+        ))
+      }
+    </div>
+
+    <ul class="sr-only">
+      {phrases.map((phrase) => <li>{phrase}</li>)}
+    </ul>
+  </div>
+</section>
+
+<style>
+  /* Dark fallback so the section still reads correctly if backgroundImage
+     is omitted, or before the photo has painted. */
+  .built-for {
+    background-color: var(--color-accent-950);
+  }
+
+  .built-for__bg {
+    /* Oversized vertically so the parallax has slack to drift within
+       without ever exposing the section's own background at either edge —
+       sized with headroom past PARALLAX_Y (48% drift each way) rather than
+       matched exactly to it. */
+    top: -56%;
+    height: 212%;
+  }
+
+  .built-for__scrim {
+    background: linear-gradient(
+      to bottom,
+      rgb(from var(--color-accent-950) r g b / 0.35),
+      rgb(from var(--color-accent-950) r g b / 0.55)
+    );
+  }
+
+  .built-for__label,
+  .built-for__char {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .built-for__label {
+    background-image: linear-gradient(to right, var(--color-accent-400), var(--color-accent-300));
+  }
+
+  /*
+    Gradient applied per LETTER rather than once across the whole word: each
+    char now needs its own transform for the stagger, which makes it an
+    atomic inline-block box that background-clip:text can't paint through
+    from a parent. Every char repeats the same two-stop gradient rather than
+    sharing one continuous sweep — with these two close, pale stops that
+    reads as a subtle shimmer, not a visible seam between letters.
+  */
+  .built-for__char {
+    display: inline-block;
+    background-image: linear-gradient(to right, var(--color-accent-100), var(--color-white));
+    white-space: pre;
+    /*
+      The descender fix that actually applies to these glyphs — and it is a
+      PAINT problem, not a clipping one. `background-clip: text` paints the
+      gradient only inside THIS element's own box, and an inline-block's box
+      is exactly its line box: at the 42px size this renders at, the box
+      bottom sits 4.8px below the baseline while "p"/"g"/"ç" carry 8.4px of
+      ink below it, so the last ~3.6px of every tail had no gradient painted
+      under it and simply vanished (color is transparent). Padding the box
+      down past the descender extends the painted area; the equal negative
+      margin cancels it out of the inline-block's MARGIN box, so the line
+      box, the word and the slot all lay out at exactly the height they did
+      before. The pad/cancel pair on .built-for__word can't do this job —
+      it's the char box, not the word box, that bounds the paint.
+
+      Stays inside .built-for__slot's `overflow: hidden` because that slot
+      carries 0.32em of padding-bottom of its own, and overflow clips at the
+      padding box.
+    */
+    padding-bottom: 0.2em;
+    margin-bottom: -0.2em;
+  }
+
+  /*
+    text-h1 runs a 1.04 line-height, tight enough that the line box bottom
+    sits above the font's actual descent, so every "g", "p" and "ç" (and
+    these phrases have plenty) needs room past it. Same shape of fix as
+    src/lib/motion.ts: pad past the descender, cancel the padding with an
+    equal negative margin so the laid-out height doesn't change.
+
+    What each of the two elements this applies to gets out of it differs:
+      - .built-for__slot — extends the `overflow: hidden` clip box, since
+        overflow clips at the padding box. This is what lets the CHARS' own
+        pad (see .built-for__char) stay visible instead of being cropped.
+      - .built-for__label — extends its own background-clip:text paint area,
+        the same job .built-for__char does for the rotating phrases.
+    .built-for__word carries it too, purely so its box stays consistent with
+    the slot's; it is not what un-clips the glyphs.
+  */
+  .built-for__descender-pad,
+  .built-for__word {
+    padding-bottom: 0.32em;
+    margin-bottom: -0.32em;
+  }
+
+  /*
+    .built-for__slot needs `text-h1` directly on ITSELF (not just on its
+    `.built-for__word` children) for a reason that has nothing to do with
+    how it looks: `em` in the padding rule above resolves against the
+    element's OWN font-size, and without this the slot was inheriting the
+    page's plain body size (16px) rather than the ~42-88px its words
+    actually render at — so the "descender buffer" was being computed
+    against the wrong font entirely and came out roughly a third of what
+    the glyphs needed. Applying text-h1 here doesn't change anything
+    visually (the child words already set their own identical text-h1
+    sizing) — it only fixes the em basis for THIS element's own padding.
+  */
+
+  .built-for__slot {
+    display: grid;
+    /* Centered at rest (the stacked mobile layout, "Built for" on its own
+       line above), left-aligned once the row layout kicks in below — see
+       the breakpoint override. */
+    justify-items: center;
+    /* Clips the sliding phrases at the line box — the descender padding
+       above is what keeps that clip from cutting into the glyphs. */
+    overflow: hidden;
+  }
+
+  @media (min-width: 1024px) {
+    .built-for__slot {
+      /* Every phrase starts at the SAME x position right after the label,
+         regardless of length — centering left a variable gap here that made
+         the word read as if it were never a fixed distance from the label. */
+      justify-items: start;
+    }
+  }
+
+  .built-for__word {
+    grid-area: 1 / 1;
+    text-align: center;
+    /* Every phrase contributes to the cell's size even while hidden, which
+       is what stops "Built for" from shifting. */
+  }
+
+  @media (min-width: 1024px) {
+    .built-for__word {
+      text-align: left;
+    }
+  }
+
+  /*
+    Pre-init / no-JS resting state: the first phrase only. The cell is
+    already sized by all seven regardless (opacity doesn't affect layout),
+    so the static state has the same geometry as the animated one.
+  */
+  .built-for__word:not(:first-child) {
+    opacity: 0;
+  }
+</style>
+
+<script>
+  import { bindSection, gsap } from '../lib/sectionMotion'
+
+  // Tightened twice now (2.4s → 1.4s → 0.9s). The mechanics are unchanged
+  // throughout; only the pacing moves. At this hold the cycle lands at ~1.35s
+  // per phrase, which reads as a clock ticking over rather than a slideshow
+  // dwelling on each phrase — the asked-for "tic-tac". The floor is
+  // legibility: much below this and the longest phrases ("Relationships with
+  // journalists") swap before they can be read.
+  const HOLD = 0.9
+  // Per-LETTER slide, staggered left to right (a plain positive `stagger`
+  // already walks the NodeList in DOM order, which is visual left-to-right
+  // for this LTR content) rather than the whole phrase moving as one block.
+  // Duration and stagger came down with HOLD — a 0.8s slide inside a 0.9s
+  // hold would leave the phrase in motion nearly all the time.
+  const SLIDE = { duration: 0.45, ease: 'power2.out', stagger: 0.015 }
+
+  /** How far the background drifts across the section's own scroll-through range, in %. */
+  const PARALLAX_Y = 48
+
+  // Not the shared MOTION_FULL/MOTION_FALLBACK pair: those gate on viewport
+  // width too, because pinning is what mobile can't afford. Nothing here
+  // pins, so this runs at every width and only reduced motion opts out.
+  const NO_PREFERENCE = '(prefers-reduced-motion: no-preference)'
+  const REDUCED = '(prefers-reduced-motion: reduce)'
+
+  const charsOf = (word: Element) => word.querySelectorAll<HTMLElement>('.built-for__char')
+
+  bindSection('[data-built-for]', ({ root, mm }) => {
+    const words = Array.from(root.querySelectorAll<HTMLElement>('[data-phrase]'))
+    const bg = root.querySelector<HTMLElement>('[data-parallax-bg]')
+
+    mm.add(NO_PREFERENCE, () => {
+      // Scroll-linked, not autoplaying, but still real vertical travel —
+      // gated behind no-preference like every other travel effect on this
+      // page, even though it's driven by the user's own scroll rather than
+      // a timer.
+      if (bg) {
+        gsap.fromTo(
+          bg,
+          { yPercent: -PARALLAX_Y },
+          {
+            yPercent: PARALLAX_Y,
+            ease: 'none',
+            scrollTrigger: { trigger: root, start: 'top bottom', end: 'bottom top', scrub: true },
+          }
+        )
+      }
+
+      if (words.length < 2) return
+
+      // Word-level opacity stays at 1 for every phrase once JS takes over —
+      // each phrase's own CHARS now carry the hidden/visible state, so the
+      // word container just holds them.
+      gsap.set(words, { opacity: 1 })
+      words.forEach((word, i) => gsap.set(charsOf(word), i === 0 ? { yPercent: 0, opacity: 1 } : { yPercent: 100, opacity: 0 }))
+
+      const tl = gsap.timeline({ repeat: -1, paused: true })
+      words.forEach((word, i) => {
+        const next = words[(i + 1) % words.length]!
+        tl.to(charsOf(word), { yPercent: -100, opacity: 0, ...SLIDE }, `+=${HOLD}`)
+        tl.fromTo(charsOf(next), { yPercent: 100, opacity: 0 }, { yPercent: 0, opacity: 1, ...SLIDE }, '<')
+      })
+
+      // Starts on first view and keeps pace with visibility thereafter — a
+      // loop running off-screen is main-thread work with nothing to show
+      // for it, and this page has pinned sections competing for frames.
+      //
+      // The LAST entry, not the first. A fast scroll crosses this
+      // full-viewport section's boundary more than once between observer
+      // flushes, and the batch then arrives as [not-intersecting,
+      // intersecting] — reading entries[0] acted on the stale half, paused a
+      // timeline that was in fact on screen, and nothing further ever fired
+      // to un-pause it. That was the "scroll down fast and it's frozen" bug.
+      const observer = new IntersectionObserver((entries) =>
+        entries[entries.length - 1]?.isIntersecting ? tl.play() : tl.pause()
+      )
+      observer.observe(root)
+
+      // Focus only — NOT hover. This section is full-bleed and a full
+      // viewport tall, so a `mouseenter` pause meant the rotator stopped
+      // whenever the cursor happened to rest anywhere over it, which after a
+      // fast scroll is essentially always: the section arrived under a
+      // stationary pointer and stayed paused until the pointer left it
+      // entirely. focusin/focusout still covers keyboard users arriving at
+      // the section, and the phrases remain readable as a plain list to a
+      // screen reader via the sr-only <ul> in the markup.
+      const pause = () => tl.pause()
+      const resume = () => tl.play()
+      root.addEventListener('focusin', pause)
+      root.addEventListener('focusout', resume)
+
+      return () => {
+        observer.disconnect()
+        tl.kill()
+        root.removeEventListener('focusin', pause)
+        root.removeEventListener('focusout', resume)
+      }
+    })
+
+    mm.add(REDUCED, () => {
+      // Background stays static (no parallax travel) under reduced motion —
+      // same rule as every other travel effect on this page.
+      if (words.length < 2) return
+
+      // Opacity-only crossfade, no vertical travel, slower hold. Keeps all
+      // seven phrases reachable without the slide.
+      gsap.set(words, { opacity: 0, yPercent: 0 })
+      gsap.set(words[0]!, { opacity: 1 })
+
+      const tl = gsap.timeline({ repeat: -1, paused: true })
+      words.forEach((word, i) => {
+        const next = words[(i + 1) % words.length]!
+        tl.to(word, { opacity: 0, duration: 0.8, ease: 'none' }, `+=${HOLD * 1.5}`)
+        tl.to(next, { opacity: 1, duration: 0.8, ease: 'none' }, '<')
+      })
+
+      // Same last-entry read and same focus-only pausing as the branch above
+      // — both bugs were duplicated here verbatim.
+      const observer = new IntersectionObserver((entries) =>
+        entries[entries.length - 1]?.isIntersecting ? tl.play() : tl.pause()
+      )
+      observer.observe(root)
+
+      const pause = () => tl.pause()
+      const resume = () => tl.play()
+      root.addEventListener('focusin', pause)
+      root.addEventListener('focusout', resume)
+
+      return () => {
+        observer.disconnect()
+        tl.kill()
+        root.removeEventListener('focusin', pause)
+        root.removeEventListener('focusout', resume)
+      }
+    })
+  })
+</script>

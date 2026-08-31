@@ -1,0 +1,321 @@
+---
+/**
+ * Pinned word rotator, shared by all three Systems pages (Figma node
+ * 927:1280 for the Influence & Reputation instance — one accent word,
+ * centered, in an otherwise empty full-height section).
+ *
+ * Content-driven by design: the only per-page input is `words`, so Growth
+ * Communication and Creative Projects Blueprint can drop this in with their
+ * own list and no edits here.
+ *
+ * The word flip is a single GSAP timeline SCRUBBED by scroll position
+ * (`scrollTrigger.scrub`), not a series of independently-fired tweens —
+ * scroll position IS the timeline's playhead, so there is exactly one
+ * source of truth for "what does this look like right now" at every
+ * possible scroll position, including mid-flip. A fast flick just fast-
+ * forwards the same playhead; nothing can be interrupted mid-tween because
+ * nothing is ever started or killed out of band with the scroll itself.
+ * `snap` still parks the scroll on a whole word once the user stops, so a
+ * deliberate scroll reads as a deliberate arrival — but during active
+ * scrolling, the flip visibly tracks the gesture in real time.
+ *
+ * The characters are pre-split into spans HERE rather than by SplitText at
+ * runtime. That's a deliberate departure from the site's
+ * `data-anim="split-text"` convention (docs/conventions.md) — these elements
+ * must NOT carry that attribute, or src/lib/motion.ts would split and
+ * animate them a second time on top of this component's own choreography.
+ */
+interface Props {
+  /** The rotation, in order. First entry is the resting/no-JS state. */
+  words: string[]
+  class?: string
+}
+
+const { words, class: className } = Astro.props as Props
+---
+
+<section
+  class:list={[
+    'expertise-rotator relative flex min-h-screen w-full items-center justify-center overflow-hidden px-[var(--space-gutter)] supports-[height:100dvh]:min-h-dvh',
+    className,
+  ]}
+  data-expertise-rotator
+  data-words={JSON.stringify(words)}
+>
+  {
+    /* Progress line — same track/fill pattern as SystemProblemCards' and
+       PhasesScroll's, synced to this section's own pin
+       ScrollTrigger. Visible by default (the default state here IS the
+       pinned/full-motion branch — see [data-fallback] below, the inverse
+       of the other two components' opt-in [data-motion='pinned']). Inset
+       by the page gutter rather than full-bleed, so it lines up with the
+       rest of the site's content margins instead of touching the edge. */
+  }
+  <div
+    class="expertise-rotator__pin-progress absolute inset-x-0 top-0 mx-[var(--space-gutter)] h-px bg-line"
+    aria-hidden="true"
+  >
+    <div class="expertise-rotator__progress-fill absolute inset-0 bg-ink" data-pin-progress-fill></div>
+  </div>
+
+  {
+    /* Grid-stacked rather than absolutely positioned: every word occupies
+       the same cell, so the stage sizes itself to the widest/tallest entry
+       and nothing reflows as the rotation runs. */
+  }
+  <div class="rotator-stage">
+    {
+      words.map((word, i) => (
+        <p class="rotator-word text-display text-center" data-word data-index={i}>
+          {/* The split spans are decorative duplicates — a screen reader
+              walking 10 single-character spans spells the word out letter by
+              letter. The real text node is the sr-only one. */}
+          <span class="sr-only">{word}</span>
+          <span class="rotator-chars" aria-hidden="true">
+            {[...word].map((char) => (
+              <span class="rotator-char">{char === ' ' ? ' ' : char}</span>
+            ))}
+          </span>
+        </p>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .expertise-rotator {
+    background: var(--color-surface);
+  }
+
+  .rotator-stage {
+    display: grid;
+    place-items: center;
+    /* The 3D container. Applied to the stage rather than each word so all
+       four share one vanishing point. */
+    perspective: 800px;
+  }
+
+  .rotator-word {
+    grid-area: 1 / 1;
+    color: var(--color-accent-600);
+    transform-style: preserve-3d;
+  }
+
+  /*
+    No-JS / pre-init resting state: only the first word shows. Without this
+    all N words paint on top of each other, which is unreadable — the one
+    case where the site's "never hide from CSS" rule (src/lib/motion.ts)
+    would produce a worse fallback than hiding does. The hidden words stay
+    in the accessibility tree, so nothing is lost to a screen reader.
+  */
+  .rotator-word:not(:first-child) {
+    opacity: 0;
+  }
+
+  .rotator-chars {
+    display: flex;
+    justify-content: center;
+    transform-style: preserve-3d;
+  }
+
+  .rotator-char {
+    display: inline-block;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    white-space: pre;
+  }
+
+  /*
+    The fallback branch un-stacks nothing — it keeps the same single-word
+    stage and cross-fades. Height collapses to a normal section instead of a
+    full viewport, since without a pin there's no reason to hold one.
+  */
+  .expertise-rotator[data-fallback] {
+    min-height: 0;
+    padding-block: var(--space-section-y);
+  }
+
+  /* No pin under the fallback branch — nothing for the line to track. */
+  .expertise-rotator[data-fallback] .expertise-rotator__pin-progress {
+    display: none;
+  }
+
+  /*
+    NOT Tailwind's `scale-x-0` / `origin-left`: Tailwind v4 implements scale
+    utilities with the INDEPENDENT `scale` property, not `transform`, and the
+    two compose multiplicatively — `scale: 0 1` zeroed the fill out no matter
+    what GSAP wrote to `transform`. See SystemProblemCards for the full note.
+  */
+  .expertise-rotator__progress-fill {
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+</style>
+
+<script>
+  import { bindSection, gsap, ScrollTrigger, MOTION_FULL, MOTION_FALLBACK, shareResizeRefresh } from '../lib/sectionMotion'
+
+  /** Scroll distance allotted per word transition. */
+  const VH_PER_WORD = 1.8
+
+  // Timeline units, not seconds — scrub maps the whole timeline's duration
+  // onto the scroll range, so these numbers are fractions of ONE slot
+  // (word-to-word transition), not real time.
+  const OUT = { rotateX: -90, z: -40, opacity: 0, stagger: 0.012, ease: 'power3.in', duration: 0.5 }
+  const IN = { rotateX: 90, z: 40, stagger: 0.018, ease: 'power4.out', duration: 0.8 }
+  /** Incoming word starts before the outgoing one has finished clearing. */
+  const OVERLAP = 0.2
+  /** Where each transition starts within its slot — leaves the word that
+   * just landed on screen for a beat before the next flip begins. */
+  const SLOT_START = 0.05
+
+  /** Slow auto-crossfade used by the reduced-motion / narrow-viewport branch. */
+  const FALLBACK_HOLD = 3.6
+
+  const charsOf = (word: Element) => word.querySelectorAll<HTMLElement>('.rotator-char')
+
+  bindSection('[data-expertise-rotator]', ({ root, mm }) => {
+    const wordEls = Array.from(root.querySelectorAll<HTMLElement>('[data-word]'))
+    const progressFill = root.querySelector<HTMLElement>('[data-pin-progress-fill]')
+    if (wordEls.length < 2) return
+
+    const lastIndex = wordEls.length - 1
+
+    /** Park every word except `index` in the hidden state. */
+    function reset(index: number) {
+      wordEls.forEach((word, i) => {
+        gsap.set(word, { opacity: 1 })
+        gsap.set(charsOf(word), i === index ? { rotateX: 0, z: 0, opacity: 1 } : { rotateX: IN.rotateX, z: IN.z, opacity: 0 })
+      })
+    }
+
+    mm.add(MOTION_FULL, () => {
+      root.removeAttribute('data-fallback')
+      reset(0)
+
+      // One timeline holds every transition end to end, each occupying its
+      // own [i, i+1) slot. Scrubbing this via scrollTrigger means the
+      // timeline's progress IS the scroll position — there's no separate
+      // "current index" state and no tween that scroll can race against;
+      // gsap.timeline.progress(scrollFraction) is the entire mechanism.
+      const tl = gsap.timeline({ paused: true })
+
+      wordEls.forEach((_, i) => {
+        if (i === lastIndex) return
+        const slot = i
+        const outStart = slot + SLOT_START
+        const inStart = outStart + OUT.duration - OVERLAP
+
+        tl.to(
+          charsOf(wordEls[i]!),
+          {
+            rotateX: OUT.rotateX,
+            z: OUT.z,
+            opacity: OUT.opacity,
+            stagger: OUT.stagger,
+            ease: OUT.ease,
+            duration: OUT.duration,
+          },
+          outStart
+        )
+        tl.fromTo(
+          charsOf(wordEls[i + 1]!),
+          { rotateX: IN.rotateX, z: IN.z, opacity: 0 },
+          {
+            rotateX: 0,
+            z: 0,
+            opacity: 1,
+            stagger: IN.stagger,
+            ease: IN.ease,
+            duration: IN.duration,
+          },
+          inStart
+        )
+      })
+
+      // A GSAP timeline's own duration is just "the end time of its last
+      // tween" — the last IN tween finishes at roughly `lastIndex - 1 +
+      // 0.8`, not at `lastIndex`, since nothing after it extends the
+      // timeline further. Left alone, ScrollTrigger's scrub maps [0,1] of
+      // scroll onto THAT shorter duration, so slot boundaries (and the
+      // `snapTo: 1 / lastIndex` snap points below) land at the wrong
+      // fraction of scroll — everything before the last word arrives early
+      // and progress can never reach the final word's fully-settled state.
+      // A zero-effect marker at exactly `lastIndex` pins the timeline's
+      // duration there without touching any tween's own timing.
+      tl.set(root, { opacity: 1 }, lastIndex)
+
+      const st = ScrollTrigger.create({
+        trigger: root,
+        start: 'top top',
+        end: () => `+=${window.innerHeight * lastIndex * VH_PER_WORD}`,
+        pin: true,
+        pinSpacing: true,
+        // Re-measure on resize instead of baking in the load-time viewport
+        // height, which would leave the pin the wrong length after an
+        // orientation change or a collapsing mobile address bar.
+        invalidateOnRefresh: true,
+        // Slight smoothing (not instant/true) so the scrub doesn't feel
+        // mechanically tied to raw scroll deltas on a jittery trackpad —
+        // still tightly linked, just not frame-for-frame literal.
+        scrub: 0.15,
+        snap: { snapTo: 1 / lastIndex, duration: 0.3, ease: 'power2.inOut' },
+        onUpdate: (self) => {
+          // The top progress line is a direct readout of this pin's own
+          // progress, not a second animation approximating it.
+          if (progressFill) gsap.set(progressFill, { scaleX: self.progress })
+        },
+        animation: tl,
+      })
+
+      // Belt-and-braces re-measure on resize, so a resize can never leave the
+      // pin distance stale. Shared and debounced across every section that
+      // asks for one (see shareResizeRefresh) rather than a listener per
+      // component — refresh() re-measures every trigger on the page, so N
+      // private listeners meant N full page-wide refreshes per resize.
+      const releaseResize = shareResizeRefresh()
+
+      return () => {
+        releaseResize()
+        st.kill()
+        tl.kill()
+        if (progressFill) gsap.set(progressFill, { scaleX: 0 })
+      }
+    })
+
+    mm.add(MOTION_FALLBACK, () => {
+      // No pin, no scroll lock, no 3D. A slow opacity-only crossfade on a
+      // timer — the same treatment src/lib/motion.ts gives reduced motion
+      // elsewhere on the site — so the section still says "these four words"
+      // without costing four viewports of scroll or moving anything in 3D.
+      root.setAttribute('data-fallback', '')
+      gsap.set(wordEls, { opacity: 0 })
+      gsap.set(wordEls[0]!, { opacity: 1 })
+      gsap.set(
+        wordEls.map((w) => charsOf(w)),
+        { rotateX: 0, z: 0, opacity: 1 }
+      )
+
+      const tl = gsap.timeline({ repeat: -1, paused: true })
+      wordEls.forEach((word, i) => {
+        const next = wordEls[(i + 1) % wordEls.length]!
+        tl.to(word, { opacity: 0, duration: 0.6, ease: 'none' }, `+=${FALLBACK_HOLD}`)
+        tl.to(next, { opacity: 1, duration: 0.6, ease: 'none' }, '<')
+      })
+
+      // Only runs while the section is on screen — an off-screen timeline
+      // spinning forever is wasted main-thread work on a page this heavy.
+      const observer = new IntersectionObserver(
+        ([entry]) => (entry?.isIntersecting ? tl.play() : tl.pause()),
+        { rootMargin: '0px' }
+      )
+      observer.observe(root)
+
+      return () => {
+        observer.disconnect()
+        tl.kill()
+        root.removeAttribute('data-fallback')
+      }
+    })
+  })
+</script>

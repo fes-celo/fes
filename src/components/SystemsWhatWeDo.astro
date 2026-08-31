@@ -1,0 +1,132 @@
+---
+/**
+ * "What we do" — Figma nodes 1024:4457 (light, systems page) and 1033:6264
+ * (dark, homepage). Same content and layout in both places; only the
+ * section's light/dark theming and each card's background art differ.
+ *
+ * Card art: all three cards now use the same base photo in both the light
+ * and dark variant. Card 1 (Digital Communication) and card 2 (Influence &
+ * Reputation) additionally layer a translucent grayscale swirl overlay on
+ * top when dark, which is what mutes their otherwise-identical base from
+ * the light variant's look to the dark homepage section's.
+ */
+import { Image } from 'astro:assets'
+import SectionLabel from './SectionLabel.astro'
+import digitalCommunication from '../assets/systems/what-we-do/digital-communication-light.jpg'
+import influenceReputation from '../assets/systems/what-we-do/influence-reputation.jpg'
+import creativeBlueprint from '../assets/systems/what-we-do/creative-blueprint.jpg'
+import digitalCommOverlayDark from '../assets/systems/what-we-do/digital-comm-overlay-dark.png'
+
+interface Props {
+  theme?: 'light' | 'dark'
+  class?: string
+}
+
+const { theme = 'light', class: className } = Astro.props
+const isDark = theme === 'dark'
+
+const cards = [
+  {
+    href: '/systems/digital-communication/',
+    title: 'Digital Communication System',
+    description: 'Communication built to generate demand, build trust, and turn attention into opportunity.',
+    base: digitalCommunication,
+    overlay: isDark ? digitalCommOverlayDark : null,
+  },
+  {
+    href: '/systems/influence-reputation/',
+    title: 'Influence & Reputation System',
+    description: 'Reputation strong enough to turn recognition into real business opportunities.',
+    base: influenceReputation,
+    overlay: isDark ? digitalCommOverlayDark : null,
+  },
+  {
+    href: '/systems/creative-projects-blueprint/',
+    title: 'Creative Project Blueprint',
+    description: 'Brand and creative work, scoped to the moment that needs it.',
+    base: creativeBlueprint,
+    overlay: null,
+  },
+]
+---
+
+<section
+  class:list={[
+    isDark ? 'bg-neutral-950' : 'bg-white',
+    'px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]',
+    className,
+  ]}
+  data-anim="reveal"
+>
+  <div class="flex flex-col gap-14 lg:gap-20">
+    <SectionLabel dark={isDark}>What we do</SectionLabel>
+
+    <div class="flex flex-col gap-7">
+      <p class:list={['max-w-[813px] text-h1 font-medium', isDark ? 'text-neutral-100' : 'text-neutral-950']}>
+        A system to help companies and leaders build reputation and gain relevance in the market.
+      </p>
+      <a
+        href="/systems/"
+        class="inline-flex w-fit items-center rounded-[var(--radius-button)] bg-accent-tint px-[22px] py-[14px] text-h4 font-medium text-ink"
+      >
+        Our systems
+      </a>
+
+      <div class="mt-7 grid grid-cols-1 gap-7 lg:grid-cols-3">
+        {
+          cards.map((c) => (
+            <a
+              href={c.href}
+              class="wwd-card group relative flex h-[22rem] flex-col justify-between overflow-hidden rounded-[var(--radius-control)] bg-neutral-900 p-[var(--space-card-p)] lg:h-[419px]"
+            >
+              {c.base && (
+                <Image
+                  src={c.base}
+                  alt=""
+                  width={1200}
+                  height={882}
+                  sizes="(min-width: 1024px) 33vw, 100vw"
+                  class="absolute inset-0 size-full object-cover"
+                />
+              )}
+              {c.overlay && (
+                <Image
+                  src={c.overlay}
+                  alt=""
+                  width={640}
+                  height={360}
+                  class="absolute inset-x-0 bottom-0 h-full w-full object-cover object-bottom"
+                />
+              )}
+              <h3 class="wwd-card-title relative z-10 font-medium text-white">{c.title}</h3>
+              <div class="relative z-10 flex items-end justify-between gap-4">
+                <p class="max-w-[75%] text-body text-neutral-50">{c.description}</p>
+                <img
+                  src="/icons/icon-systems-arrow-chip.svg"
+                  alt=""
+                  width="40"
+                  height="40"
+                  class="size-10 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                />
+              </div>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Container-query title sizing, same technique as ProjectCard.astro's
+     .card-title (dark-card variant) — divisor re-tuned for this design's
+     smaller 38px desktop cap instead of that one's 56px. */
+  .wwd-card {
+    container-type: inline-size;
+  }
+  .wwd-card-title {
+    font-size: clamp(1.125rem, calc((100cqw - 3.5rem) / 9.5), 2.75rem);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+  }
+</style>

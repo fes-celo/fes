@@ -1,0 +1,376 @@
+---
+/**
+ * Creative Projects Blueprint → Podcast & Video-Series.
+ *
+ * LIGHT variant — ported from the original dark build (now preserved as-is
+ * at ./dark/, per the same light/dark pairing convention used by the other
+ * Creative Projects Blueprint pages).
+ * See ../branding/index.astro's header comment for the full rationale
+ * shared across all three Creative Projects Blueprint pages (no
+ * `.dark-zone`/`.reveal-zone`, flat `bg-white` hero with no photo/scrim,
+ * SystemAddonsMarquee instead of SystemAddonsCarousel, no Selected Projects
+ * arrows) — not repeated here.
+ *
+ * COPY: rewritten from the client-supplied source doc "Creative Projects
+ * Blueprint - Podcast & Video Series.md" (Portuguese, 2026 revision) — see
+ * the dark variant's header comment for the full sourcing/mapping notes.
+ * Not client-approved yet.
+ */
+import { Image } from 'astro:assets'
+import BaseLayout from '../../../../layouts/BaseLayout.astro'
+import { navItems } from '../../../../lib/nav'
+import Heading from '../../../../components/Heading.astro'
+import SectionIntro from '../../../../components/SectionIntro.astro'
+import SystemExpertiseRotator from '../../../../components/SystemExpertiseRotator.astro'
+import SystemProblemCards from '../../../../components/SystemProblemCards.astro'
+import PhasesScroll from '../../../../components/PhasesScroll.astro'
+import BuiltForRotator from '../../../../components/BuiltForRotator.astro'
+import SystemAddonsMarquee from '../../../../components/SystemAddonsMarquee.astro'
+import DualCta from '../../../../components/DualCta.astro'
+
+import ourWorkCta from '../../../../assets/systems/our-work-cta.jpg'
+import heroBg from '../../../../assets/systems/creative-projects-blueprint/podcast-video-series/hero-bg.jpg'
+import builtForBg from '../../../../assets/systems/built-for-bg.webp'
+
+const expertiseWords = ['Knowledge', 'Content', 'Authority', 'Influence']
+
+const problemCards = [
+  {
+    title: 'Specialists with real expertise and little visibility',
+    label: 'Ideal for those who want to:',
+    statement: 'Position leaders as industry experts. Reinforce thought leadership.',
+  },
+  {
+    title: 'Content produced in bursts, with no continuity',
+    label: 'Ideal for those who want to:',
+    statement: 'Launch a podcast or video series.',
+  },
+  {
+    title: 'Complex topics explained in an overly technical way',
+    label: 'Ideal for those who want to:',
+    statement: 'Communicate innovation consistently.',
+  },
+  {
+    title: 'Reach that depends on social media alone',
+    label: 'Ideal for those who want to:',
+    statement: 'Bring clients, partners and community closer.',
+  },
+  {
+    title: 'Internal knowledge that could build reputation for months goes to waste',
+    label: 'Ideal for those who want to:',
+    statement: 'Celebrate a milestone through an editorial series. Feed multiple communication channels.',
+  },
+]
+
+// Fed to PhasesScroll only — bullet lists from the source doc's "Como
+// implementamos" condensed into one sentence per phase. Six phases, matching
+// the doc: Editorial Strategy and Concept & Identity are two distinct steps.
+//
+// LENGTH BUDGET: PhasesScroll's pinned rows are a FIXED height by design
+// (--phase-row-h keeps the active row parked in a constant slot), which
+// leaves descriptions ~3 rendered lines — about 125 characters at the
+// desktop column width — before `overflow: hidden` shears the last line.
+// Titles get 2 lines in a ~317px column. Keep new copy inside that budget
+// rather than growing the row: the fixed height is what the slide depends on.
+const approachSteps = [
+  {
+    number: '— 01',
+    title: 'Editorial Strategy',
+    description:
+      "We define the series' positioning: a strategic diagnostic session, objectives, audience and key messages, episode structure and format, themes, guests, editorial calendar and distribution plan.",
+  },
+  {
+    number: '— 02',
+    title: 'Concept & Identity',
+    description:
+      'We give the series its own personality: discovery brainstorming, creative concept, naming, verbal identity, tone of voice, key messages and, where relevant, visual identity.',
+  },
+  {
+    number: '— 03',
+    title: 'Content Development',
+    description:
+      'We turn strategy into a production-ready plan: research, scripts, host and guest prep, and the recording setup.',
+  },
+  {
+    number: '— 04',
+    title: 'Production',
+    description:
+      'We run the full production — up to two days of filming, direction, audio and video capture. Up to six episodes, 45 minutes each.',
+  },
+  {
+    number: '— 05',
+    title: 'Content Repurposing',
+    description:
+      'One episode becomes many: edits, subtitling, thumbnails, graphics and clips — plus a teaser and twelve short videos.',
+  },
+  {
+    number: '— 06',
+    title: 'Review & Next Season',
+    description:
+      "We assess the series' performance — a report, the best-performing formats, the themes with the most interest, and recommendations for the next season.",
+  },
+]
+
+// Straight from the source doc's "O que entregamos" — one phrase per bullet.
+const builtForPhrases = [
+  'Editorial strategy',
+  'Series concept',
+  'Episode planning',
+  'Guest preparation',
+  'Full production',
+  'Editing',
+  'Content repurposing',
+  'Series evolution plan',
+]
+
+const addons = [
+  {
+    title: 'Additional Episodes',
+    description: 'New episodes produced, keeping the same editorial line.',
+  },
+  {
+    title: 'Additional Shooting Day',
+    description: 'Filming at new locations, or capturing new content.',
+  },
+  {
+    title: 'Distribution & Amplification',
+    description: 'An organic and paid distribution plan to maximise the reach of the episodes.',
+  },
+  {
+    title: 'Host / Spokesperson Positioning',
+    description:
+      'Reinforcing the positioning of the host or spokespeople involved, by amplifying the content produced. (This add-on connects directly with the Influence & Reputation System.)',
+  },
+]
+
+// Page-local: client-supplied Podcast & Video-Series examples, each backed
+// by its own YouTube episode/trailer rather than a static thumbnail.
+const selectedProjects = [
+  {
+    title: 'FES Agency | Tech Refresh',
+    description:
+      'Mais de 100 episódios para transformar conversas sobre tecnologia e inovação numa plataforma editorial própria da FES.',
+    youtubeId: 'LpGxyG6kEHQ',
+  },
+  {
+    title: 'STCP | Cidade em Movimento',
+    description:
+      'Mobilidade urbana explicada através das pessoas, projetos e ideias que ajudam a transformar a cidade.',
+    youtubeId: 'YZq9idWnFKg',
+  },
+  {
+    title: 'Startup Braga | 10X Forward',
+    description: 'Dez episódios para contar dez anos de Startup Braga pela voz de quem ajudou a construir o ecossistema.',
+    youtubeId: 'At7npN5tRNg',
+  },
+]
+---
+
+<BaseLayout
+  title="Podcast & Video-Series — Creative Projects Blueprint"
+  description="Turn expertise into influence. A Blueprint that turns knowledge into an editorial platform, produced once and repurposed into dozens of assets."
+  hideHeader
+>
+  {/* ---------- 1. Hero ---------- */}
+  <section
+    class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)] supports-[height:100dvh]:min-h-dvh"
+  >
+    <Image
+      src={heroBg}
+      alt=""
+      width={2560}
+      height={1440}
+      widths={[640, 960, 1280, 1920, 2560]}
+      sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
+      class="pointer-events-none absolute inset-0 size-full object-cover"
+    />
+
+    <nav aria-label="Primary" class="relative z-10">
+      <div class="flex items-center justify-between gap-6">
+        <a href="/" class="shrink-0">
+          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        </a>
+        <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+          {
+            navItems.map((item) => (
+              <li>
+                <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          data-nav-toggle
+        >
+          Menu
+        </button>
+      </div>
+    </nav>
+
+    <p class="relative z-10 mt-16 max-w-[48ch] text-lead text-ink" data-anim="reveal">
+      Most companies have knowledge. Few turn it into a consistent communication platform.
+    </p>
+
+    <div class="relative z-10 flex flex-col gap-9 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+      <div class="flex flex-col gap-9">
+        <Heading as="h1" indent={false} class="max-w-[16ch] text-display text-ink lg:max-w-[50vw]" data-anim="split-text">
+          Turn expertise into influence
+        </Heading>
+        <p class="text-body text-ink" data-anim="reveal">Creative Projects Blueprint · Podcast & Video-Series</p>
+      </div>
+      <p class="shrink-0 text-body text-ink lg:text-right" data-anim="reveal">Duration: 3–6 months</p>
+    </div>
+  </section>
+
+  {/* ---------- 2. Expertise ---------- */}
+  <SystemExpertiseRotator words={expertiseWords} />
+
+  {/* ---------- 3. Introduction ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-10 lg:flex-row lg:gap-7">
+      <Heading as="p" class="text-h2 text-ink lg:w-1/2">
+        More than producing episodes, we design an editorial narrative that affirms your positioning and builds a
+        consistent presence in your field.
+      </Heading>
+      <div class="flex flex-col gap-6 text-lead text-ink lg:w-1/2">
+        <p>
+          This Blueprint helps you create a podcast or video series that strengthens your positioning, increases
+          visibility, and produces content that keeps generating value long after it's recorded.
+        </p>
+        <p>Because an episode should never live just once.</p>
+      </div>
+    </div>
+  </section>
+
+  {/* ---------- 3b. Sound familiar ---------- */}
+  <SystemProblemCards cards={problemCards} class="bg-surface" />
+
+  {/* ---------- 4. Our approach ---------- */}
+  <PhasesScroll steps={approachSteps} class="bg-surface" />
+
+  {/* ---------- 5. Built for ---------- */}
+  <BuiltForRotator phrases={builtForPhrases} backgroundImage={builtForBg} />
+
+  {/* ---------- 6. Addons ---------- */}
+  <SystemAddonsMarquee addons={addons} class="bg-surface pb-[var(--space-section-y)]" />
+
+  {/* ---------- 7. Impact ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <SectionIntro eyebrow="Impact" eyebrowSize="text-body">
+      An episode is never just an episode
+      <div slot="aside" class="flex flex-col gap-6 text-balance text-lead text-ink">
+        <p>This Blueprint creates a content base that keeps generating value long after publication.</p>
+        <p>
+          Every episode becomes reusable content that can support social media, campaigns, media relations, events,
+          presentations and other communication initiatives — extending the impact of every recording.
+        </p>
+      </div>
+    </SectionIntro>
+  </section>
+
+  {/* ---------- 8. Selected projects ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]">
+    <div class="flex flex-col gap-9">
+      <Heading as="h2" indent={false} class="text-lead text-ink">
+        Selected projects
+      </Heading>
+      <ul
+        class="projects-strip -mx-[var(--space-gutter)] flex gap-7 overflow-x-auto px-[var(--space-gutter)] lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0"
+        data-projects-row
+      >
+        {
+          selectedProjects.map((project) => (
+            <li class="w-[80vw] shrink-0 sm:w-[60vw] lg:w-auto" data-project-card>
+              <div class="flex flex-col gap-6">
+                <div class="relative aspect-[430/294] overflow-hidden rounded-[var(--radius-card)] bg-accent-tint">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${project.youtubeId}`}
+                    title={project.title}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                    class="absolute inset-0 size-full"
+                  />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <h3 class="text-body font-medium text-ink">{project.title}</h3>
+                  <p class="text-body-sm font-normal text-ink-muted">{project.description}</p>
+                </div>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  {/* ---------- 9. Contact ---------- */}
+  <DualCta
+    leftHeading="Want to turn what you know into content?"
+    leftHref="/contact/"
+    leftLabel="Get in touch"
+    rightHeading="Not sure Podcast & Video Series is the fit?"
+    rightHref="/systems/creative-projects-blueprint/"
+    rightLabel="See all Blueprints"
+    rightImage={ourWorkCta}
+  />
+</BaseLayout>
+
+<style>
+  /* Hides the scrollbar on the mobile projects strip without disabling the
+     scroll itself — same treatment as SystemProblemCards' fallback row. */
+  .projects-strip {
+    scrollbar-width: none;
+  }
+  .projects-strip::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  // Staggered reveal for the projects row.
+  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../../lib/sectionMotion'
+
+  bindSection('[data-projects-row]', ({ root, mm }) => {
+    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
+    if (cards.length === 0) return
+
+    mm.add(MOTION_FULL, () => {
+      const tween = gsap.from(cards, {
+        opacity: 0,
+        y: 24,
+        duration: 0.8,
+        stagger: 0.08,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: root, start: 'top 85%', once: true },
+      })
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+
+    mm.add(MOTION_FALLBACK, () => {
+      const tween = gsap.from(cards, {
+        opacity: 0,
+        duration: 0.4,
+        scrollTrigger: { trigger: root, start: 'top 90%', once: true },
+      })
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+  })
+</script>

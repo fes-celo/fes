@@ -1,0 +1,168 @@
+---
+/**
+ * "Featured" ProjectCard (see ProjectCard.astro's own docstring for the
+ * layout this is based on), except the thumbnail is a stack of photos that
+ * auto-advances while the card is hovered/focused instead of one static
+ * image — for Selected Projects rows that want a hover preview reel rather
+ * than a single cover shot.
+ *
+ * Photos come from a per-project folder (see the `images` prop — callers
+ * glob it in, e.g. Creative Projects Blueprint → Branding's
+ * src/assets/.../branding/selected-projects/<project-slug>/), sorted by
+ * filename, so slide order is just file naming order. Fewer than two images
+ * (including zero, before real photos land) collapses back to a single
+ * static frame — the cycling script no-ops on a 0-or-1-length slide list.
+ */
+import type { ImageMetadata } from 'astro'
+import { Image } from 'astro:assets'
+import PlaceholderBlock from './PlaceholderBlock.astro'
+
+interface Props {
+  href: string
+  title: string
+  description?: string
+  images: ImageMetadata[]
+  imageAlt?: string
+  imageAspect?: string
+  /** Rendered width in CSS px at the largest breakpoint — requests a right-sized derivative instead of the raw source. */
+  imageWidth?: number
+  imageHeight?: number
+  imageSizes?: string
+  /** Row 1 (large cards) runs 26px/24px, row 2 (small cards) runs 24px/18px — same tiers as ProjectCard's featured variant. */
+  size?: 'lg' | 'sm'
+  /** Time each photo holds before crossfading to the next, in ms. */
+  intervalMs?: number
+  class?: string
+}
+
+const {
+  href,
+  title,
+  description,
+  images,
+  imageAlt = '',
+  imageAspect = 'aspect-[886/580]',
+  imageWidth = 886,
+  imageHeight = 580,
+  imageSizes = '100vw',
+  size = 'lg',
+  intervalMs = 900,
+  class: className,
+} = Astro.props
+
+const imageWidths = [0.5, 1, 1.5, 2].map((m) => Math.round(imageWidth * m))
+
+const titleClasses: Record<string, string> = {
+  lg: 'text-lead font-medium',
+  sm: 'text-body font-medium',
+}
+const descriptionClasses: Record<string, string> = {
+  lg: 'text-body font-normal',
+  sm: 'text-body-sm font-normal',
+}
+---
+
+<a href={href} class:list={['group flex flex-col gap-6', className]} data-project-slider data-slider-interval={intervalMs}>
+  <div class:list={['relative overflow-hidden rounded-[var(--radius-card)] bg-accent-tint', imageAspect]}>
+    {
+      images.length > 0 ? (
+        images.map((image, i) => (
+          <Image
+            src={image}
+            alt={i === 0 ? imageAlt : ''}
+            width={imageWidth * 2}
+            height={imageHeight * 2}
+            widths={imageWidths}
+            sizes={imageSizes}
+            loading={i === 0 ? 'eager' : 'lazy'}
+            data-slide
+            class="slider-slide absolute inset-0 size-full object-cover"
+            style={{ opacity: i === 0 ? 1 : 0 }}
+          />
+        ))
+      ) : (
+        <PlaceholderBlock alt={`[Slider photos for ${title} — drop into the project's selected-projects folder]`} class="size-full" />
+      )
+    }
+  </div>
+  <div class="flex flex-col gap-1">
+    <h3 class:list={[titleClasses[size], 'text-ink']}>{title}</h3>
+    {description && <p class:list={[descriptionClasses[size], 'text-ink-muted']}>{description}</p>}
+  </div>
+</a>
+
+<style>
+  /* Instant swap under reduced motion (the cycling script never starts one
+     anyway) rather than a lingering long crossfade if it ever did. */
+  .slider-slide {
+    transition: opacity 400ms ease-in-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slider-slide {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Per-card autoplay, hover/focus-gated: setup/teardown pair on the Astro
+  // page-load lifecycle, same convention as SystemAddonsCarousel.astro.
+  let cleanups: Array<() => void> = []
+
+  function init() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion) return
+
+    const cards = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-project-slider]'))
+
+    cards.forEach((card) => {
+      const slides = Array.from(card.querySelectorAll<HTMLElement>('[data-slide]'))
+      if (slides.length <= 1) return
+
+      const intervalMs = Number(card.dataset.sliderInterval) || 900
+      let index = 0
+      let timer = 0
+
+      function show(i: number) {
+        slides.forEach((slide, si) => {
+          slide.style.opacity = si === i ? '1' : '0'
+        })
+      }
+
+      function start() {
+        window.clearInterval(timer)
+        timer = window.setInterval(() => {
+          index = (index + 1) % slides.length
+          show(index)
+        }, intervalMs)
+      }
+
+      function stop() {
+        window.clearInterval(timer)
+        index = 0
+        show(0)
+      }
+
+      card.addEventListener('mouseenter', start)
+      card.addEventListener('mouseleave', stop)
+      card.addEventListener('focusin', start)
+      card.addEventListener('focusout', stop)
+
+      cleanups.push(() => {
+        window.clearInterval(timer)
+        card.removeEventListener('mouseenter', start)
+        card.removeEventListener('mouseleave', stop)
+        card.removeEventListener('focusin', start)
+        card.removeEventListener('focusout', stop)
+      })
+    })
+  }
+
+  function teardown() {
+    cleanups.forEach((fn) => fn())
+    cleanups = []
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

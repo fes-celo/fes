@@ -1,0 +1,44 @@
+---
+/**
+ * Dark stats bar — extracted from the homepage "We drive results" section
+ * (index.astro, Figma node 770:341). The homepage's own instance additionally
+ * cross-fades between a light and dark background as the user scrolls past
+ * it (.invert-zone) and auto-rotates which stat is "active" — both are
+ * specific to that section's place in the homepage's light→dark narrative,
+ * not to the stats-bar pattern itself, so neither is reproduced here. This
+ * version is a standalone dark section: every stat renders in its bright
+ * "active" state (StatBlock's minimal variant, whose fallback colors are
+ * already tuned for a dark background — see StatBlock.astro) with no
+ * cycling, which suits a one-off per-project results block better than a
+ * timed rotation would.
+ *
+ * Renders nothing when `stats` is empty — some clients (Natixis, Sonae-tier)
+ * don't allow public numbers, and an empty or zeroed-out dark bar reads as a
+ * bug, not a deliberate omission.
+ */
+import SectionLabel from './SectionLabel.astro'
+import StatBlock from './StatBlock.astro'
+
+interface Props {
+  heading?: string
+  stats: { value: string; label: string }[]
+  class?: string
+}
+
+const { heading, stats, class: className } = Astro.props
+---
+
+{
+  stats.length > 0 && (
+    <section class:list={['w-full bg-neutral-950 px-[var(--space-gutter)] py-[var(--space-section-y)]', className]}>
+      <div>
+        {heading && <SectionLabel dark>{heading}</SectionLabel>}
+        <dl class:list={['grid grid-cols-2 gap-x-7 lg:grid-cols-4', heading && 'mt-[var(--space-heading-gap)]']}>
+          {stats.map((s) => (
+            <StatBlock variant="minimal" value={s.value} label={s.label} active />
+          ))}
+        </dl>
+      </div>
+    </section>
+  )
+}

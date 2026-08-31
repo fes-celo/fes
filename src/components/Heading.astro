@@ -1,0 +1,33 @@
+---
+/**
+ * Reusable H1/H2 wrapper with the brand's first-line indent (~80px at
+ * desktop, fluid down on mobile — see --space-heading-indent). Uses
+ * text-indent rather than margin/padding so only the first line shifts;
+ * wrapped lines stay flush left automatically. `as="p"` covers text styled
+ * at heading scale (e.g. the Stats section lead paragraph) without misusing
+ * a real heading tag there.
+ */
+interface Props extends astroHTML.JSX.HTMLAttributes {
+  as: 'h1' | 'h2' | 'p'
+  /**
+   * Opt out of the first-line indent. Required for centred headings:
+   * text-indent shrinks the line box it centres within, so a centred
+   * heading lands half the indent off-axis rather than staying centred.
+   */
+  indent?: boolean
+  class?: string
+}
+
+const { as, indent = true, class: className, ...rest } = Astro.props as Props
+const Tag = as
+---
+
+<Tag class:list={[indent && 'heading-indent', className]} {...rest}>
+  <slot />
+</Tag>
+
+<style>
+  .heading-indent {
+    text-indent: var(--space-heading-indent);
+  }
+</style>

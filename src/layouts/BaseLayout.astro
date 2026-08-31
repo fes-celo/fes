@@ -1,6 +1,8 @@
 ---
 import { ClientRouter } from 'astro:transitions'
 import SEO from '../components/SEO.astro'
+import MobileMenu from '../components/MobileMenu.astro'
+import { navItems, footerItems, socialItems } from '../lib/nav'
 import '../styles/global.css'
 
 interface Props {
@@ -8,26 +10,23 @@ interface Props {
   description: string
   ogImage?: string
   noindex?: boolean
+  /**
+   * Homepage renders its own nav overlaid transparently on the pinned Hero
+   * (per the shader-hero spec) instead of the default bordered header bar —
+   * set true there and let the page's own component render the nav.
+   */
+  hideHeader?: boolean
+  /**
+   * Canvas (light grey) body background + the header divider line — the
+   * treatment every existing hideHeader marketing page (Home, Agency,
+   * Systems, Projects) opts into. Plain content pages (legal text, 404)
+   * default to a white canvas with no divider instead — set true here to
+   * opt back in. The footer no longer takes a rule either way.
+   */
+  bordered?: boolean
 }
 
-const { title, description, ogImage, noindex } = Astro.props
-
-// Nav is four items per the confirmed brief (Agency · Systems · Projects ·
-// Contact) — this drops Resources from earlier plan/brief versions, which
-// still has 72 redirect-map rows pointing at /resources/. Flagged upstream;
-// Resources + Tech Refresh get a footer-only home until that's resolved.
-const navItems = [
-  { label: 'Agency', href: '/agency/' },
-  { label: 'Systems', href: '/systems/' },
-  { label: 'Projects', href: '/projects/' },
-  { label: 'Contact', href: '/contact/' },
-]
-
-const footerItems = [
-  { label: 'Resources', href: '/resources/' },
-  { label: 'Tech Refresh', href: '/tech-refresh/' },
-  { label: 'Careers', href: '/careers/' },
-]
+const { title, description, ogImage, noindex, hideHeader = false, bordered = false } = Astro.props
 ---
 
 <html lang="en">
@@ -74,7 +73,7 @@ const footerItems = [
       )
     }
   </head>
-  <body class="min-h-screen bg-canvas text-ink">
+  <body class={`min-h-screen text-ink ${bordered ? 'bg-canvas' : 'bg-surface'}`}>
     <a
       href="#main"
       class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-accent-default focus:px-4 focus:py-2 focus:text-on-accent"
@@ -82,56 +81,335 @@ const footerItems = [
       Skip to content
     </a>
 
-    <header class="border-b border-line-subtle">
-      <div class="mx-auto flex max-w-[1280px] items-center justify-between gap-6 px-6 py-5 lg:px-[60px]">
-        <a href="/" class="shrink-0">
-          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-6 w-auto" />
-        </a>
-        <nav aria-label="Primary">
-          <ul class="flex items-center gap-8">
-            {
-              navItems.map((item) => (
-                <li>
-                  <a href={item.href} class="text-body-sm font-medium text-ink-secondary hover:text-ink">
-                    {item.label}
-                  </a>
-                </li>
-              ))
-            }
-          </ul>
-        </nav>
-      </div>
-    </header>
+    {
+      !hideHeader && (
+        <header class={`relative ${bordered ? 'border-b border-line-subtle' : ''}`}>
+          <div class="flex items-center justify-between gap-6 px-[var(--space-gutter)] py-5">
+            <a href="/" class="shrink-0">
+              <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+            </a>
+            <nav aria-label="Primary">
+              <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+                {navItems.map((item) => (
+                  <li>
+                    <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <button
+              type="button"
+              aria-label="Open menu"
+              aria-expanded="false"
+              aria-controls="mobile-menu"
+              class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+              data-nav-toggle
+            >
+              Menu
+            </button>
+          </div>
+        </header>
+      )
+    }
 
-    <main id="main">
+    <MobileMenu />
+
+    {
+      /* Carries the page background itself rather than inheriting <body>'s:
+         it's the opaque sheet that slides over the pinned footer, so any
+         gap between sections would otherwise show the footer through. */
+    }
+    <main id="main" class={`relative z-[1] ${bordered ? 'bg-canvas' : 'bg-surface'}`}>
       <slot />
     </main>
 
-    <footer class="border-t border-line-subtle">
-      <div class="mx-auto flex max-w-[1280px] flex-col gap-8 px-6 py-16 lg:flex-row lg:items-start lg:justify-between lg:px-[60px]">
-        <div>
-          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-6 w-auto" />
-          <p class="mt-4 max-w-xs text-body-sm text-ink-muted">
-            Porto-based communications agency for the Portuguese tech ecosystem.
-          </p>
-        </div>
-        <nav aria-label="Footer">
-          <ul class="flex flex-col gap-3">
+    {
+      /* No top border, on any page: the footer is revealed from behind the
+         last section (see the reveal below), so a rule along its top edge
+         would read as a seam rather than a divider. `bordered` still drives
+         the header rule and the canvas background. */
+    }
+    <footer class="bg-surface" data-footer-reveal>
+      {
+        /* Full-bleed with the fluid gutter and --space-section-y, the same
+           vertical measure every <section> on the site uses — no max-width
+           cap, so the footer columns line up with the section content above
+           them. */
+      }
+      <div
+        class="flex flex-col gap-16 px-[var(--space-gutter)] py-[var(--space-section-y)] lg:gap-[120px]"
+        data-footer-inner
+      >
+        <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+          {
+            /* One flat palette across the whole footer: body copy and the
+               nav/legal links in neutral-900 at regular weight, contact +
+               social links in accent-600. Interactive items fade to 40%
+               opacity on hover rather than shifting hue — the same gesture
+               works on both the dark and the accent text. */
+          }
+          <nav aria-label="Footer">
+            <ul class="flex flex-col gap-2">
+              {
+                footerItems.map((item) => (
+                  <li>
+                    <a href={item.href} class="text-body text-neutral-900 transition-opacity hover:opacity-40">
+                      {item.label}
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </nav>
+
+          <address class="not-italic text-body text-neutral-900">
+            <p>Virtual address</p>
+            <p>Av. Vasco da Gama, 774</p>
+            <p>4430-247 Vila Nova de Gaia</p>
+            <p>Portugal</p>
+            <p class="mt-4">
+              <a href="mailto:hello@fesagency.pt" class="text-accent-600 transition-opacity hover:opacity-40">
+                hello@fesagency.pt
+              </a>
+            </p>
+            <p>
+              <a href="tel:+351913663577" class="text-accent-600 transition-opacity hover:opacity-40">
+                00351 913 663 577
+              </a>
+            </p>
+            <p class="mt-1 text-body-sm">Portuguese number with regular cost</p>
+          </address>
+
+          <ul class="flex flex-col items-start gap-2 lg:items-end">
             {
-              footerItems.map((item) => (
+              socialItems.map((s) => (
                 <li>
-                  <a href={item.href} class="text-body-sm text-ink-secondary hover:text-ink">
-                    {item.label}
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-body text-accent-600 transition-opacity hover:opacity-40"
+                  >
+                    {s.label}
                   </a>
                 </li>
               ))
             }
           </ul>
-        </nav>
-      </div>
-      <div class="border-t border-line-subtle px-6 py-6 text-center text-meta text-ink-muted lg:px-[60px]">
-        © {new Date().getFullYear()} FES Agency. All rights reserved.
+        </div>
+
+        {
+          /* Three groups side by side don't fit until well past `sm` — they
+             stay stacked to lg rather than crowding at ~640px. */
+        }
+        <div class="flex flex-col gap-6 border-t border-line-subtle pt-8 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex items-center gap-2 text-body text-neutral-900">
+            <span>© {new Date().getFullYear()} FES Agency</span>
+            {
+              /* PT translation doesn't exist yet — rendered as plain labels
+                 rather than a functional locale switcher. The inactive
+                 locale reuses the 40% hover opacity as its resting state,
+                 since both labels are now the same neutral-900. */
+            }
+            <span class="flex items-center gap-1 uppercase">
+              <span>en</span><span class="opacity-40">/</span><span class="opacity-40">pt</span>
+            </span>
+          </div>
+          <div class="flex items-center gap-6 text-body">
+            <a href="/privacy-policy/" class="text-neutral-900 transition-opacity hover:opacity-40">Privacy Policy</a>
+            <a href="/cookies-policy/" class="text-neutral-900 transition-opacity hover:opacity-40">Cookies Policy</a>
+          </div>
+          <button
+            type="button"
+            data-back-to-top
+            class="text-left text-body text-neutral-900 transition-opacity hover:opacity-40 lg:text-right"
+          >
+            back to top
+          </button>
+        </div>
       </div>
     </footer>
+
+    <style>
+      /*
+        Footer reveal. The footer is pinned to the bottom of the viewport for
+        the whole scroll (its sticky containing block is <body>, so it can be
+        shifted up as far as the top of the page and only releases when the
+        document runs out). <main> is opaque and one layer above, so the
+        footer stays hidden behind it and is uncovered from the bottom up as
+        the last section leaves the screen — no spacer needed, the footer's
+        own height in flow IS the reveal distance.
+
+        --footer-reveal (0 → 1) is written by the script below. It defaults
+        to 1 so that with JS disabled the footer renders at its normal
+        brightness rather than being stuck under the dark overlay.
+      */
+      footer {
+        --footer-reveal: 1;
+      }
+
+      footer[data-reveal='on'] {
+        position: sticky;
+        bottom: 0;
+        z-index: 0;
+      }
+
+      /* Dimming layer rather than filter: brightness() on the footer itself —
+         a filter would repaint the whole subtree every frame and drop text
+         off subpixel antialiasing. Caps at 85% so the footer reads as
+         shadowed rather than as a black bar on the way in. */
+      footer[data-reveal='on']::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: var(--color-neutral-950);
+        opacity: calc((1 - var(--footer-reveal)) * 0.85);
+      }
+
+      /* The parallax proper: footer content drifts up slightly slower than
+         the page sliding off above it, which is what sells "this was already
+         behind there" instead of a wipe. */
+      footer[data-reveal='on'] [data-footer-inner] {
+        transform: translateY(calc((1 - var(--footer-reveal)) * -6%));
+      }
+    </style>
+
+    <script>
+      // Site-wide, because the `data-anim` attributes it drives are authored
+      // on every page, not just the homepage.
+      import { initMotion, teardownMotion } from '../lib/motion'
+      // Side-effect only: registers its own astro:page-load/before-swap
+      // pair (see the module itself) — imported here so it runs on every
+      // page rather than needing every page to remember to import it.
+      import { getLenis } from '../lib/lenis'
+
+      let backToTopHandler: (() => void) | null = null
+
+      function setupBackToTop() {
+        const button = document.querySelector<HTMLButtonElement>('[data-back-to-top]')
+        if (!button) return
+
+        function onClick() {
+          // Routed through Lenis, not native `scrollTo({behavior:'smooth'})`
+          // — with Lenis active, the two would fight over the same scroll
+          // position every frame. Falls back to native smooth scroll if
+          // Lenis hasn't initialized (or failed to) for any reason.
+          const lenis = getLenis()
+          if (lenis) lenis.scrollTo(0)
+          else window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+
+        button.addEventListener('click', onClick)
+        backToTopHandler = () => button.removeEventListener('click', onClick)
+      }
+
+      function teardownBackToTop() {
+        backToTopHandler?.()
+        backToTopHandler = null
+      }
+
+      let footerRevealCleanup: (() => void) | null = null
+
+      function setupFooterReveal() {
+        const footer = document.querySelector<HTMLElement>('[data-footer-reveal]')
+        const main = document.querySelector<HTMLElement>('#main')
+        if (!footer || !main) return
+
+        // Scroll-position-driven rather than autonomous, so the reveal itself
+        // stays on under reduced motion — only the darkening and the drift
+        // are dropped by holding progress at 1.
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        let frame = 0
+
+        function update() {
+          frame = 0
+
+          // A footer taller than the viewport can't be pinned to the bottom:
+          // sticky would park its top permanently above the viewport, where
+          // <main> covers it, and that content would never become reachable.
+          // Happens on mobile, where the three columns stack — those widths
+          // fall back to the plain in-flow footer.
+          if (footer!.offsetHeight > window.innerHeight) {
+            footer!.dataset.reveal = 'off'
+            footer!.style.removeProperty('--footer-reveal')
+            return
+          }
+
+          footer!.dataset.reveal = 'on'
+          if (reduceMotion) {
+            footer!.style.setProperty('--footer-reveal', '1')
+            return
+          }
+
+          // How much of the pinned footer <main> has stopped covering. Short
+          // pages (404, the legal pages) are self-correcting: main's bottom
+          // is already above the fold there, so this lands at 1 immediately
+          // and the footer paints at full brightness.
+          const uncovered = window.innerHeight - main!.getBoundingClientRect().bottom
+          const progress = Math.min(Math.max(uncovered / footer!.offsetHeight, 0), 1)
+          footer!.style.setProperty('--footer-reveal', progress.toFixed(3))
+        }
+
+        function schedule() {
+          if (frame) return
+          frame = requestAnimationFrame(update)
+        }
+
+        update()
+        window.addEventListener('scroll', schedule, { passive: true })
+        window.addEventListener('resize', schedule)
+
+        // Late-arriving images and the Aeonik font swap both resize main and
+        // the footer after first paint, which moves the reveal distance.
+        const observer = new ResizeObserver(schedule)
+        observer.observe(main)
+        observer.observe(footer)
+
+        footerRevealCleanup = () => {
+          if (frame) cancelAnimationFrame(frame)
+          window.removeEventListener('scroll', schedule)
+          window.removeEventListener('resize', schedule)
+          observer.disconnect()
+        }
+      }
+
+      function teardownFooterReveal() {
+        footerRevealCleanup?.()
+        footerRevealCleanup = null
+      }
+
+      // Dev-only typography inspector (Shift+T). Dynamic import inside an
+      // `import.meta.env.DEV` branch so neither the module nor its UI is in
+      // the production bundle.
+      let typeInspector: typeof import('../lib/typeInspector') | null = null
+
+      function init() {
+        setupBackToTop()
+        setupFooterReveal()
+        if (import.meta.env.DEV) {
+          void import('../lib/typeInspector').then((m) => {
+            typeInspector = m
+            m.initTypeInspector()
+          })
+        }
+        // Async (it waits on document.fonts.ready before line-splitting) and
+        // deliberately not awaited — the nav and footer must not sit idle
+        // behind a font load.
+        void initMotion()
+      }
+
+      function teardown() {
+        teardownBackToTop()
+        teardownFooterReveal()
+        teardownMotion()
+        typeInspector?.teardownTypeInspector()
+      }
+
+      document.addEventListener('astro:page-load', init)
+      document.addEventListener('astro:before-swap', teardown)
+    </script>
   </body>
 </html>

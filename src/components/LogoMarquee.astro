@@ -1,0 +1,156 @@
+---
+/**
+ * Client-logo marquee — an infinite right-to-left strip that can also be
+ * grabbed and thrown, used by the homepage ("Trusted by") and the Agency
+ * page ("Some of our favourite clients").
+ *
+ * Motion is owned by GSAP (see src/lib/horizontalLoop.ts), not a CSS
+ * keyframe: the strip has to be draggable with inertia and snap to the
+ * nearest logo on release, none of which a keyframe can do. Each cell is a
+ * direct child of the track because the loop measures and wraps the cells
+ * individually — that's also what the drag snaps to.
+ *
+ * The logo set is repeated `repeat` times so the strip always overflows the
+ * viewport; with six logos a single set is ~1.7kpx and would leave a
+ * visible gap on wide screens as items wrap. Only the first set is exposed
+ * to assistive tech — the rest are decorative duplicates.
+ */
+import { Image } from 'astro:assets'
+import { clientLogos } from '../lib/clients'
+
+interface Props {
+  logos?: { src: ImageMetadata; name: string }[]
+  /** Scroll pace — roughly 100px per second at 1. */
+  speed?: number
+  /** Agency-page treatment: logos desaturated. */
+  grayscale?: boolean
+  /** `center` draws a rule behind the logos, `edges` above and below them. */
+  rules?: 'center' | 'edges' | 'none'
+  /** Sets of logos rendered. Raise if the strip ever looks sparse. */
+  repeat?: number
+  class?: string
+}
+
+const {
+  logos = clientLogos,
+  speed = 1,
+  grayscale = false,
+  rules = 'center',
+  repeat = 4,
+  class: className = '',
+} = Astro.props
+
+// Flattened: every cell is a sibling so the loop can wrap and snap per logo.
+const cells = Array.from({ length: repeat }).flatMap((_, set) =>
+  logos.map((logo) => ({ logo, isDuplicate: set > 0 }))
+)
+
+const cellClass = 'mr-12 flex w-[160px] shrink-0 items-center justify-center lg:mr-20 lg:w-[200px]'
+const logoClass = `h-auto max-h-[45px] w-auto object-contain lg:max-h-[65px]${grayscale ? ' grayscale' : ''}`
+---
+
+<div
+  class:list={[
+    'marquee relative overflow-hidden py-10 lg:py-14',
+    rules === 'edges' && 'border-y border-line-subtle',
+    className,
+  ]}
+>
+  {rules === 'center' && <div class="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-line-subtle"></div>}
+
+  <div
+    class="marquee__track relative flex w-max cursor-grab select-none active:cursor-grabbing"
+    data-marquee-track
+    data-speed={speed}
+  >
+    {
+      cells.map(({ logo, isDuplicate }) => (
+        <div class={cellClass}>
+          {
+            // TODO: astro:assets' image service 400s optimizing SVGs —
+            // serve them unoptimized until that's fixed.
+            logo.src.format === 'svg' ? (
+              <img
+                src={logo.src.src}
+                alt={isDuplicate ? '' : `${logo.name} logo`}
+                aria-hidden={isDuplicate ? 'true' : undefined}
+                class={logoClass}
+                loading="lazy"
+                decoding="async"
+                draggable="false"
+              />
+            ) : (
+              <Image
+                src={logo.src}
+                alt={isDuplicate ? '' : `${logo.name} logo`}
+                aria-hidden={isDuplicate ? 'true' : undefined}
+                width={400}
+                class={logoClass}
+                loading="lazy"
+                draggable="false"
+              />
+            )
+          }
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  /* Softens both ends so logos fade rather than clip against the section edge. */
+  .marquee {
+    mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap'
+  import { horizontalLoop, type HorizontalLoop } from '../lib/horizontalLoop'
+
+  // Hover doesn't stop the strip, just eases it down to 30% pace — it stays
+  // readable as "still moving" while giving the user a moment to grab a
+  // logo and drag.
+  const HOVER_TIME_SCALE = 0.3
+
+  let loops: HorizontalLoop[] = []
+  let cleanupFns: Array<() => void> = []
+
+  function init() {
+    // Reduced motion: slows the base pace instead of stopping it outright —
+    // a still-drifting strip doesn't trigger vestibular issues the way a
+    // full-speed scroll can, but it also doesn't read as broken/frozen.
+    // Dragging stays available either way.
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    document.querySelectorAll<HTMLElement>('[data-marquee-track]').forEach((track) => {
+      const baseSpeed = Number(track.dataset.speed) || 1
+      const loop = horizontalLoop(track.children, {
+        speed: reducedMotion ? baseSpeed * 0.35 : baseSpeed,
+        draggable: true,
+      })
+      if (!loop) return
+      loops.push(loop)
+
+      const onEnter = () =>
+        gsap.to(loop.timeline, { timeScale: HOVER_TIME_SCALE, duration: 0.4, ease: 'power1.out', overwrite: true })
+      const onLeave = () => gsap.to(loop.timeline, { timeScale: 1, duration: 0.4, ease: 'power1.out', overwrite: true })
+      track.addEventListener('mouseenter', onEnter)
+      track.addEventListener('mouseleave', onLeave)
+      cleanupFns.push(() => {
+        track.removeEventListener('mouseenter', onEnter)
+        track.removeEventListener('mouseleave', onLeave)
+      })
+    })
+  }
+
+  function teardown() {
+    loops.forEach((loop) => loop.destroy())
+    loops = []
+    cleanupFns.forEach((fn) => fn())
+    cleanupFns = []
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

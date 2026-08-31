@@ -1,0 +1,23 @@
+---
+/**
+ * Stand-in for photography not shot or selected yet. Token-tinted block
+ * (no real asset dependency) so a page can ship layout-complete ahead of
+ * final photography. The alt text says what belongs here.
+ * TODO(marcelo): replace every usage with a real <Image> once assets land.
+ */
+interface Props {
+  alt: string
+  tone?: 'accent' | 'clay' | 'neutral'
+  class?: string
+}
+
+const { alt, tone = 'accent', class: className } = Astro.props
+
+const toneClasses: Record<string, string> = {
+  accent: 'bg-accent-100',
+  clay: 'bg-clay-100',
+  neutral: 'bg-neutral-200',
+}
+---
+
+<div role="img" aria-label={alt} class:list={[toneClasses[tone], className]} />

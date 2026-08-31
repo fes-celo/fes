@@ -1,0 +1,443 @@
+---
+/**
+ * "Sound familiar?" — the problem cards row (Figma node 959:1815). Four
+ * photo cards that scroll horizontally while the section is pinned.
+ *
+ * Built content-driven alongside SystemExpertiseRotator and PhasesScroll
+ * so all three Systems pages can share it; the cards differ per page, the
+ * mechanics don't.
+ *
+ * Parallax note: the spec's "inner layer at ~0.6x the shell" is applied as
+ * bounded drift INSIDE each card, not as 0.6x of the track's travel. The
+ * track moves several hundred px on a desktop viewport, so a literal 0.6x
+ * would slide each photo far outside its card. The photo is instead cut
+ * oversized and drifts across its own slack, which is the same depth cue at
+ * a scale the card can actually contain.
+ *
+ * The parallax is driven from the SAME ScrollTrigger that moves the track
+ * (one onUpdate sets both track.x and the photos' xPercent from the same
+ * `self.progress`), not a second independently-scrubbed trigger — the photo
+ * drift is a function of the cards' actual horizontal position, not an
+ * approximation of it.
+ */
+import type { ImageMetadata } from 'astro'
+import { Image } from 'astro:assets'
+
+export interface ProblemCard {
+  title: string
+  /** Lead-in above the statement, e.g. "Ideal for those who want to:". */
+  label: string
+  statement: string
+  /** Optional so a page can ship layout-complete ahead of final photography — same convention as ProjectCard's own no-image state. */
+  image?: ImageMetadata
+}
+
+interface Props {
+  heading?: string
+  cards: ProblemCard[]
+  class?: string
+}
+
+const { heading = 'Sound familiar?', cards, class: className } = Astro.props as Props
+---
+
+<section class:list={['problem-cards relative w-full', className]} data-problem-cards>
+  <div class="problem-cards__inner flex w-full flex-col gap-16 lg:gap-28">
+    {
+      /* The rule above the heading on a SEPARATE gutter-padded wrapper, not
+         the h2 itself — an h2 with its own px-gutter still draws its own
+         border-top edge to edge (the border sits at the OUTSIDE of the
+         padding box), so the rule ran full-bleed to the true section edges
+         instead of lining up with where "Sound familiar?" actually starts.
+         Wrapping it pushes the rule in to the same inset the text sits at.
+
+         That rule IS the scroll progress bar — a neutral-200 track with a
+         neutral-950 fill scaled from the left, exactly StatBlock's
+         minimal-variant pattern, except the fill is driven by this section's
+         own pin ScrollTrigger progress instead of a timer. It replaces the
+         h2's old `border-t`: keeping both drew two stacked lines. At rest
+         (fallback, no-JS, or before the pin starts) the fill is at scaleX(0),
+         so it reads as exactly the plain rule it used to be. */
+    }
+    <div class="px-[var(--space-gutter)]">
+      <div class="problem-cards__progress relative h-px w-full bg-line" aria-hidden="true">
+        <div class="problem-cards__progress-fill absolute inset-0 bg-ink" data-pin-progress-fill></div>
+      </div>
+      <h2 class="pt-4 text-lead text-ink">{heading}</h2>
+    </div>
+
+    {
+      /* Resting state is a native horizontal scroll strip — that IS the
+         reduced-motion and mobile treatment, and what renders with no JS.
+         The pinned branch takes over by switching overflow off (see
+         [data-motion='pinned'] below), so a script failure degrades to a
+         perfectly usable row rather than a stuck one. */
+    }
+    <div class="problem-cards__viewport" data-viewport>
+      <div class="problem-cards__track" data-track>
+        {
+          cards.map((card) => (
+            <article class="problem-card" data-card>
+              <div class="problem-card__media" data-card-media>
+                {card.image ? (
+                  <Image
+                    src={card.image}
+                    alt=""
+                    width={860}
+                    height={916}
+                    widths={[430, 860]}
+                    sizes="(min-width: 1024px) 28vw, 80vw"
+                    class="problem-card__img"
+                  />
+                ) : (
+                  <div class="problem-card__img-placeholder" aria-hidden="true" />
+                )}
+              </div>
+              <div class="problem-card__scrim" />
+              <div class="relative flex h-full flex-col justify-between gap-10">
+                <h3 class="text-h3 text-neutral-50">{card.title}</h3>
+                {/*
+                  Three tiers of content, three distinct sizes. These were
+                  previously h3 + one text-lead paragraph holding both the
+                  label and the statement, split by a <br> — so the label and
+                  the statement rendered at the SAME size, only 2px under the
+                  title, and the tier that matters least was as loud as the
+                  one that matters most. The label is meta, so it drops below
+                  the statement in size as well as in colour, and the two are
+                  now separate elements with a real gap rather than a line
+                  break inside one.
+                */}
+                <div class="flex flex-col gap-2">
+                  <p class="text-body-sm text-neutral-400">{card.label}</p>
+                  <p class="text-body font-normal text-neutral-50">{card.statement}</p>
+                </div>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .problem-cards {
+    padding-block: var(--space-section-y);
+
+    /* Pinned-state card geometry, as tokens rather than three separate
+       literals: the card's height, the width derived from it by the 3:4
+       ratio, and the gap.
+
+       --problem-card-h follows the site's fluid scale (see global.css's
+       `clamp(min, (F/19.2)vw, max)` note — F=640 here), but with the MIN
+       held at today's fixed 30rem instead of tracking 0.75×F down to
+       smaller viewports: below the 1440px reference (13" MacBook, this
+       component's MOTION_FULL floor is 1024px) the card stays exactly the
+       size it was before this became fluid. Only above 1440px does it grow
+       past 30rem, up to 53.333rem (F×4/3) at the 2560px cap — otherwise a
+       fixed-height card that looked right on a laptop read as small and
+       stranded in the extra whitespace of a wide desktop screen, since the
+       card text (text-h3/text-lead) kept scaling with the viewport while
+       the card around it did not. */
+    --problem-card-h: clamp(30rem, 33.333vw, 53.333rem);
+    --problem-card-w: calc(var(--problem-card-h) * 3 / 4);
+    --problem-card-gap: 1.75rem;
+  }
+
+  /*
+    NOT Tailwind's `scale-x-0` / `origin-left`: Tailwind v4 implements scale
+    utilities with the INDEPENDENT `scale` property, not `transform`. The two
+    compose multiplicatively, so `scale: 0 1` zeroed the fill out no matter
+    what GSAP wrote to `transform` — the bar never appeared. Setting the
+    resting state via `transform` puts it on the same property GSAP animates.
+  */
+  .problem-cards__progress-fill {
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+
+  .problem-cards__viewport {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* Sits inside the gutter so the first card lines up with the heading,
+       while the strip itself still runs full-bleed to the right edge. */
+    padding-inline: var(--space-gutter);
+    /* Without this, `scroll-snap-align: start` on the first card snaps PAST
+       the leading padding on load (scrollLeft settles at the padding's own
+       value instead of 0), so the card renders flush against the true
+       viewport edge despite the padding above — this is what matches it to
+       that padding instead of treating it as scrollable overscroll. */
+    scroll-padding-inline: var(--space-gutter);
+    /* Firefox/legacy: keep the scrollbar from adding height under the row. */
+    scrollbar-width: none;
+  }
+
+  .problem-cards__viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .problem-cards__track {
+    display: flex;
+    gap: var(--problem-card-gap);
+    width: max-content;
+  }
+
+  .problem-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 80vw;
+    max-width: 26rem;
+    height: 28.625rem;
+    padding: var(--space-card-p);
+    overflow: hidden;
+    border-radius: var(--radius-control);
+    background-color: var(--color-neutral-900);
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+  }
+
+  .problem-card__media {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  /* Cut oversized and offset left so the photo has slack to drift across
+     without ever exposing a card edge. */
+  .problem-card__img {
+    position: absolute;
+    top: 0;
+    left: -9%;
+    width: 118%;
+    height: 100%;
+    object-fit: cover;
+    /* Tailwind's preflight sets `img { max-width: 100% }`, which clamps the
+       118% back to the card's own width — the photo then sat flush left and
+       exposed a strip of card background down the right edge, and the
+       parallax had no slack to travel across. */
+    max-width: none;
+  }
+
+  /* Stand-in for photography not shot yet. A fixed neutral-700, not
+     --color-accent-tint: the card itself is always a literal neutral-900
+     (see .problem-card above, not page-themed), and a page whose dark-zone
+     redefines --color-accent-tint to that same neutral-900 would make the
+     placeholder invisible against its own card — this stays visible on
+     every consuming page regardless of how it themes that token. */
+  .problem-card__img-placeholder {
+    position: absolute;
+    inset: 0;
+    background-color: var(--color-neutral-700);
+  }
+
+  .problem-card__scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgb(from var(--color-black) r g b / 0.5), transparent);
+  }
+
+  /* ---------- Pinned branch ---------- */
+
+  /*
+    Heading pinned at the top, card row pinned at the bottom, full viewport
+    between them. The row is a FIXED height (see .problem-card below), and
+    .problem-cards__inner's own `justify-content: space-between` pushes it
+    to the bottom, leaving whatever's left over as growing space between the
+    heading and the row. A taller viewport therefore reads as more air above
+    the cards, not bigger cards.
+
+    That distribution only WORKS if this container's own height is capped,
+    though — `min-height: 100vh` alone is a floor, not a ceiling, so the
+    section was free to simply grow past one viewport to fit its content,
+    same as any ordinary block. That's invisible in normal flow, but this
+    element is PINNED (`position: fixed` under the hood) during the scroll
+    lock: a fixed element isn't clipped by document scroll, so the extra
+    height wasn't "scrollable, just off-screen" — it was simply unreachable,
+    which is what showed up as the card's bottom edge getting cut off.
+    `height: 100vh` (not `min-height`) closes that gap.
+  */
+  .problem-cards[data-motion='pinned'] {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding-block: var(--space-gutter) var(--space-section-y);
+  }
+
+  @supports (height: 100dvh) {
+    .problem-cards[data-motion='pinned'] {
+      height: 100dvh;
+    }
+  }
+
+  .problem-cards[data-motion='pinned'] .problem-cards__inner {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  /* Native scrolling and snapping are handed back to GSAP here — leaving
+     them on would let the user fight the scrub with a trackpad swipe. No
+     `flex: 1 1 auto` here: the viewport sizes to its content — the
+     fixed-height card row — instead of stretching to fill the inner
+     container, which is what lets `justify-content: space-between` above
+     push it to the bottom.
+
+     No `max-width` cap here (an earlier pass capped the window at "three
+     cards + a peek" to guarantee scroll distance on wide screens — see git
+     history): capping it short of the section's own edge left dead white
+     space between the clipped card and the true margin, which read as a
+     bug rather than a deliberate crop. The viewport now runs to the true
+     edge on both sides (this section carries no `px-gutter` of its own —
+     `padding-inline` on this element IS the inset, both sides, all the way
+     to the margin) and gets its "there's more" cue from the LEADING GAP on
+     the track instead — see .problem-cards__track below. */
+  .problem-cards[data-motion='pinned'] .problem-cards__viewport {
+    overflow: hidden;
+    scroll-snap-type: none;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .problem-cards[data-motion='pinned'] .problem-cards__track {
+    align-items: stretch;
+    /*
+      Every card shifted one position over: card 1 sits where card 2 used to,
+      leaving a blank, card-shaped gap at the very start instead of card 1
+      itself. That gap — not a narrowed viewport — is what signals "this row
+      doesn't start at the beginning"; whichever card doesn't fit at the
+      trailing edge is what `overflow: hidden` (above) actually clips, and
+      since the viewport is now full width that clip lands exactly at the
+      true margin rather than short of it.
+    */
+    margin-left: calc(var(--problem-card-w) + var(--problem-card-gap));
+    /*
+      Trailing space equal to the gutter, so the LAST card comes to rest
+      inset from the true edge by the same margin every other section on the
+      page uses — not flush against it. This section (unlike
+      PhasesScroll's) is full-bleed with no `px-gutter` of its own,
+      so without this the fully-scrolled position had nothing stopping the
+      last card at the section's own right edge; `padding-inline` on the
+      VIEWPORT doesn't help here either, since `overflow: hidden` clips at
+      that element's border box, padding included, not at the content edge.
+      measureDistance() below reads the TRACK's own bounding rect, which
+      NOW includes this padding, so the extra travel needed is picked up
+      automatically rather than needing a separate constant.
+    */
+    padding-right: var(--space-gutter);
+  }
+
+  /*
+    3:4, the same card proportion ProjectCard already uses sitewide
+    (`sm:aspect-[3/4]`) — height-driven, with width following from the
+    ratio. FIXED rem, not `height: 100%`: a card that fills whatever the
+    flex stretch allots grows with viewport height, which is exactly what
+    put oversized cards on tall screens. A fixed height instead lets
+    .problem-cards__inner's `space-between` (above) absorb any extra
+    viewport height as breathing room over the row, not as bigger cards.
+  */
+  .problem-cards[data-motion='pinned'] .problem-card {
+    scroll-snap-align: none;
+    height: var(--problem-card-h);
+    width: auto;
+    max-width: none;
+    aspect-ratio: 3 / 4;
+    flex: 0 0 auto;
+  }
+</style>
+
+<script>
+  import { bindSection, gsap, ScrollTrigger, MOTION_FULL, MOTION_FALLBACK, shareResizeRefresh } from '../lib/sectionMotion'
+
+  /** Photo drift across its own slack, in % of the photo's width. */
+  const PARALLAX = 6
+
+  bindSection('[data-problem-cards]', ({ root, mm }) => {
+    const viewport = root.querySelector<HTMLElement>('[data-viewport]')
+    const track = root.querySelector<HTMLElement>('[data-track]')
+    const images = Array.from(root.querySelectorAll<HTMLElement>('.problem-card__img'))
+    const progressFill = root.querySelector<HTMLElement>('[data-pin-progress-fill]')
+    if (!viewport || !track) return
+
+    mm.add(MOTION_FULL, () => {
+      root.setAttribute('data-motion', 'pinned')
+
+      // Measured against the track's UNTRANSFORMED position, not via
+      // `scrollWidth - clientWidth` — that formula silently drops the
+      // viewport's own leading `padding-inline` (what aligns the first card
+      // with the heading): the track's static starting x is offset by that
+      // padding, so the real travel needed to reveal the LAST card's
+      // trailing space is bigger than scrollWidth alone accounts for. This
+      // reads the actual gap between the track's natural right edge and the
+      // viewport's clip boundary directly, so it's correct regardless of
+      // what's producing that offset.
+      //
+      // CACHED, not called from onUpdate: toggling the transform off and
+      // back on to take an honest measurement forces a synchronous layout
+      // flush, and onUpdate fires on every scroll frame during the pin —
+      // doing that every frame is a textbook layout-thrashing regression
+      // (measured: ~15 mobile Lighthouse points). Measured once in `end`
+      // (called at setup and again on resize/refresh, not on scroll) and
+      // cached; onUpdate below just reads the number.
+      let cachedDistance = 0
+      const measureDistance = () => {
+        const prevTransform = track.style.transform
+        track.style.transform = 'none'
+        const vpRect = viewport.getBoundingClientRect()
+        const trackRect = track.getBoundingClientRect()
+        track.style.transform = prevTransform
+        return Math.max(trackRect.right - vpRect.right, 0)
+      }
+
+      // One ScrollTrigger drives both the track's x AND the photos'
+      // parallax from the same onUpdate — the drift is computed FROM the
+      // track's own progress in that callback, not from a second,
+      // independently-scrubbed trigger approximating the same range.
+      const st = ScrollTrigger.create({
+        trigger: root,
+        start: 'top top',
+        // Exactly the horizontal travel: the pin releases the moment the
+        // last card is fully in view, with no dead scroll after it.
+        end: () => `+=${(cachedDistance = measureDistance())}`,
+        pin: true,
+        pinSpacing: true,
+        scrub: true,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          gsap.set(track, { x: -self.progress * cachedDistance })
+          gsap.set(images, { xPercent: PARALLAX - self.progress * PARALLAX * 2 })
+          // Same ScrollTrigger, same progress value — the top progress line
+          // is a direct readout of this pin, not a second animation
+          // approximating it.
+          if (progressFill) gsap.set(progressFill, { scaleX: self.progress })
+        },
+      })
+
+      // Belt-and-braces re-measure on resize, so a resize can never leave the
+      // pin distance stale. Shared and debounced across every section that
+      // asks for one (see shareResizeRefresh) rather than a listener per
+      // component — refresh() re-measures every trigger on the page, so N
+      // private listeners meant N full page-wide refreshes per resize.
+      const releaseResize = shareResizeRefresh()
+
+      return () => {
+        releaseResize()
+        st.kill()
+        root.removeAttribute('data-motion')
+        gsap.set([track, ...images], { clearProps: 'transform' })
+        if (progressFill) gsap.set(progressFill, { scaleX: 0 })
+      }
+    })
+
+    mm.add(MOTION_FALLBACK, () => {
+      // Native scroll-snap row: no pin, no parallax, no JS-driven scroll.
+      // The CSS resting state already is this, so all that's needed is to
+      // drop any transform a branch swap left behind.
+      gsap.set([track, ...images], { clearProps: 'transform' })
+      return () => {}
+    })
+  })
+</script>

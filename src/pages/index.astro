@@ -1,76 +1,732 @@
 ---
+import { Image } from 'astro:assets'
 import BaseLayout from '../layouts/BaseLayout.astro'
+import Hero from '../components/Hero.astro'
+import Heading from '../components/Heading.astro'
+import SectionLabel from '../components/SectionLabel.astro'
 import Button from '../components/Button.astro'
 import StatBlock from '../components/StatBlock.astro'
 import TestimonialCard from '../components/TestimonialCard.astro'
 import ProjectCard from '../components/ProjectCard.astro'
+import LogoMarquee from '../components/LogoMarquee.astro'
+import UnderlineLink from '../components/UnderlineLink.astro'
+import SystemsWhatWeDo from '../components/SystemsWhatWeDo.astro'
 
-// Placeholder content only — Phase 0B checkpoint is a styled empty shell,
-// not final Phase 1 copy. Values below are real (ported from the old
-// prototype's content/site.ts) so the shell isn't rendering lorem ipsum,
-// but hero/positioning copy is still pending sign-off.
+import weWantYou from '../assets/projects/we-want-you.png'
+import weWantYouIcon from '../assets/projects/we-want-you-icon.png'
+import blipTedx from '../assets/projects/blip-tedx.png'
+import blipTedxIcon from '../assets/projects/blip-tedx-icon.png'
+import tenXForward from '../assets/projects/10x-forward.png'
+import tenXForwardIcon from '../assets/projects/10x-forward-icon.svg'
+import coverflex from '../assets/projects/coverflex.png'
+import coverflexIcon from '../assets/projects/coverflex-icon.png'
+import dashlane from '../assets/projects/dashlane.png'
+import dashlaneIcon from '../assets/projects/dashlane-icon.png'
+import startupPortugalProject from '../assets/projects/startup-portugal.png'
+import startupPortugalProjectIcon from '../assets/projects/startup-portugal-icon.png'
+
+import lilianaCastro from '../assets/people/FES_Liliana-cutout.png'
+
+// Featured Work: descriptions shipped exactly as authored in the Figma
+// Selected Projects frame (node 770:273) per user decision — several are
+// duplicated verbatim across cards or truncated mid-sentence there, but
+// that's the real content today, not placeholder text. No tags — the
+// Selected Projects frame doesn't have per-card tags (only the What We Do
+// system cards do).
+const featuredRow1 = [
+  {
+    href: '/projects/we-want-you/',
+    title: 'We Want You',
+    description: 'A concept creation, dedicated website and campaigns.',
+    image: weWantYou,
+    icon: weWantYouIcon,
+    iconBg: '#450E61',
+  },
+  {
+    href: '/projects/blip-tedx/',
+    title: 'Blip x TEDx',
+    description: 'We help startups, tech companies and disruptive businesses',
+    image: blipTedx,
+    icon: blipTedxIcon,
+    iconBg: '#323F48',
+  },
+]
+
+const featuredRow2 = [
+  {
+    href: '/projects/10x-forward/',
+    title: '10x Forward',
+    description: 'We help startups, tech companies and disruptive businesses',
+    image: tenXForward,
+    icon: tenXForwardIcon,
+    iconBg: 'var(--color-neutral-50)',
+  },
+  {
+    href: '/projects/coverflex/',
+    title: 'Coverflex',
+    description: 'We help startups, tech companies and disruptive businesses',
+    image: coverflex,
+    icon: coverflexIcon,
+    iconBg: 'var(--color-neutral-50)',
+  },
+  {
+    href: '/projects/dashlane/',
+    title: 'Dashlane',
+    description: 'A concept creation, dedicated website and campaigns.',
+    image: dashlane,
+    icon: dashlaneIcon,
+    iconBg: '#09363F',
+  },
+  {
+    href: '/projects/startup-portugal/',
+    title: 'Startup Portugal',
+    description: 'We help startups, tech companies and disruptive businesses',
+    image: startupPortugalProject,
+    icon: startupPortugalProjectIcon,
+    iconBg: '#E8DB37',
+  },
+]
+
+// "We drive results" — real numbers pulled from the Figma homepage frame
+// (node 770:341), matching the old prototype's 6-stat set.
 const stats = [
-  { value: '+502', label: 'media placements per year' },
-  { value: '€3.5M', label: 'tracked client ROI' },
-  { value: '10', label: 'years in market' },
+  { value: '+502', label: 'media placements/year' },
+  { value: '€3.5M', label: 'in tracked client ROI' },
+  { value: '+21', label: 'new clients in 2025' },
+  { value: '15', label: 'social media accounts managed' },
+  { value: '5%', label: 'engagement rate on social media' },
+  { value: '+50k', label: 'paid media investment per year' },
+]
+
+// Shipped exactly as authored in the Figma Testimonials frame (node
+// 770:419) per user decision, including its inconsistencies: cards 1 and 2
+// share an identical name/role with two different quotes, and all three
+// share the same category tag even though card 3's quote is about
+// Anchorage Digital, not NDC Conferences.
+const testimonials = [
+  {
+    tag: '[Event Production + NDC Conferences]',
+    quote:
+      'FES Agency was all you could wish for in a partner! Supportive, pro-active, mindful about what we needed, and what we valued as an invidual company, rather than a cookie-cutter solution. High-visibility PR has a lot to do with timing. FES helped us be on top of PR opportunities, and at the same time supporting us in our PR needs.',
+    name: 'Heather Fabela',
+    role: 'Head of Ops @ NDC Conferences',
+  },
+  {
+    tag: '[Event Production + NDC Conferences]',
+    quote:
+      'We could not have pulled off NDC Porto 2023 without the amazing FES Agency! Working with Liliana, Mariana, and their entire team gives us piece of mind. We know we are in the best hands, and it makes our job so much easier.',
+    name: 'Heather Fabela',
+    role: 'Head of Ops @ NDC Conferences',
+  },
+  {
+    tag: '[Event Production + NDC Conferences]',
+    quote:
+      "We've worked with FES Agency for years, and their help adds peace of mind to stressful events. Their professional, personalised approach and ability to manage suppliers is remarkable. Their dedication and problem-solving ensure a flawless experience for participants and organisers.",
+    name: 'João Peixoto',
+    role: 'Ex-Engineering Leadership @ Anchorage Digital',
+  },
 ]
 ---
 
 <BaseLayout
-  title="FES Agency"
-  description="Porto-based communications agency for the Portuguese tech ecosystem."
+  title="FES Agency — Communications for Portuguese tech"
+  description="We help startups, tech companies and disruptive businesses effectively communicate their brand and their people."
+  hideHeader
+  bordered
 >
-  <section class="mx-auto max-w-[1280px] px-6 py-24 lg:px-[60px] lg:py-32" data-anim="reveal">
-    <p class="font-fono text-eyebrow uppercase text-accent-default">FES Agency</p>
-    <h1 class="mt-4 max-w-3xl text-display" data-anim="split-text">
-      Hero positioning — pending Phase 0A copy sign-off.
-    </h1>
-    <p class="mt-6 max-w-xl text-lead text-ink-secondary">Subheadline placeholder.</p>
-    <div class="mt-10">
-      <Button href="/contact/" variant="accent">Meet the Agency</Button>
+  <Hero />
+
+  {
+    /* Light → dark inversion zone: Selected Projects + Stats share one
+       wrapper so the flip covers everything still on screen when it fires
+       (see the <style> block), instead of only repainting Stats. */
+  }
+  <div class="invert-zone relative z-10" data-invert-zone>
+    {
+      /* Section headers run on two deliberate tiers now, where there were
+         five one-off treatments across five sections:
+
+           FEATURE — text-h2, full ink, its own emphasis. The two moments the
+             page is actually built around: Selected projects, Testimonials.
+           LABEL   — text-h3, muted, left, underscored with a rule at 20% of
+             its own colour (so it works on white, neutral-950 and accent-950
+             without a per-section border token): We drive results, What we
+             do, Trusted by.
+
+         The gap from any header to its content is one value in both tiers,
+         --space-heading-gap. */
+    }
+    <section
+      class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]"
+      data-anim="reveal"
+    >
+      <div>
+        <Heading as="h2" indent={false} class="text-h2 text-ink">Selected projects</Heading>
+
+        <div class="mt-[var(--space-heading-gap)] flex flex-col gap-7">
+          <div class="grid grid-cols-1 gap-7 lg:grid-cols-2">
+            {
+              featuredRow1.map((p) => (
+                <ProjectCard
+                  variant="featured"
+                  size="lg"
+                  href={p.href}
+                  title={p.title}
+                  description={p.description}
+                  image={p.image}
+                  imageAlt={p.title}
+                  icon={p.icon}
+                  iconBg={p.iconBg}
+                  imageAspect="aspect-[886/580]"
+                  imageSizes="(min-width: 1024px) 50vw, 100vw"
+                />
+              ))
+            }
+          </div>
+          <div class="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-4" data-featured-row-2>
+            {
+              featuredRow2.map((p, i) => (
+                <div data-last-project={i === featuredRow2.length - 1 ? '' : undefined}>
+                  <ProjectCard
+                    variant="featured"
+                    size="sm"
+                    href={p.href}
+                    title={p.title}
+                    description={p.description}
+                    image={p.image}
+                    imageAlt={p.title}
+                    icon={p.icon}
+                    iconBg={p.iconBg}
+                    imageAspect="aspect-[429/280]"
+                    imageWidth={429}
+                    imageHeight={280}
+                    imageSizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                  />
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="relative z-10 px-[var(--space-gutter)] py-[var(--space-section-y)]"
+      data-stats-section
+      data-anim="reveal"
+    >
+      <div>
+        <SectionLabel>We drive results</SectionLabel>
+        <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-7">
+          <dl class="grid grid-cols-2 gap-x-7 lg:col-span-4" data-stats-cycle>
+            {stats.map((s, i) => <StatBlock variant="minimal" value={s.value} label={s.label} active={i === 0} />)}
+          </dl>
+          <div class="flex flex-col items-start gap-10 lg:col-span-8">
+            <Heading as="p" class="text-h1 text-ink">
+              Behind these numbers: a decade inside Portugal's tech ecosystem, and a simple belief that communication
+              shouldn't be run in pieces. FES exists to make PR, brand, digital and events work as one system.
+            </Heading>
+            <Button href="/agency/" variant="tint">Meet the Agency</Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  {
+    /* Outside .invert-zone on purpose — it's position: fixed and keeps its
+       own light chip colors over both the light and the dark background. */
+  }
+  <div
+    class="fixed inset-x-0 bottom-6 z-40 flex translate-y-4 justify-start px-[var(--space-gutter)] opacity-0 transition-all duration-300"
+    data-scroll-cta
+  >
+    {
+      /* max-w-full + a wrappable label: at 375px the nowrap label and the
+         button together measured 373px of content inside a 327px column, so
+         the chip ran 22px past the right edge and clipped "Book a call".
+         The button keeps its nowrap (it must never break); the label is the
+         part allowed to take a second line. */
+    }
+    <div class="flex max-w-full items-center gap-2 rounded-lg bg-neutral-100 p-2 shadow-[var(--shadow-card-hover)]">
+      <span class="min-w-0 px-3.5 py-3 text-body-sm text-accent-950 sm:whitespace-nowrap">
+        15 minutes. Your challenge, our take.
+      </span>
+      <a
+        href="/contact/"
+        class="shrink-0 whitespace-nowrap rounded-[4px] bg-accent-800 px-3.5 py-3 text-body-sm font-medium text-accent-200 transition-colors hover:bg-accent-700"
+      >
+        Book a call
+      </a>
+    </div>
+  </div>
+
+  <SystemsWhatWeDo theme="dark" class="relative z-10" />
+
+  <section
+    class="relative z-10 overflow-hidden bg-accent-950 pt-[var(--space-section-y)] pb-[var(--space-section-y-lg)]"
+    data-testimonials-section
+    data-anim="reveal"
+  >
+    {
+      /* Symmetric 25vw padding, no max-width: the heading's content box has
+         to be exactly the 50vw the cards below it occupy. The previous
+         `lg:max-w-[50vw]` + `lg:pl-[25vw]` pair fought each other under
+         border-box — the 360px padding ate the 720px cap and left the
+         heading wrapping inside a 315px column while the card track beneath
+         it ran the full 720px. */
+    }
+    <Heading as="h2" indent={false} class="px-[var(--space-gutter)] text-h2 lg:px-[25vw]">
+      <span class="text-accent-400">Check some of our </span><span class="text-accent-100">Testimonials</span>
+    </Heading>
+
+    {
+      /* role="region" + tabindex="0" + a label: the track is a scroll
+         container, so keyboard users need to be able to focus it and arrow
+         through the quotes. It reported tabIndex -1 before, leaving the
+         prev/next buttons as the only non-pointer way in. */
+    }
+    <div
+      class="mt-[var(--space-heading-gap)] flex cursor-grab gap-6 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory active:cursor-grabbing lg:px-[25vw] [&::-webkit-scrollbar]:hidden"
+      data-testimonial-track
+      role="region"
+      aria-label="Client testimonials"
+      tabindex="0"
+    >
+      {
+        /* active on the FIRST card, not the second: the track starts at
+           scrollLeft 0, and the lg:px-[25vw] gutter puts card 1 in exactly
+           the centred "active" slot at rest. Marking card 2 active meant the
+           card actually on screen painted at opacity-30 while the bright one
+           sat off-frame to the right — and because it's the server-rendered
+           state, it was wrong on first paint and stayed wrong whenever the
+           observer hadn't run yet. */
+        testimonials.map((t, i) => (
+          <TestimonialCard
+            variant="dark"
+            active={i === 0}
+            tag={t.tag}
+            quote={t.quote}
+            name={t.name}
+            role={t.role}
+            class="w-screen snap-center lg:w-[50vw]"
+          />
+        ))
+      }
+    </div>
+
+    <div class="mt-8 flex gap-2 px-[var(--space-gutter)] lg:px-0 lg:ml-[25vw]">
+      <button
+        type="button"
+        data-testimonial-prev
+        aria-label="Previous testimonial"
+        class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-accent-300 text-accent-300 transition-colors hover:bg-white/5 focus-visible:outline-accent-300"
+      >
+        <img src="/icons/icon-arrow-white.svg" class="size-4 rotate-180" alt="" width="16" height="16" />
+      </button>
+      <button
+        type="button"
+        data-testimonial-next
+        aria-label="Next testimonial"
+        class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-accent-300 text-accent-300 transition-colors hover:bg-white/5 focus-visible:outline-accent-300"
+      >
+        <img src="/icons/icon-arrow-white.svg" class="size-4" alt="" width="16" height="16" />
+      </button>
     </div>
   </section>
 
-  <section class="mx-auto max-w-[1280px] px-6 pb-24 lg:px-[60px]" data-anim="reveal">
-    <h2 class="text-h2">
-      We drive <span class="text-accent-default">results</span>
-    </h2>
-    <dl class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
-      {stats.map((stat) => <StatBlock value={stat.value} label={stat.label} />)}
-    </dl>
-  </section>
-
-  <section class="mx-auto max-w-[1280px] px-6 pb-24 lg:px-[60px]" data-anim="reveal">
-    <h2 class="text-h2">Systems</h2>
-    <p class="mt-4 max-w-xl text-body text-ink-secondary">
-      Compact pointer toward Systems — placeholder, Phase 0A copy pending.
-    </p>
-    <div class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <ProjectCard
-        href="/systems/growth-communication/"
-        title="Growth & Communication System"
-        description="Turn communication into a growth engine."
-        tags={['B2B', 'B2C', 'Recruitment']}
-        variant="dark"
-      />
-      <ProjectCard
-        href="/systems/influence-reputation/"
-        title="Influence & Reputation System"
-        description="Communication that grows the business, not just the following."
-        tags={['B2B', 'B2C', 'Recruitment']}
-        variant="accent"
-      />
+  {
+    /* Was a 17px accent-blue <p> — the only section label on the page that
+       wasn't a heading at all, and the fifth distinct header treatment. Now
+       the same LABEL tier as "We drive results" and "What we do", and a real
+       h2 so the section is reachable in a document outline. */
+  }
+  <section
+    class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]"
+    data-anim="reveal"
+  >
+    <div>
+      <SectionLabel>Trusted by</SectionLabel>
+      <LogoMarquee class="mt-[var(--space-heading-gap)]" rules="none" />
     </div>
   </section>
 
-  <section class="mx-auto max-w-[1280px] px-6 pb-24 lg:px-[60px]" data-anim="reveal">
-    <h2 class="text-h2">What clients say</h2>
-    <div class="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <TestimonialCard
-        quote="Placeholder testimonial — real quotes exist in the old prototype's content file, pending migration."
-        name="Client name"
-        role="Role, Company"
-      />
+  {
+    /* pb matches every other section's measure instead of the one-off 64px
+       that made the page's last band read as clipped. No top padding on
+       purpose: this pairs with "Trusted by" above it, whose own bottom
+       padding is the gap between them. */
+  }
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
+    <div class="grid grid-cols-1 gap-7 lg:grid-cols-12 lg:items-stretch">
+      <div
+        class="flex flex-col gap-8 rounded-[var(--radius-card)] bg-accent-700 p-[var(--space-card-p)] lg:col-span-8 lg:flex-row lg:items-stretch"
+        data-underline-trigger
+      >
+        <div class="w-full shrink-0 rounded-[var(--radius-control)] bg-accent-50 p-3 lg:max-w-[220px]">
+          <div class="aspect-[3/4] overflow-hidden rounded-[var(--radius-control)]">
+            {/* Caps at 220px CSS wide (the max-w on the wrapper), so 440 is the DPR-2 source. */}
+            <Image
+              src={lilianaCastro}
+              alt="Liliana Castro"
+              width={440}
+              height={481}
+              widths={[220, 440]}
+              sizes="220px"
+              class="size-full object-cover"
+            />
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2">
+            <span class="text-body-sm font-medium text-ink">Liliana Castro</span>
+            {
+              /* ink-secondary, not ink-disabled: #96989C on this tint measured
+                 2.74:1 at 12px, well under AA. neutral-700 takes it to 7.6:1. */
+            }
+            <span class="flex items-center gap-1 text-eyebrow uppercase text-ink-secondary">
+              <span class="size-1.5 shrink-0 rounded-full bg-success"></span> Online
+            </span>
+          </div>
+        </div>
+        <div class="flex flex-1 flex-col justify-between gap-10 py-2">
+          <p class="text-lead font-normal text-accent-50">Ready to make some noise? Book an intro call</p>
+          <UnderlineLink href="/contact/" class="self-start text-display text-accent-50">Let's talk</UnderlineLink>
+        </div>
+      </div>
+      {
+        /* accent-200, not azure-200 — azure was the page's only use of that
+           ramp, on a card whose own copy is accent-400. */
+      }
+      <div class="flex flex-col justify-between gap-10 rounded-[var(--radius-card)] border border-accent-200 p-[var(--space-card-p)] lg:col-span-4">
+        <p class="text-lead font-normal text-accent-400">Not sure where to start?</p>
+        <UnderlineLink href="/systems/" class="self-start text-display text-accent-400">See our Systems</UnderlineLink>
+      </div>
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  /* Light → dark inversion driven by --dark-progress (0 or 1, set by the
+     script below when the second Selected Projects row starts leaving the
+     top of the viewport). A short transition on every color role keeps the
+     flip seamless without scroll-scrubbing it, per the section-behaviors
+     spec. Uses the site's existing light/dark semantic token pairs rather
+     than new colors.
+
+     Scope is the whole Selected Projects + Stats block, not just Stats:
+     the flip has to fire BEFORE the already-dark "What we do" section
+     enters, so at that moment the projects grid is still on screen and has
+     to invert with everything else.
+
+     Implemented by REDEFINING the semantic color tokens on the wrapper
+     instead of overriding individual elements. Tailwind v4 utilities
+     compile to var(--color-*), and custom properties inherit, so
+     `bg-surface`, `text-ink` and `text-ink-muted` inside the zone — the
+     project card titles and descriptions included, even though they live
+     in ProjectCard.astro and are out of reach of this scoped stylesheet —
+     all repaint from these four lines. */
+  .invert-zone {
+    --dark-progress: 0;
+
+    --color-surface: color-mix(in srgb, var(--color-neutral-950) calc(var(--dark-progress) * 100%), var(--color-white));
+    /* Card/section titles + the Stats paragraph. */
+    --color-ink: color-mix(in srgb, var(--color-white) calc(var(--dark-progress) * 100%), var(--color-neutral-950));
+    /* Card descriptions + the "We drive results" label — neutral-400 on
+       neutral-950 is ~5.9:1, comfortably past AA for body text. */
+    --color-ink-muted: color-mix(in srgb, var(--color-neutral-400) calc(var(--dark-progress) * 100%), var(--color-neutral-500));
+    /* Thumbnail placeholder behind each project image. */
+    --color-accent-tint: color-mix(in srgb, var(--color-neutral-900) calc(var(--dark-progress) * 100%), var(--color-accent-50));
+
+    background-color: var(--color-surface);
+    --stat-value-active: color-mix(in srgb, var(--color-neutral-200) calc(var(--dark-progress) * 100%), var(--color-neutral-950));
+    /* Light endpoints are neutral-500, NOT the neutral-200 mirror of the
+       dark scheme's neutral-700/neutral-400. Mirroring the ramp positionally
+       looks symmetrical in the token file but resolves to #D1D3D5 on white —
+       1.4:1, i.e. five of the six numbers and every label rendered
+       invisible. The section normally flips dark before it's on screen so
+       this stayed hidden, but it's the state the page serves with JS off, on
+       a failed GSAP load, or on any deep-link that lands mid-page.
+       neutral-500 is 4.66:1 on white and still reads clearly subordinate to
+       the near-black active value. */
+    --stat-value-inactive: color-mix(
+      in srgb,
+      var(--color-neutral-700) calc(var(--dark-progress) * 100%),
+      var(--color-neutral-500)
+    );
+    --stat-label: color-mix(in srgb, var(--color-neutral-400) calc(var(--dark-progress) * 100%), var(--color-neutral-500));
+    /* Timeline track (the "unplayed" portion, per StatBlock.astro's minimal
+       variant) — a fixed muted gray in each scheme, not tied to any one
+       stat's own active/inactive state: neutral-700 in dark (dark-progress
+       1), neutral-300 in light (dark-progress 0) — a 1px rule at
+       neutral-200 all but vanished against white alongside the same fix
+       applied to the values and labels above. The "played" portion isn't a
+       separate token — it reuses --stat-value-active directly above, so it
+       always matches the highlighted number exactly in both schemes, per
+       user request. */
+    --stat-line-track: color-mix(in srgb, var(--color-neutral-700) calc(var(--dark-progress) * 100%), var(--color-neutral-300));
+    transition: background-color 200ms ease-out;
+  }
+  /* :global() because the elements that have to cross-fade — project card
+     titles, descriptions, the section background inside ProjectCard.astro —
+     belong to other components and never get this page's scope hash. */
+  .invert-zone :global(*) {
+    transition:
+      color 200ms ease-out,
+      background-color 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .invert-zone,
+    .invert-zone :global(*) {
+      transition-duration: 1ms;
+    }
+  }
+
+  [data-scroll-cta].is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+</style>
+
+<script>
+  import { gsap } from 'gsap'
+  import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+  gsap.registerPlugin(ScrollTrigger)
+
+  // Selected Work → CTA scroll-trigger keys off the last Featured Work card
+  // via IntersectionObserver, per the section-behaviors spec.
+  function setupScrollCta() {
+    const cta = document.querySelector<HTMLElement>('[data-scroll-cta]')
+    const lastCard = document.querySelector<HTMLElement>('[data-last-project]')
+    const testimonials = document.querySelector<HTMLElement>('[data-testimonials-section]')
+    if (!cta || !lastCard || !testimonials) return []
+
+    // Hiding needs the `boundingClientRect.top > 0` branch, not just the
+    // isIntersecting one: scrolling back UP past the last card used to leave
+    // the chip stranded over the hero, because the only thing that removed
+    // is-visible was the testimonials observer further down the page. Now a
+    // card that has left the viewport downwards (top below the fold) retracts
+    // it, while a card that left upwards keeps it — which is the whole point
+    // of the CTA.
+    const showObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) cta.classList.add('is-visible')
+        else if (entry.boundingClientRect.top > 0) cta.classList.remove('is-visible')
+      },
+      { threshold: 0.2 }
+    )
+    showObserver.observe(lastCard)
+
+    const hideObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) cta.classList.remove('is-visible')
+      },
+      { threshold: 0 }
+    )
+    hideObserver.observe(testimonials)
+
+    return [showObserver, hideObserver]
+  }
+
+  function setupDarkInversion() {
+    const zone = document.querySelector<HTMLElement>('[data-invert-zone]')
+    const row2 = document.querySelector<HTMLElement>('[data-featured-row-2]')
+    const statsSection = document.querySelector<HTMLElement>('[data-stats-section]')
+    if (!zone || !row2) return null
+
+    // Flips when the SECOND Selected Projects row starts leaving the top of
+    // the viewport — i.e. well before the already-dark "What we do" section
+    // enters, so that section never slides in against a light background.
+    // Triggering off the Stats section's own top edge (the previous
+    // behaviour) put the flip too late: Stats was still light while What We
+    // Do was arriving, and the two backgrounds fought each other.
+    //
+    // ScrollTrigger's start/onEnter/onLeaveBack rather than an
+    // IntersectionObserver threshold array: "this point crossed the viewport
+    // edge" is exactly what start:'top top' expresses, and unlike
+    // intersectionRatio it doesn't depend on the trigger element's height.
+    // A fast CSS transition (see .invert-zone) handles the dissolve; this
+    // only toggles the boolean.
+    const setDark = (on: boolean) => zone.style.setProperty('--dark-progress', on ? '1' : '0')
+
+    // Below 1024px (the site's lg breakpoint) the flip instead fires when
+    // "We drive results" itself enters the screen, per user request — on a
+    // single-column mobile layout, row2 leaving the top happens long before
+    // Stats is anywhere near view, so the early desktop-tuned trigger read as
+    // premature. 'top 85%' matches the sitewide reveal-on-scroll threshold
+    // (src/lib/motion.ts) for "entering the screen". Still comfortably ahead
+    // of the already-dark "What we do" section further down.
+    const isMobile = window.matchMedia('(max-width: 1023px)').matches
+    const triggerEl = isMobile && statsSection ? statsSection : row2
+    const start = isMobile ? 'top 85%' : 'top top'
+
+    const trigger = ScrollTrigger.create({
+      trigger: triggerEl,
+      start,
+      onEnter: () => setDark(true),
+      onLeaveBack: () => setDark(false),
+      // Reload (or a resize) partway down the page doesn't replay onEnter, so
+      // seed the state from where the scroll position actually is.
+      onRefresh: (self) => setDark(self.progress > 0),
+    })
+    return trigger
+  }
+
+  function setupStatsCycle() {
+    const root = document.querySelector<HTMLElement>('[data-stats-cycle]')
+    if (!root) return null
+    const items = Array.from(root.querySelectorAll<HTMLElement>('.stat-minimal'))
+    if (items.length === 0) return null
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    function setActive(i: number) {
+      items.forEach((el, idx) => {
+        el.dataset.active = idx === i ? 'true' : 'false'
+      })
+    }
+
+    let index = 0
+    setActive(index)
+    let hovering = false
+
+    function tick() {
+      if (hovering) return
+      index = (index + 1) % items.length
+      setActive(index)
+    }
+
+    // Under reduced motion: no auto-rotation and no animated progress bar
+    // (the bar's keyframes are disabled in StatBlock's own media query), but
+    // the first stat stays highlighted and hover still works. Previously
+    // this marked ALL stats active and bailed out early, which flattened the
+    // active/inactive hierarchy completely — the section rendered as six
+    // equally-bright stats with no hover, so none of the active/inactive
+    // colour work was visible to anyone with "Reduce motion" enabled.
+    let timer = prefersReducedMotion ? 0 : window.setInterval(tick, 4000)
+
+    function restartTimer() {
+      if (prefersReducedMotion) return
+      window.clearInterval(timer)
+      timer = window.setInterval(tick, 4000)
+    }
+
+    const listeners = items.map((el, i) => {
+      const onEnter = () => {
+        hovering = true
+        setActive(i)
+      }
+      const onLeave = () => {
+        hovering = false
+        index = i
+        setActive(index)
+        restartTimer()
+      }
+      el.addEventListener('mouseenter', onEnter)
+      el.addEventListener('mouseleave', onLeave)
+      return { el, onEnter, onLeave }
+    })
+
+    return () => {
+      window.clearInterval(timer)
+      listeners.forEach(({ el, onEnter, onLeave }) => {
+        el.removeEventListener('mouseenter', onEnter)
+        el.removeEventListener('mouseleave', onLeave)
+      })
+    }
+  }
+
+  function setupTestimonialCarousel() {
+    const track = document.querySelector<HTMLElement>('[data-testimonial-track]')
+    if (!track) return null
+
+    // No initial scroll: the resting position (scrollLeft 0, card 1 in the
+    // 25vw-offset slot) is already the intended one, and it's what the
+    // server rendered. The previous recentre-on-load tried to scroll to the
+    // second card, which both fought scroll-snap-mandatory and disagreed
+    // with the markup's own active flag.
+
+    let isDown = false
+    let startX = 0
+    let startScroll = 0
+
+    function onDown(e: MouseEvent) {
+      isDown = true
+      track!.classList.add('select-none')
+      startX = e.pageX
+      startScroll = track!.scrollLeft
+    }
+    function onUp() {
+      isDown = false
+      track!.classList.remove('select-none')
+    }
+    function onMove(e: MouseEvent) {
+      if (!isDown) return
+      e.preventDefault()
+      track!.scrollLeft = startScroll - (e.pageX - startX)
+    }
+
+    track.addEventListener('mousedown', onDown)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('mousemove', onMove)
+
+    function cardWidth() {
+      const first = track!.firstElementChild as HTMLElement | null
+      const gap = parseFloat(getComputedStyle(track!).columnGap || '0')
+      return first ? first.getBoundingClientRect().width + gap : track!.clientWidth
+    }
+
+    const prevBtn = document.querySelector<HTMLButtonElement>('[data-testimonial-prev]')
+    const nextBtn = document.querySelector<HTMLButtonElement>('[data-testimonial-next]')
+    const onPrev = () => track!.scrollBy({ left: -cardWidth(), behavior: 'smooth' })
+    const onNext = () => track!.scrollBy({ left: cardWidth(), behavior: 'smooth' })
+    prevBtn?.addEventListener('click', onPrev)
+    nextBtn?.addEventListener('click', onNext)
+
+    const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-testimonial-card]'))
+    const activeObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          ;(entry.target as HTMLElement).dataset.active = entry.intersectionRatio > 0.6 ? 'true' : 'false'
+        }
+      },
+      { root: track, threshold: [0, 0.6, 1] }
+    )
+    cards.forEach((c) => activeObserver.observe(c))
+
+    return () => {
+      track.removeEventListener('mousedown', onDown)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('mousemove', onMove)
+      prevBtn?.removeEventListener('click', onPrev)
+      nextBtn?.removeEventListener('click', onNext)
+      activeObserver.disconnect()
+    }
+  }
+
+  let cleanupFns: Array<() => void> = []
+
+  function init() {
+    const observers = setupScrollCta()
+    const darkInversionTrigger = setupDarkInversion()
+    const statsCleanup = setupStatsCycle()
+    const carouselCleanup = setupTestimonialCarousel()
+
+    cleanupFns = [
+      () => observers.forEach((o) => o.disconnect()),
+      () => darkInversionTrigger?.kill(),
+      () => statsCleanup?.(),
+      () => carouselCleanup?.(),
+    ]
+  }
+
+  function teardown() {
+    cleanupFns.forEach((fn) => fn())
+    cleanupFns = []
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

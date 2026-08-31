@@ -1,0 +1,120 @@
+---
+/**
+ * Big CTA verb ("Let's talk", "See our Systems", "Get in touch", "Our work")
+ * with a GSAP underline that wipes in left→right on hover, replacing the
+ * opacity fade these CTAs used before.
+ *
+ * Two shapes, because the CTA pairs are built two different ways:
+ *  - `as="a"` — the CTA is its own link (homepage cards), so it is both the
+ *    hover trigger and the underlined text.
+ *  - `as="span"` — the whole card is one <a> (Systems / Careers CTA pair).
+ *    Put `data-underline-trigger` on that outer anchor and the underline
+ *    reacts to hovering anywhere on the card, matching the old
+ *    `group-hover:` behaviour.
+ */
+interface Props {
+  href?: string
+  as?: 'a' | 'span'
+  class?: string
+}
+
+const { href, as = 'a', class: className = '' }: Props = Astro.props
+const Tag = as
+---
+
+<Tag
+  {...as === 'a' ? { href } : {}}
+  class={`cta-underline ${className}`}
+  data-underline
+>
+  <slot />
+  <span class="cta-underline__line" data-underline-line aria-hidden="true"></span>
+</Tag>
+
+<style>
+  .cta-underline {
+    position: relative;
+    display: inline-block;
+  }
+
+  /* Sits below the descenders — `text-display` runs a 0.98 line-height, so
+     the line box bottom lands above the font's descent and a `bottom: 0`
+     rule would strike through the tail of a "p" or "y" ("Apply now"). */
+  .cta-underline__line {
+    position: absolute;
+    inset-inline: 0;
+    bottom: -0.12em;
+    height: max(2px, 0.045em);
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left center;
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap'
+
+  let cleanups: Array<() => void> = []
+
+  function setupUnderlines() {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    document.querySelectorAll<HTMLElement>('[data-underline]').forEach((el) => {
+      const line = el.querySelector<HTMLElement>('[data-underline-line]')
+      if (!line) return
+
+      // Card-level hover for the `as="span"` shape; otherwise the CTA itself.
+      const trigger = el.closest<HTMLElement>('[data-underline-trigger]') ?? el
+
+      gsap.set(line, { scaleX: 0, transformOrigin: 'left center' })
+
+      const show = () => {
+        gsap.killTweensOf(line)
+        gsap.set(line, { transformOrigin: 'left center' })
+        gsap.to(line, {
+          scaleX: 1,
+          duration: prefersReducedMotion ? 0 : 0.45,
+          ease: 'power2.out',
+        })
+      }
+
+      const hide = () => {
+        gsap.killTweensOf(line)
+        // Only flip the origin once the line is fully drawn — at scaleX 1 the
+        // swap is visually a no-op, so the exit can sweep out to the right.
+        // Retracting a partial line keeps the left origin, which avoids the
+        // jump a mid-tween origin change would cause.
+        if (gsap.getProperty(line, 'scaleX') === 1) {
+          gsap.set(line, { transformOrigin: 'right center' })
+        }
+        gsap.to(line, {
+          scaleX: 0,
+          duration: prefersReducedMotion ? 0 : 0.35,
+          ease: 'power2.in',
+        })
+      }
+
+      trigger.addEventListener('mouseenter', show)
+      trigger.addEventListener('mouseleave', hide)
+      trigger.addEventListener('focusin', show)
+      trigger.addEventListener('focusout', hide)
+
+      cleanups.push(() => {
+        gsap.killTweensOf(line)
+        trigger.removeEventListener('mouseenter', show)
+        trigger.removeEventListener('mouseleave', hide)
+        trigger.removeEventListener('focusin', show)
+        trigger.removeEventListener('focusout', hide)
+      })
+    })
+  }
+
+  function teardownUnderlines() {
+    cleanups.forEach((fn) => fn())
+    cleanups = []
+  }
+
+  document.addEventListener('astro:page-load', setupUnderlines)
+  document.addEventListener('astro:before-swap', teardownUnderlines)
+</script>

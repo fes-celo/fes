@@ -1,0 +1,399 @@
+---
+/**
+ * Creative Projects Blueprint → Branding.
+ *
+ * LIGHT variant — ported from the original dark build (now preserved as-is
+ * at ./dark/, per the same light/dark pairing convention used by the other
+ * Creative Projects Blueprint pages).
+ * Copy, data and section order are unchanged from that file; only the
+ * color strategy and a few section-level differences move:
+ *   - No `.dark-zone`/`.reveal-zone` wrapper — every section sits directly on
+ *     the page's default light tokens (`--color-surface`/`ink`/etc, defined
+ *     once in src/styles/global.css), so no dark→light scroll reveal is
+ *     needed either.
+ *   - Hero has no photo shot yet (same as the dark variant) — rather than
+ *     keep the dark gradient scrim, which existed to darken a future photo
+ *     for text legibility, it ships as a plain `bg-white` surface with no
+ *     overlay.
+ *   - Addons renders SystemAddonsMarquee (drag-only, no CTA) instead of
+ *     SystemAddonsCarousel (CTA + autoplay) — same swap as this page's own
+ *     dark variant uses in reverse.
+ *   - Selected Projects drops the prev/next arrow buttons the dark variant
+ *     added — the light template doesn't have them either.
+ *
+ * See ./dark/index.astro for the mechanics this page no longer needs.
+ *
+ * COPY: rewritten from the client-supplied source doc "Creative Projects
+ * Blueprint — Branding.md" (Portuguese, 2026 revision) — see the dark
+ * variant's header comment for the full sourcing/mapping notes. Not
+ * client-approved yet.
+ *
+ * ROUTING: lives under /systems/creative-projects-blueprint/ (the hub built
+ * alongside this page) rather than directly under /systems/, mirroring how
+ * Digital Communication and Influence & Reputation sit directly under their
+ * own hub.
+ */
+import { Image } from 'astro:assets'
+import type { ImageMetadata } from 'astro'
+import BaseLayout from '../../../../layouts/BaseLayout.astro'
+import { navItems } from '../../../../lib/nav'
+import Heading from '../../../../components/Heading.astro'
+import SectionIntro from '../../../../components/SectionIntro.astro'
+import ProjectCardSlider from '../../../../components/ProjectCardSlider.astro'
+import SystemExpertiseRotator from '../../../../components/SystemExpertiseRotator.astro'
+import SystemProblemCards from '../../../../components/SystemProblemCards.astro'
+import PhasesScroll from '../../../../components/PhasesScroll.astro'
+import BuiltForRotator from '../../../../components/BuiltForRotator.astro'
+import SystemAddonsMarquee from '../../../../components/SystemAddonsMarquee.astro'
+import DualCta from '../../../../components/DualCta.astro'
+
+import ourWorkCta from '../../../../assets/systems/our-work-cta.jpg'
+import heroBg from '../../../../assets/systems/creative-projects-blueprint/branding/hero-bg.jpg'
+import builtForBg from '../../../../assets/systems/built-for-bg.webp'
+
+// Selected projects slider photos — dropped into a per-project subfolder of
+// src/assets/systems/creative-projects-blueprint/branding/selected-projects/
+// (see the folder name in each `selectedProjects` entry below). Folder names
+// match whatever the client-supplied drop used (mixed case, spaces and all —
+// e.g. "We Want you"), not a normalised slug, so the `folder` field below has
+// to match on disk exactly. Slide order is alphabetical (case/locale
+// insensitive) by filename — rename to 01_, 02_… to force a specific order.
+type ImageModule = { default: ImageMetadata }
+const sliderImages = import.meta.glob<ImageModule>(
+  '../../../../assets/systems/creative-projects-blueprint/branding/selected-projects/*/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}',
+  { eager: true },
+)
+
+function projectSliderImages(folder: string): ImageMetadata[] {
+  return Object.entries(sliderImages)
+    .filter(([path]) => path.includes(`/selected-projects/${folder}/`))
+    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+    .map(([, mod]) => mod.default)
+}
+
+const expertiseWords = ['Identity', 'Perception', 'Recognition', 'Preference']
+
+// Card titles are the source doc's four "O desafio" bullets; each bullet's
+// own description (not a separate ideal-for list, unlike Podcast/Events)
+// becomes that card's "ideal for" statement, reframed as an action.
+const problemCards = [
+  {
+    title: "The brand doesn't exist as a system yet",
+    label: 'Ideal for those who want to:',
+    statement: 'Launch a brand for a new company, a pre-launch, or a merger that made the old one obsolete.',
+  },
+  {
+    title: "You're entering a market where you don't stand out",
+    label: 'Ideal for those who want to:',
+    statement: "Differentiate from a competitor's rebrand, or a category that changed its rules.",
+  },
+  {
+    title: 'The brand has gotten too small for the company',
+    label: 'Ideal for those who want to:',
+    statement: 'Prepare for a funding round, accelerated growth, or a move into enterprise or institutional sales.',
+  },
+  {
+    title: 'The team grew faster than the rules did',
+    label: 'Ideal for those who want to:',
+    statement: 'Bring consistency to a growing team producing decks, websites, print and signage independently.',
+  },
+]
+
+// Fed to PhasesScroll only — bullet lists from the source doc's "Como
+// implementamos" condensed into one sentence per phase.
+//
+// LENGTH BUDGET: PhasesScroll's pinned rows are a FIXED height by design
+// (--phase-row-h keeps the active row parked in a constant slot), which
+// leaves descriptions ~3 rendered lines — about 125 characters at the
+// desktop column width — before `overflow: hidden` shears the last line.
+// Titles get 2 lines in a ~317px column. Measured against the Influence &
+// Reputation page, whose longest description is 122 chars. Keep new copy
+// inside that budget rather than growing the row: the fixed height is what
+// the whole slide mechanic depends on.
+const approachSteps = [
+  {
+    number: '— 01',
+    title: 'Diagnosis',
+    description: "A structured conversation about the business, the market, and what isn't working.",
+  },
+  {
+    number: '— 02',
+    title: 'Strategy',
+    description:
+      'A competitive positioning map — where competitors sit and what space is left — plus the narrative, tone and visual vocabulary.',
+  },
+  {
+    number: '— 03',
+    title: 'Implementation',
+    description:
+      'Identity directions explored, with logo and application proposals, presented in a dedicated session with the reasoning behind each direction.',
+  },
+  {
+    number: '— 04',
+    title: 'Delivery & Activation',
+    description:
+      'A brand manual, an application library and organised final files. The project ends with a system ready to implement.',
+  },
+]
+
+// Straight from the source doc's "O que entregamos" — condensed to short
+// phrases for the rotator, one per bullet.
+const builtForPhrases = [
+  'Diagnostic document',
+  'Approved visual direction',
+  'Narrative, tone & vocabulary',
+  'Identity directions',
+  'Presentation sessions',
+  'Refined identity',
+  'Brand manual',
+  'Application library',
+  'Final files',
+]
+
+const addons = [
+  {
+    title: 'Website / Digital Product',
+    description: 'The brand applied to the surface where the market meets it first — a project with its own scope and budget.',
+  },
+  {
+    title: 'Naming',
+    description:
+      'The brand or product name, with evaluation criteria defined before exploration, name territories, and a justified final recommendation.',
+  },
+  {
+    title: 'Implementation Support',
+    description:
+      "In the brand's first months, we review materials before they ship and correct drift while it's still cheap — for teams that inherited the system and haven't built the reflexes yet.",
+  },
+  {
+    title: 'Periodic Review',
+    description:
+      "A brand audit at 6 or 12 months — where it's being applied outside the rules, what's changed in the market, and what the system no longer covers.",
+  },
+]
+
+// Client-supplied copy, 2026 revision — not client-approved yet. Each entry's
+// `folder` is its slider's subfolder under selected-projects/ (see above).
+const selectedProjects = [
+  {
+    href: '/projects/orla/',
+    title: 'Orla',
+    description: 'Uma identidade desenhada na fronteira entre sistemas.',
+    images: projectSliderImages('Orla'),
+  },
+  {
+    href: '/projects/we-want-you/',
+    title: 'Natixis | We Want You',
+    description: 'Recrutamento reinventado como uma app de swipe para a tua carreira.',
+    images: projectSliderImages('We Want you'),
+  },
+  {
+    href: '/projects/10x-forward/',
+    title: 'Startup Braga | 10X Forward',
+    description: 'Dez anos comprimidos num único número a ganhar movimento.',
+    images: projectSliderImages('10Xforward'),
+  },
+  {
+    href: '/projects/sim-conference/',
+    title: 'Startup Portugal | SIM Conference',
+    description: 'A malha de pontos que liga startups também ligou toda a campanha.',
+    images: projectSliderImages('SIM'),
+  },
+]
+---
+
+<BaseLayout
+  title="Branding — Creative Projects Blueprint"
+  description="Build a brand people remember, trust and choose. An 8-to-10-week Blueprint that aligns strategy, visual identity and communication into one consistent direction."
+  hideHeader
+>
+  {/* ---------- 1. Hero ---------- */}
+  <section
+    class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)] supports-[height:100dvh]:min-h-dvh"
+  >
+    <Image
+      src={heroBg}
+      alt=""
+      width={2560}
+      height={1440}
+      widths={[640, 960, 1280, 1920, 2560]}
+      sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
+      class="pointer-events-none absolute inset-0 size-full object-cover"
+    />
+
+    <nav aria-label="Primary" class="relative z-10">
+      <div class="flex items-center justify-between gap-6">
+        <a href="/" class="shrink-0">
+          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        </a>
+        <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+          {
+            navItems.map((item) => (
+              <li>
+                <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          data-nav-toggle
+        >
+          Menu
+        </button>
+      </div>
+    </nav>
+
+    <p class="relative z-10 mt-16 max-w-[48ch] text-lead text-ink" data-anim="reveal">
+      A brand is the set of decisions a company no longer has to keep making.
+    </p>
+
+    <div class="relative z-10 flex flex-col gap-9 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+      <div class="flex flex-col gap-9">
+        <Heading as="h1" indent={false} class="max-w-[20ch] text-display text-ink lg:max-w-[50vw]" data-anim="split-text">
+          Turn brand decisions into a system
+        </Heading>
+        <p class="text-body text-ink" data-anim="reveal">Creative Projects Blueprint · Branding</p>
+      </div>
+      <p class="shrink-0 text-body text-ink lg:text-right" data-anim="reveal">Duration: 8–10 weeks</p>
+    </div>
+  </section>
+
+  {/* ---------- 2. Expertise ---------- */}
+  <SystemExpertiseRotator words={expertiseWords} />
+
+  {/* ---------- 3. Introduction ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-10 lg:flex-row lg:gap-7">
+      <Heading as="p" class="text-h2 text-ink lg:w-1/2">
+        This Blueprint fixes those decisions — narrative first, visual second, always in that order.
+      </Heading>
+      <div class="flex flex-col gap-6 text-lead text-ink lg:w-1/2">
+        <p>
+          How it presents itself, what it says first, what it refuses to say, how it's recognised when no one from
+          the team is there to explain it. Until those decisions exist, every deck, every website and every new
+          hire reopens the discussion from zero.
+        </p>
+        <p>
+          What comes out of it is a system — narrative, identity, application rules — usable by people who weren't
+          part of the process. The brand becomes decision infrastructure, not standalone aesthetics.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ---------- 3b. Sound familiar ---------- */}
+  <SystemProblemCards cards={problemCards} class="bg-surface" />
+
+  {/* ---------- 4. Our approach ---------- */}
+  <PhasesScroll steps={approachSteps} class="bg-surface" />
+
+  {/* ---------- 5. Built for ---------- */}
+  <BuiltForRotator phrases={builtForPhrases} backgroundImage={builtForBg} />
+
+  {/* ---------- 6. Addons ---------- */}
+  <SystemAddonsMarquee addons={addons} class="bg-surface pb-[var(--space-section-y)]" />
+
+  {/* ---------- 7. Impact ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <SectionIntro eyebrow="Impact" eyebrowSize="text-body">
+      The result isn't just a brand that looks better
+      <div slot="aside" class="flex flex-col gap-6 text-balance text-lead text-ink">
+        <p>
+          It's less repeated work and internal friction over brand decisions, because the criteria are fixed and
+          taste stops being the argument. It's a defensible position in front of different stakeholders, and
+          consistency across every touchpoint even as the team grows — rules written down, not held in two
+          people's heads.
+        </p>
+        <p>
+          And it's a system built with room to hold proof — perception data, results, use cases — as the company
+          produces them.
+        </p>
+      </div>
+    </SectionIntro>
+  </section>
+
+  {/* ---------- 8. Selected projects ---------- */}
+  <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]">
+    <div class="flex flex-col gap-9">
+      <Heading as="h2" indent={false} class="text-lead text-ink">
+        Selected projects
+      </Heading>
+      <ul class="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-4" data-projects-row>
+        {
+          selectedProjects.map((project) => (
+            <li data-project-card>
+              <ProjectCardSlider
+                href={project.href}
+                title={project.title}
+                description={project.description}
+                images={project.images}
+                size="lg"
+                imageAspect="aspect-[886/580]"
+                imageSizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+              />
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  {/* ---------- 9. Contact ---------- */}
+  <DualCta
+    leftHeading="Want to talk about your brand?"
+    leftHref="/contact/"
+    leftLabel="Get in touch"
+    rightHeading="Not sure Branding is the fit?"
+    rightHref="/systems/creative-projects-blueprint/"
+    rightLabel="See all Blueprints"
+    rightImage={ourWorkCta}
+  />
+</BaseLayout>
+
+<script>
+  // Staggered reveal for the projects row.
+  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../../lib/sectionMotion'
+
+  bindSection('[data-projects-row]', ({ root, mm }) => {
+    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
+    if (cards.length === 0) return
+
+    mm.add(MOTION_FULL, () => {
+      const tween = gsap.from(cards, {
+        opacity: 0,
+        y: 24,
+        duration: 0.8,
+        stagger: 0.08,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: root, start: 'top 85%', once: true },
+      })
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+
+    mm.add(MOTION_FALLBACK, () => {
+      const tween = gsap.from(cards, {
+        opacity: 0,
+        duration: 0.4,
+        scrollTrigger: { trigger: root, start: 'top 90%', once: true },
+      })
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+  })
+</script>

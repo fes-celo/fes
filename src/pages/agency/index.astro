@@ -1,0 +1,291 @@
+---
+/**
+ * Agency page (Figma desktop node 770:565 / mobile node 855:240). Hero
+ * nav is overlaid on its own light background image rather than
+ * BaseLayout's bordered header — same hideHeader pattern as the homepage
+ * Hero, see BaseLayout's hideHeader prop and docs/conventions.md.
+ *
+ * Hero is `position: sticky` with `h-screen` (was `relative` with a
+ * content-driven `min-h-[720px] lg:min-h-[1080px]`) — ported from the
+ * homepage Hero (see Hero.astro) per user request, so it always occupies
+ * the full viewport and every section below scrolls up and covers it on
+ * the z-axis, exactly like the homepage and Careers page
+ * (src/pages/careers/index.astro).
+ */
+import { Image } from 'astro:assets'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Button from '../../components/Button.astro'
+import Heading from '../../components/Heading.astro'
+import SectionLabel from '../../components/SectionLabel.astro'
+import LogoMarquee from '../../components/LogoMarquee.astro'
+import SectionIntro from '../../components/SectionIntro.astro'
+import { navItems } from '../../lib/nav'
+import heroLight from '../../assets/hero/hero-light.jpg'
+
+import liliana from '../../assets/people/FES_Liliana.png'
+import helder from '../../assets/people/FES_Helder.png'
+import abigail from '../../assets/people/FES_Abigail.png'
+import ricardo from '../../assets/people/FES_Ricardo.png'
+import joana from '../../assets/people/FES_joana.png'
+import manuel from '../../assets/people/FES_Manuel.png'
+import beatriz from '../../assets/people/FES_Beatriz.png'
+import marcelo from '../../assets/people/FES_Marcelo.png'
+import claudia from '../../assets/people/FES_Cláudia.png'
+import diana from '../../assets/people/FES_Diana.png'
+import maria from '../../assets/people/FES_Maria.png'
+
+const team = [
+  { name: 'Liliana Castro', role: 'Founder & CEO', src: liliana },
+  { name: 'Helder Soares', role: 'Account Manager', src: helder },
+  { name: 'Abigail Baptista', role: 'Project Manager', src: abigail },
+  { name: 'Ricardo Caldas', role: 'PR & Communication Manager', src: ricardo },
+  { name: 'Joana Nunes', role: 'PR & Communication Manager', src: joana },
+  { name: 'Manuel Faria', role: 'Social Media Manager', src: manuel },
+  { name: 'Beatriz Ventura', role: 'Intern', src: beatriz },
+  { name: 'Marcelo Nunes', role: 'Communication Designer', src: marcelo },
+  { name: 'Cláudia Barros', role: 'Communication Designer', src: claudia },
+  { name: 'Diana Maia', role: 'Marketing Manager & Business Developer', src: diana },
+  { name: 'Maria Dias', role: 'Events & Operations Manager', src: maria },
+]
+
+const behaviours = [
+  {
+    title: 'Systems, not scattered services',
+    body: 'We design a system where each service knows what others do, built that way from day one.',
+  },
+  {
+    title: 'Anticipation over reaction',
+    body: 'We recognize what a company needs before it names it.',
+  },
+  {
+    title: 'A decade of judgment',
+    body: "We've seen enough of the Portuguese tech ecosystem to recognize patterns",
+  },
+]
+
+// TODO: Figma's mobile frame has a "Meet the Agency" button here (missing
+// from the desktop frame — likely a sync gap in the file). Pointed at the
+// team photos above for now; confirm the intended destination.
+const aboutCta = { label: 'Meet the Agency', href: '#team' }
+
+const pillars = [
+  {
+    title: 'Direct',
+    body: "We don't reach for jargon to sound smarter than the message requires. If something isn't going to work, we say so before it happens, not after. Our voice is direct, no detours.",
+  },
+  {
+    title: 'Accountable',
+    body: "What we do affects someone else's reputation, not just ours. We own that — in the wins, and when something goes wrong. Our voice takes responsibility. It doesn't hide behind abstract results.",
+  },
+  {
+    title: 'Close',
+    body: "We're a distributed team with no physical office. That doesn't make us colder — it means communicating better and showing up more, not less. Our voice stays close, even when the work is remote.",
+  },
+  {
+    title: 'Result-focused',
+    body: 'After a decade, we know creativity without results is just decoration. We talk about what a communication system changes inside a company — not the effort we put into it. Our voice talks about outcomes, not effort.',
+  },
+]
+
+// Same six logos as the homepage "Trusted by" marquee (node 770:341's
+// client set) — Figma renders them monochrome here (grayscale filter) in a
+// static bordered row instead of the homepage's animated marquee.
+---
+
+<BaseLayout
+  title="Agency"
+  description="Ten years inside Portugal's tech ecosystem: the team and systems behind FES Agency's PR, digital, design and events work."
+  hideHeader
+  bordered
+>
+  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]">
+    <Image
+      src={heroLight}
+      alt=""
+      width={2560}
+      height={1440}
+      class="pointer-events-none absolute inset-0 size-full object-cover"
+    />
+
+    <nav aria-label="Primary" class="relative z-10">
+      <div class="flex items-center justify-between gap-6">
+        <a href="/" class="shrink-0">
+          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        </a>
+        <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+          {
+            navItems.map((item) => (
+              <li>
+                <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          data-nav-toggle
+        >
+          Menu
+        </button>
+      </div>
+    </nav>
+
+    <div class="relative z-10">
+      <Heading as="h1" indent={false} class="max-w-[22ch] text-display text-ink lg:max-w-[50vw]" data-anim="split-text">We close the gaps other agencies leave open</Heading>
+      <p class="mt-7 max-w-[820px] text-lead text-neutral-950" data-anim="reveal">
+        Ten years inside Portugal's tech ecosystem, spent making sure PR, brand, digital and events never work as
+        separate pieces.
+      </p>
+    </div>
+  </section>
+
+  <section class="relative z-10 bg-surface pt-[var(--space-section-y)]" data-anim="reveal">
+    <div
+      id="team"
+      class="flex cursor-grab gap-4 overflow-x-auto scroll-smooth px-[var(--space-gutter)] pb-2 [-ms-overflow-style:none] [scrollbar-width:none] active:cursor-grabbing lg:gap-6 [&::-webkit-scrollbar]:hidden"
+      data-team-track
+    >
+      {
+        team.map((member) => (
+          <figure class="w-[220px] shrink-0 lg:w-[400px]">
+            <Image
+              src={member.src}
+              alt={`Portrait of ${member.name}, ${member.role} at FES Agency`}
+              width={800}
+              height={1048}
+              draggable={false}
+              class="aspect-[400/524] w-full rounded-[var(--radius-card)] object-cover"
+            />
+            <figcaption class="flex flex-col items-center pt-6 text-center">
+              <p class="text-h4 text-ink">{member.name}</p>
+              <p class="pt-1 text-h4 font-normal text-neutral-300">{member.role}</p>
+            </figcaption>
+          </figure>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <SectionIntro eyebrow="About us">
+      We're a 100% remote comms agency wired into Portugal's tech scene, PR, digital, design, and events running as
+      one.
+      <Fragment slot="aside">
+        <p class="max-w-[var(--measure-prose)] text-body text-ink" data-anim="reveal">
+          FES started at a cowork table in Porto, when Portugal's tech scene was just beginning to need communication
+          built for it, not borrowed from bigger, slower agencies. Ten years on, we're still filling the same kind of
+          space, just at a different scale: not the gap between a startup and its first press release, but the gap
+          between the specialists any growing company hires: PR, design, digital comms and events. That usually
+          don't talk to each other. We built our Systems to close that gap on purpose, not by accident.
+        </p>
+        <Button href={aboutCta.href} variant="tint">{aboutCta.label}</Button>
+      </Fragment>
+    </SectionIntro>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-8">
+      <SectionLabel>How we work / Behaviours</SectionLabel>
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {
+          behaviours.map((item) => (
+            <div class="flex min-h-[280px] flex-col justify-between rounded-[var(--radius-card)] border border-accent-100 bg-accent-50 p-[var(--space-card-p)] lg:min-h-[400px]">
+              <h3 class="text-h3 font-medium text-ink">{item.title}</h3>
+              <p class="pt-6 text-body text-neutral-400 lg:pt-0">{item.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(280px,586px)_1fr] lg:items-start lg:gap-[120px]">
+      <h2 class="text-h2 text-ink lg:hidden" data-anim="split-text">We're frisky, focused &amp; funky</h2>
+      <h2 class="hidden text-h2 text-ink lg:block" data-anim="split-text">We're frisky, focused<br />&amp; funky</h2>
+      <div class="grid grid-cols-1 gap-x-7 gap-y-8 sm:grid-cols-2">
+        {
+          pillars.map((pillar) => (
+            <div class="flex flex-col items-start">
+              <div class="w-full border-b border-clay-100 pb-2 lg:pb-4">
+                <h3 class="text-lead font-medium text-neutral-950">{pillar.title}</h3>
+              </div>
+              <p class="pt-4 text-body-sm text-neutral-400 lg:pt-6">{pillar.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-8 lg:gap-10">
+      <SectionLabel>Some of our favourite clients</SectionLabel>
+      {
+        /* Was a static bordered grid. Now the same scrolling strip as the
+           homepage — the per-cell borders are gone because they can't tile
+           cleanly in a moving track. */
+      }
+      <LogoMarquee grayscale rules="none" />
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // Team-photo drag-scroll mirrors the homepage testimonial carousel's
+  // mousedown/mousemove approach.
+  let teamDragCleanup: (() => void) | null = null
+
+  function setupTeamDrag() {
+    const track = document.querySelector<HTMLElement>('[data-team-track]')
+    if (!track) return null
+
+    let isDown = false
+    let startX = 0
+    let startScroll = 0
+
+    function onDown(e: MouseEvent) {
+      isDown = true
+      track!.classList.add('select-none')
+      startX = e.pageX
+      startScroll = track!.scrollLeft
+    }
+    function onUp() {
+      isDown = false
+      track!.classList.remove('select-none')
+    }
+    function onMove(e: MouseEvent) {
+      if (!isDown) return
+      e.preventDefault()
+      track!.scrollLeft = startScroll - (e.pageX - startX)
+    }
+
+    track.addEventListener('mousedown', onDown)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('mousemove', onMove)
+
+    return () => {
+      track.removeEventListener('mousedown', onDown)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('mousemove', onMove)
+    }
+  }
+
+  function init() {
+    teamDragCleanup = setupTeamDrag()
+  }
+
+  function teardown() {
+    teamDragCleanup?.()
+    teamDragCleanup = null
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

@@ -9,6 +9,13 @@
 
 /* ---------- Fonts ---------- */
 
+/* Inter — self-hosted fallback so text stays close to brand if Aeonik fails
+   to load or is still swapping in. Weights matched to the Aeonik set below
+   (400/500/700). */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/700.css";
+
 @font-face {
   font-family: "Aeonik";
   src: url("/fonts/Aeonik-Regular.woff2") format("woff2");
@@ -116,6 +123,11 @@
   --color-ink-muted:     var(--color-neutral-500);
   --color-ink-disabled:  var(--color-neutral-400);
   --color-ink-inverse:   var(--color-white);
+  /* Muted label color for dark-context sections (SystemsWhatWeDo, StatsBar,
+     SystemAddonsCarousel) — ink-muted's neutral-500 is calibrated for a
+     light surface and reads too faint on neutral-950; this is its dark
+     counterpart, same role as ink-inverse is to ink. */
+  --color-ink-muted-inverse: var(--color-neutral-400);
 
   --color-link:         var(--color-azure-600);
   --color-link-hover:   var(--color-azure-700);
@@ -138,65 +150,223 @@
   --color-disabled-bg:   var(--color-neutral-200);
   --color-disabled-text: var(--color-neutral-400);
 
-  --color-focus-ring: var(--color-accent-600);
+  /* accent-500, not accent-600. The ring has to clear 3:1 against every
+     surface it can land on, and accent-600 measured 2.90:1 on neutral-950 —
+     so focus was effectively invisible in "What we do" and Testimonials,
+     the two sections with the most focusable elements. accent-500 is
+     4.23:1 on white, 4.35:1 on neutral-950 and 4.41:1 on accent-950, i.e.
+     it passes on all three of the page's backgrounds at once. (The one
+     residual is the accent-700 CTA card, where any single ring colour is a
+     compromise; its lone focusable child is a large text link.) */
+  --color-focus-ring: var(--color-accent-500);
+
+  /* No green anywhere in the four ramps, but the "Online" presence dot needs
+     one. Named semantically so the next status indicator doesn't reach for
+     another raw hex. */
+  --color-success: #0BE881;
 
   /* ---------- 3. Type ---------- */
 
-  --font-sans: "Aeonik", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Aeonik", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-fono: "Aeonik Fono", ui-monospace, monospace;
 
-  --text-display: clamp(2.75rem, 1.9rem + 4.3vw, 5.5rem);
+  /*
+    Fluid scale — two-point interpolation.
+
+    Every step is a straight line through two anchors: its mobile value at a
+    375px viewport and its Figma desktop value at 1920px (the artboard: 1920
+    wide, 12 columns, 60px margin, 28px gutter). The line is expressed as
+    `clamp(mobile, calc(intercept + slope·vw), cap)`, where the cap is simply
+    that same line's value at 2560px.
+
+    This replaces the previous `clamp(min, (F/19.2)vw, max)` derivation. That
+    formula was a single proportional line through the origin, which is
+    elegant on paper — constant ratios between every step at every width —
+    but its vw term fell below each step's `min` at a DIFFERENT viewport, so
+    each step unfroze somewhere else: display at 960px, h1 at 1166, h2 at
+    1314, h3 at 1551, lead at 1440, body at 1807, body-sm at 1792. Between
+    those widths the headings grew while the reading sizes sat pinned to
+    their floors, so the hierarchy's contrast changed with the window
+    (display:body ran 2.75 on mobile, 4.12 at 1440, 5.18 at 1920) and the
+    middle of the scale collapsed — h4 and lead rendered at an IDENTICAL 18px
+    everywhere from 375px to 1440px, and h3/lead/body landed within 5px of
+    each other. Ten named steps, roughly five distinguishable sizes on the
+    13" reference laptop. Body was also off-spec there: its vw term computes
+    to 12.75px at 1440, so the 16px floor won and it never reached its
+    intended 17px.
+
+    Ratios still compress on mobile, but now deliberately and smoothly rather
+    than as a side effect of where each floor happened to bite. That
+    compression is intended: display type should track the viewport, reading
+    type must not. The two goals are mutually exclusive, so the reading steps
+    (body, body-sm, meta, eyebrow, h4) ride very shallow lines — body moves
+    16→17px across the entire range — while display, h1 and h2 do the
+    scaling. It also ends the old caps' overshoot on ultrawide screens, where
+    F×4/3 pushed body to 22.7px at 2560.
+
+    Mobile anchors are spaced as a real scale rather than inherited floors,
+    so the middle stays legible: h3 22 / lead 19 / h4 17.5 / body 16.
+  */
+  --text-display: clamp(2.75rem, calc(2.0825rem + 2.8479vw), 6.6392rem); /* 44 → 88 */
   --text-display--line-height: 0.98;
   --text-display--letter-spacing: -0.02em;
   --text-display--font-weight: 500;
 
-  --text-h1: clamp(2.125rem, 1.6rem + 2.9vw, 3.5rem);
+  --text-h1: clamp(2.125rem, calc(1.7913rem + 1.4239vw), 4.0696rem); /* 34 → 56 */
   --text-h1--line-height: 1.04;
   --text-h1--letter-spacing: -0.015em;
   --text-h1--font-weight: 500;
 
-  --text-h2: clamp(1.625rem, 1.35rem + 1.6vw, 2.375rem);
+  --text-h2: clamp(1.6875rem, calc(1.5206rem + 0.712vw), 2.6598rem); /* 27 → 38 */
   --text-h2--line-height: 1.12;
   --text-h2--letter-spacing: -0.01em;
   --text-h2--font-weight: 500;
 
-  --text-h3: clamp(1.3125rem, 1.2rem + 0.65vw, 1.625rem);
+  --text-h3: clamp(1.375rem, calc(1.3143rem + 0.2589vw), 1.7286rem); /* 22 → 26 */
   --text-h3--line-height: 1.2;
   --text-h3--letter-spacing: -0.005em;
   --text-h3--font-weight: 500;
 
-  --text-h4: clamp(1.125rem, 1.1rem + 0.1vw, 1.1875rem);
+  --text-h4: clamp(1.0938rem, calc(1.071rem + 0.0971vw), 1.2263rem); /* 17.5 → 19 */
   --text-h4--line-height: 1.3;
   --text-h4--font-weight: 500;
 
-  --text-lead: clamp(1.125rem, 1.08rem + 0.3vw, 1.3125rem);
-  --text-lead--line-height: 1.55;
+  /*
+    DECK, not prose: the 1–3 line paragraph that sits directly under a
+    heading. Its line-height is set for that job. Long-form running copy
+    belongs in --text-body, whose leading is tuned for reading — see the note
+    there.
+  */
+  --text-lead: clamp(1.1875rem, calc(1.1723rem + 0.0647vw), 1.2759rem); /* 19 → 20 */
+  --text-lead--line-height: 1.3;
   --text-lead--font-weight: 400;
 
-  --text-body: clamp(1rem, 0.98rem + 0.15vw, 1.0625rem);
-  --text-body--line-height: 1.6;
+  /*
+    body and body-sm both set solid at 1.2 (revised from the 1.3–1.5 reading
+    band below) — a deliberate return toward the tighter leading these steps
+    carried before, per direct request. This reopens the case the paragraph
+    below used to argue against: body-sm (1.2) is now tighter than lead
+    (1.3) again, and body/body-sm share one leading rather than tightening
+    against each other by size. Flagging it here rather than deleting the
+    history, since the next person tuning this scale should know the
+    tradeoff was made knowingly, not overlooked.
+  */
+  --text-body: clamp(1rem, calc(0.9697rem + 0.1294vw), 1.1768rem); /* 16 → 18 */
+  --text-body--line-height: 1.2;
   --text-body--font-weight: 400;
 
-  --text-body-sm: 0.875rem;
-  --text-body-sm--line-height: 1.55;
+  --text-body-sm: clamp(0.875rem, calc(0.8598rem + 0.0647vw), 0.9634rem); /* 14 → 15 */
+  --text-body-sm--line-height: 1.2;
   --text-body-sm--font-weight: 400;
 
-  --text-meta: clamp(0.78rem, 0.77rem + 0.05vw, 0.8125rem);
+  /* Desktop nav links. Deliberately NOT fluid like the rest of this scale —
+     20px is a fixed brand decision for the nav bar, so it reads the same at
+     every breakpoint instead of tracking the artboard ratio. */
+  --text-nav: 1.25rem;
+  --text-nav--line-height: 1.3;
+  --text-nav--font-weight: 400;
+
+  /* ProjectsFilter's "·" separator between category words (Figma node
+     770:931/867:769: 32px desktop, 24px mobile) — doesn't track the
+     category words' own text-h1 scale at a fixed ratio, so it gets its own
+     anchors rather than an em-relative size off text-h1. */
+  --text-separator: clamp(1.5rem, calc(1.3786rem + 0.5178vw), 2.2071rem); /* 24 → 32 */
+  --text-separator--line-height: 1;
+  --text-separator--font-weight: 400;
+
+  --text-meta: clamp(0.7813rem, calc(0.7737rem + 0.0324vw), 0.8254rem); /* 12.5 → 13 */
   --text-meta--line-height: 1.4;
   --text-meta--letter-spacing: 0.01em;
   --text-meta--font-weight: 500;
 
-  --text-eyebrow: 0.75rem;
+  --text-eyebrow: clamp(0.75rem, calc(0.7424rem + 0.0324vw), 0.7942rem); /* 12 → 12.5 */
   --text-eyebrow--line-height: 1;
   --text-eyebrow--letter-spacing: 0.08em;
   --text-eyebrow--font-weight: 500;
 
   /* ---------- 4. Spacing / radius / elevation ---------- */
-  /* Placeholder scale — replace with the Figma-authored values from the
-     Design System file (node 33:4) when they're pulled; Tailwind v4's
-     default spacing/radius scale is used until then. */
-  --radius-card: 0.75rem;
+  /* Fluid, same 1920/1440 derivation as the type scale above. --space-gutter
+     mirrors the artboard's 60px page margin (F=60) — used for the header's
+     horizontal padding and its nav-item gap. --nav-logo-h is the previous
+     calibration (24px at 1440) scaled up by 5/3 per brand direction, so it
+     renders 40px at 1440 and 53px at 1920. Unlike the type scale its max is
+     capped at the 1920 value rather than F×4/3 — past that width the logo
+     stops growing instead of continuing to 2560. */
+  --space-gutter: clamp(0.75rem, 3.125vw, 5rem);
+  --nav-logo-h: clamp(2.083rem, 2.7778vw, 3.333rem);
+
+  /*
+    Vertical rhythm, previously the one axis that ignored this scale: every
+    section ran a fixed `py-24 lg:py-[120px]` while type and gutters scaled
+    with the artboard, so past the 1920 reference the page kept tightening —
+    at 2560 the type is 4/3 larger against unchanged padding.
+
+    Calibrated to LAND ON TODAY'S VALUES at both anchors rather than to the
+    raw artboard number, so nothing moves at the widths the design was
+    actually judged at: the 6rem floor holds mobile at the current 96px, and
+    8.3333vw (F=160) resolves to exactly 120px at the 1440 reference. Above
+    that it finally scales — 160px at 1920, capping at 213px.
+
+    --space-section-y-lg is the Testimonials section's larger measure, kept
+    as a ratio of the base (180/120) instead of a second literal.
+  */
+  --space-section-y: clamp(6rem, 8.3333vw, 13.333rem);
+  --space-section-y-lg: calc(var(--space-section-y) * 1.5);
+
+  /* Gap from a section's heading to its content. Was 64/40/56/64/40px across
+     the five homepage sections — five sections, four values, no scale. One
+     value now; 64px is the most common of the four and the one the two
+     feature sections already used. */
+  --space-heading-gap: 4rem;
+
+  /*
+    Interior padding for any content block with a fill or an image
+    background — cards, CTA panels, stat blocks, testimonials, the addon and
+    problem-card strips. ONE value for all of them, on purpose: the site had
+    drifted to four separate systems (`--space-card-p`, `p-8`, `p-7`, and a
+    literal `1.5rem`), which at the 1440 reference rendered 32/32/28/24 — too
+    close to read as a deliberate difference, and diverging further above
+    1440 because only the token scaled.
+
+    Re-derived on the same two-point basis as the type scale (24px at 375 →
+    40px at 1920, capped at that line's 2560 value) so it no longer sits
+    frozen at its 24px floor until ~1080px. Small interactive chips and nav
+    affordances are NOT content blocks and keep their own tighter padding.
+  */
+  --space-card-p: clamp(1.5rem, calc(1.2575rem + 1.0356vw), 2.9126rem);
+
+  /*
+    Measure — line length for long-form running prose, in `ch` rather than
+    px. A px max-width holds the COLUMN constant while the type scales, so
+    the character count drifts with the viewport: the About us and Careers
+    asides sat at `max-w-[887px]`, which ran ~99 characters per line at 1440
+    and stayed over 100 at every width above it, well past the 45–75 band.
+    In `ch` the character count is invariant by construction — it stays
+    correct at every viewport and at every step of the scale.
+
+    Note this is only for prose. Short decks under a heading already fall in
+    band from their own px widths, and the big `text-h1` pull-quotes are
+    display type, where line length is a composition decision rather than a
+    reading one — neither uses this token.
+
+    52ch, not the ~65 the character target would suggest: `ch` is the width
+    of the "0" glyph, and Aeonik's is a wide ~0.625em against an average
+    character of ~0.5em, so each `ch` buys about 1.25 characters. 52ch
+    measures ~65 characters in practice, mid-band.
+  */
+  --measure-prose: 52ch;
+
+  /* First-line indent for the Heading component (~240px at the 1920
+     reference width, same clamp derivation as the type scale above),
+     scaled down on mobile so it doesn't eat too much of the line. */
+  --space-heading-indent: clamp(3.75rem, 12.5vw, 15rem); /* F=240 */
+
+  /* Pulled from the homepage dev-mode inspection: cards/images/full-width
+     buttons consistently use 4px, small interactive chips (Button.astro,
+     Tag.astro) use 6px, the 72px client-icon avatars use 8px. */
+  --radius-card: 0.25rem;
   --radius-control: 0.5rem;
+  --radius-button: 0.375rem;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.06);
   --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.10);
 }
@@ -212,6 +382,8 @@
     background: var(--color-canvas);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   a {

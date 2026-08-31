@@ -1,0 +1,737 @@
+---
+/**
+ * Careers page (Figma node 951:1073). Hero is `position: sticky` like the
+ * homepage Hero (see Hero.astro) — later sections scroll up and cover it on
+ * the z-axis, no JS needed for the pin itself. Per user request the same
+ * sticky-hero treatment was ported to the Agency page's hero too (see
+ * src/pages/agency/index.astro), which previously used `relative`.
+ *
+ * The hero also carries a cursor-follow image trail (see the <script> below),
+ * loosely modeled on the "Gravity Mouse Trail" effect at
+ * https://madewithgsap.com/effects/free-tutorial002 — blocks pop in with an
+ * elastic overshoot, then fall straight down and get clipped out of view at
+ * the hero's own bottom edge (no bounce — a deliberate departure from the
+ * reference, per user request, so it reads as a real fall rather than a
+ * bounce/settle). Uses the team photos in trailImages below (see that
+ * const) rather than <Image>/astro:assets, since the trail spawns plain
+ * <img> elements at runtime from a JS-side path list, not a build-time
+ * Astro component — pre-resized/compressed copies live in
+ * public/images/careers-trail/ so the browser isn't fetching multi-MB
+ * originals as blocks spawn; the untouched originals are kept out of the
+ * public/ build output in src/assets/careers-trail-originals/.
+ */
+import { Image } from 'astro:assets'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Heading from '../../components/Heading.astro'
+import SectionIntro from '../../components/SectionIntro.astro'
+import TestimonialCard from '../../components/TestimonialCard.astro'
+import { navItems } from '../../lib/nav'
+import teamPhoto from '../../assets/careers/team-photo.jpg'
+import ourWorkCta from '../../assets/systems/our-work-cta.jpg'
+import UnderlineLink from '../../components/UnderlineLink.astro'
+
+// Hero cursor trail photos — resized/compressed copies in
+// public/images/careers-trail/ (see the file-level comment above).
+const trailImages = Array.from({ length: 20 }, (_, i) => `/images/careers-trail/FES-team-${i + 1}.jpg`)
+
+// "Join us if you:" is the closing line of the same paragraph in Figma
+// (node 951:1145), not a separate heading — kept as one block here too.
+const joinPoints = [
+  'Want to do meaningful work',
+  'Are both autonomous and collaborative',
+  'Are eager to continue learning',
+  'Share our values',
+]
+
+// Same 3-card, tinted-background pattern as the Agency page's "Behaviours"
+// section (src/pages/agency/index.astro) — azure instead of accent per
+// Figma (node 951:1149), kept as page-local markup rather than a shared
+// component since Agency's Behaviours cards are bespoke too.
+const values = [
+  {
+    title: 'Autonomy',
+    body: "We anticipate what's needed. No hand-holding, no micromanagement.",
+  },
+  {
+    title: 'Collaboration',
+    body: 'All hands on deck. We solve problems together, across every discipline.',
+  },
+  {
+    title: 'Agility',
+    body: 'Remote, mobile, always adapting. We find opportunity in the unexpected.',
+  },
+]
+
+// Figma's Perks grid (node 951:1174) has 4 of these 8 cards titled "Team
+// Outings" verbatim (951:1192, :1313, :1320, :1327) even though every card's
+// description is unique — a copy-pasted instance whose title layer was never
+// renamed, same class of issue as the homepage testimonials' duplicated tag
+// (see src/pages/index.astro). The first four titles below are Figma's
+// actual text; the rest are inferred from each card's (unique) description.
+const perks = [
+  { title: 'Continuous Training', body: 'We invest in your knowledge and skill development.' },
+  {
+    title: 'Welcome Kit',
+    body: "We'll greet you with a warm welcome kit full of goodies to kick start your journey with us.",
+  },
+  { title: 'Team Outings', body: 'We sponsor exciting team outings to unwind and have fun.' },
+  { title: 'Tech Equipment', body: 'We provide the tools and the equipment you need to shine.' },
+  {
+    title: 'Entertainment Vouchers',
+    body: 'Your favourite music and shows are on us with occasional Spotify and Netflix vouchers.',
+  },
+  { title: 'Flexible Schedule', body: 'Life is diverse, and so are your needs. Embrace work-life harmony.' },
+  { title: 'Travel Opportunities', body: 'We thrive by allowing you to explore the world.' },
+  {
+    title: 'Open Culture',
+    body: 'Enjoy the friendly atmosphere of our culture. We promote open conversations and camaraderie.',
+  },
+]
+
+// Shipped exactly as authored in the Figma frame (node 951:1376), including
+// its inconsistency: all three share the same tag even though only the
+// first is actually about NDC Conferences — same literal-content convention
+// as the homepage testimonials (see src/pages/index.astro).
+const alumniFeedback = [
+  {
+    tag: '[Event Production + NDC Conferences]',
+    quote:
+      'FES Agency was all you could wish for in a partner! Supportive, pro-active, mindful about what we needed, and what we valued as an invidual company, rather than a cookie-cutter solution. High-visibility PR has a lot to do with timing. FES helped us be on top of PR opportunities, and at the same time supporting us in our PR needs.',
+    name: 'Heather Fabela',
+    role: 'Head of Ops @ NDC Conferences',
+  },
+  {
+    tag: '[Event Production + NDC Conferences]',
+    quote:
+      'FES Agency values and cares for its employees, promoting their well-being every day and providing autonomy for them to grow in all professional and personal challenges. Positive culture, team unity, professionalism, resilience, and respect are some of the many qualities of the agency and its employees. FES Agency was my home for a year and a half and, without a doubt, one of the most important milestones in my career. Thank you, FES!',
+    name: 'Leonor Gomes',
+    role: 'Alumni (Events and Digital Marketer)',
+  },
+  {
+    tag: '[Event Production + NDC Conferences]',
+    quote:
+      'Working at FES is almost too good to be true. The team is spectacular, and Liliana is not only an excellent person but also an incredibly humane professional, an extremely attentive leader, and an inspiring woman. Well-being and team development are always a concern.',
+    name: 'João Peixoto',
+    role: 'Ex-Engineering Leadership @ Anchorage Digital',
+  },
+]
+---
+
+<BaseLayout
+  title="Careers"
+  description="Work on the brands that define Portugal's tech scene — open roles, values and perks at FES Agency."
+  hideHeader
+  bordered
+>
+  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-neutral-950 px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]">
+    {
+      /* Cursor image trail (see the file-level note above for the photo
+         source and the <script> below for the animation). Sits above the
+         flat bg but below the nav/heading (both `relative z-10`) since it
+         has no explicit z-index of its own beyond this. */
+    }
+    <div
+      class="pointer-events-none absolute inset-0 z-[5] overflow-hidden"
+      data-cursor-trail
+      data-trail-images={JSON.stringify(trailImages)}
+    ></div>
+
+    <nav aria-label="Primary" class="relative z-10">
+      <div class="flex items-center justify-between gap-6">
+        <a href="/" class="shrink-0">
+          <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        </a>
+        <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+          {
+            navItems.map((item) => (
+              <li>
+                <a href={item.href} class="text-body text-azure-50 hover:text-white">
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <button
+          type="button"
+          aria-label="Open menu"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          data-nav-toggle
+        >
+          Menu
+        </button>
+      </div>
+    </nav>
+
+    <div class="relative z-10">
+      {
+        /* Was max-w-[636px] — far too tight for text-display's font-size,
+           wrapping to 8+ lines even at the 1440 reference width. ch scales
+           with the element's own font-size so the wrap stays proportional
+           as the fluid type scale grows with the viewport. */
+      }
+      <Heading as="h1" indent={false} class="max-w-[22ch] text-display text-neutral-50 lg:max-w-[50vw]" data-anim="split-text">
+        Work on the brands that define Portugal's tech scene.
+      </Heading>
+      <p class="mt-6 max-w-2xl text-lead text-neutral-50" data-anim="reveal">
+        Ten years inside Portugal's tech ecosystem, spent making sure PR, brand, digital and events never work as
+        separate pieces.
+      </p>
+    </div>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <SectionIntro eyebrow="What is FES?" eyebrowSize="text-body">
+      We're a comms agency wired into Portugal's tech scene, PR, digital, design, and events running as one.
+      <Fragment slot="aside">
+        <p class="max-w-[var(--measure-prose)] text-lead text-ink" data-anim="reveal">
+          FES is a Communication agency that provides Public Relations, Digital Marketing and Multimedia services.
+          We're a small team of smart, kind people that help startups, tech companies, and disruptive businesses grow
+          faster and better. We work with national and innovative companies that want to shine in the tech business –
+          and we have a great time together. Join us if you:
+        </p>
+        <ul class="flex flex-col gap-3">
+          {
+            joinPoints.map((point) => (
+              <li class="flex items-center gap-4">
+                <img src="/icons/icon-arrow-item.svg" alt="" class="h-[14px] w-[18px] shrink-0" width="18" height="14" />
+                <span class="text-lead font-medium text-ink">{point}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </Fragment>
+    </SectionIntro>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-8">
+      <p class="border-t border-current/20 pt-4 text-lead text-ink-muted lg:border-none lg:pt-0">
+        Our Values
+      </p>
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {
+          values.map((item) => (
+            <div class="flex min-h-[280px] flex-col justify-between rounded-[var(--radius-card)] border border-azure-100 bg-azure-50 p-[var(--space-card-p)] lg:min-h-[400px]">
+              <h3 class="text-h3 text-ink">{item.title}</h3>
+              <p class="pt-6 text-body text-neutral-900 lg:pt-0">{item.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  {
+    /* Full-bleed team photo, sized to the image's own aspect ratio (Figma
+       node 951:1312: aspect-[4096/3073], full width) rather than a fixed
+       viewport height — a h-screen box doesn't share that ratio at most
+       viewport sizes and was cropping people out. The image itself renders
+       128% of the section's height so it has room to drift for the
+       scroll-driven parallax (see the <script> below) without ever
+       exposing empty space above/below; the -14%/128% pairing gives a 14%
+       buffer on each edge, comfortably more than the ±10% (±3% under
+       reduced motion) the parallax actually moves it — sized up from an
+       earlier ±6%/±1.5% pass that scrolled correctly but was too subtle to
+       read as parallax against a section this tall. */
+  }
+  <section class="relative z-10 aspect-[4096/3073] w-full overflow-hidden" data-anim="reveal">
+    <div class="absolute inset-0" data-parallax-wrapper>
+      <Image
+        src={teamPhoto}
+        alt="The FES Agency team"
+        width={2048}
+        height={1537}
+        class="absolute left-0 top-[-14%] h-[128%] w-full object-cover"
+        data-parallax-image
+      />
+    </div>
+  </section>
+
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
+    <div class="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(280px,586px)_1fr] lg:items-start lg:gap-[120px]">
+      <h2 class="text-h2 text-ink lg:hidden" data-anim="split-text">Perks of working at FES Agency</h2>
+      <h2 class="hidden text-h2 text-ink lg:block" data-anim="split-text">Perks of working at FES<br />Agency</h2>
+      <div class="grid grid-cols-2 gap-x-7 gap-y-8">
+        {
+          perks.map((perk) => (
+            <div class="flex flex-col items-start">
+              <div class="w-full border-b border-neutral-200 pb-2 lg:pb-4">
+                <h3 class="text-lead font-medium text-neutral-900">{perk.title}</h3>
+              </div>
+              <p class="pt-4 text-body text-neutral-400 lg:pt-6">{perk.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  {
+    /* Same CTA-pair pattern as the Systems page (src/pages/systems/index.astro)
+       — reuses the exact same "Our work" photo card verbatim. The left card's
+       heading is split into a statement + big CTA verb to match that pattern;
+       Figma's source (node 951:1467) additionally carried a leftover "Not
+       sure which System fits? Let's talk." line copy-pasted from the Systems
+       page's own CTA, dropped here as not relevant to a careers page. */
+  }
+  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-16" data-anim="reveal">
+    <div class="grid grid-cols-1 gap-7 lg:grid-cols-2">
+      <a
+        href="/contact/"
+        class="group flex min-h-[360px] flex-col items-start justify-between gap-10 rounded-[var(--radius-card)] bg-accent-950 p-[var(--space-card-p)] lg:min-h-[480px]"
+        data-underline-trigger
+      >
+        <p class="max-w-sm text-h2 text-accent-50">Think you are a good fit?</p>
+        <UnderlineLink as="span" class="text-display text-accent-50">Apply now</UnderlineLink>
+      </a>
+      <a
+        href="/projects/"
+        class="group relative flex min-h-[360px] flex-col items-start justify-between gap-10 overflow-hidden rounded-[var(--radius-card)] p-[var(--space-card-p)] lg:min-h-[480px]"
+        data-underline-trigger
+      >
+        <Image
+          src={ourWorkCta}
+          alt=""
+          width={1600}
+          height={1294}
+          class="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+        />
+        <div class="absolute inset-0 bg-black/20"></div>
+        <p class="relative max-w-sm text-h2 text-accent-50">Real world proof?</p>
+        <UnderlineLink as="span" class="relative text-display text-accent-50">Our work</UnderlineLink>
+      </a>
+    </div>
+  </section>
+
+  <section class="relative z-10 overflow-hidden bg-surface py-[var(--space-section-y-lg)]" data-anim="reveal">
+    {
+      /* Plain <h2>, not the Heading component — Heading's first-line indent
+         (see Heading.astro) is meant for left-aligned copy; this heading is
+         centered per Figma (node 951:1380), where an indent would just
+         shift the first line off-center. */
+    }
+    <h2 class="px-[var(--space-gutter)] text-center text-h2 text-ink">
+      Feedback from
+      <br />
+      previous team members
+    </h2>
+
+    <div
+      class="mt-16 flex cursor-grab gap-6 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory active:cursor-grabbing lg:px-[25vw] [&::-webkit-scrollbar]:hidden"
+      data-alumni-track
+    >
+      {
+        alumniFeedback.map((t, i) => (
+          <TestimonialCard
+            variant="muted"
+            active={i === 1}
+            quote={t.quote}
+            name={t.name}
+            role={t.role}
+            class="w-screen snap-center lg:w-[50vw]"
+          />
+        ))
+      }
+    </div>
+
+    <div class="mt-8 flex justify-center gap-2 px-[var(--space-gutter)]">
+      <button
+        type="button"
+        data-alumni-prev
+        aria-label="Previous feedback"
+        class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-neutral-900 text-neutral-900 transition-colors hover:bg-neutral-100"
+      >
+        <img src="/icons/icon-arrow-dark.svg" class="size-4 rotate-180" alt="" width="16" height="16" />
+      </button>
+      <button
+        type="button"
+        data-alumni-next
+        aria-label="Next feedback"
+        class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-neutral-900 text-neutral-900 transition-colors hover:bg-neutral-100"
+      >
+        <img src="/icons/icon-arrow-dark.svg" class="size-4" alt="" width="16" height="16" />
+      </button>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { gsap } from 'gsap'
+  import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+  gsap.registerPlugin(ScrollTrigger)
+
+  // Cursor image trail, loosely modeled on the "Gravity Mouse Trail" effect
+  // at https://madewithgsap.com/effects/free-tutorial002: a block pops in
+  // with an elastic overshoot, then falls straight down — no bounce, per
+  // user request — until it's clipped out of view by the trail root's
+  // overflow-hidden at the hero's bottom edge. Falls further the higher up
+  // it spawned, and fades out over the tail of the fall so the clip never
+  // reads as a hard cut. On a fine pointer (mouse/trackpad), spawns are
+  // gated on *accumulated* cursor travel rather than a flat per-move
+  // distance, same as the reference, so a fast swipe drops more blocks
+  // than a slow one covering the same path. Touch/coarse pointers have no
+  // persistent cursor to trail that way, so there blocks spawn at random
+  // points across the hero on their own timer instead — same animation,
+  // just not movement-driven (see the coarse-pointer branch below). Falls
+  // back to solid colour blocks (see TONE_CLASSES) until real photography
+  // is wired up via data-trail-images (see the file-level comment at the
+  // top of this file).
+  const TRAIL_MAX = 7
+  const TRAIL_SPAWN_FRACTION = 1 / 8 // spawn once accumulated travel passes heroWidth * this
+  const TRAIL_SIZE = 'clamp(120px, 15vw, 220px)'
+  const TONE_CLASSES = ['bg-accent-300', 'bg-azure-300', 'bg-clay-300', 'bg-accent-100', 'bg-azure-100', 'bg-clay-100']
+
+  function setupCursorTrail(root: HTMLElement) {
+    // Assigned to a definitely-typed `hero` (rather than relying on TS to
+    // keep narrowing `root.parentElement` null-checked across the nested
+    // function declarations below, which it doesn't) since this is read
+    // from several closures declared further down, some inside their own
+    // nested block.
+    if (!root.parentElement) return null
+    const hero: HTMLElement = root.parentElement
+
+    // Reduced motion gets a gentler version rather than nothing (see the
+    // fade-only branch in spawn() below) — matching LogoMarquee.astro's
+    // "slow down, don't stop" precedent elsewhere in this codebase, rather
+    // than a hard opt-out that reads as "the feature doesn't work" instead
+    // of "the feature respected an accessibility preference."
+    const pointerFine = window.matchMedia('(pointer: fine)').matches
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    let images: string[] = []
+    try {
+      images = JSON.parse(root.dataset.trailImages ?? '[]')
+    } catch {
+      images = []
+    }
+
+    let active: HTMLElement[] = []
+    let toneIndex = 0
+    let imageIndex = 0
+
+    function spawn(x: number, y: number, dirX: number) {
+      const useImage = images.length > 0
+      const el = document.createElement(useImage ? 'img' : 'div') as HTMLElement
+
+      if (useImage) {
+        ;(el as HTMLImageElement).src = images[imageIndex % images.length]!
+        imageIndex++
+        el.className = 'absolute rounded-[var(--radius-card)] object-cover shadow-[var(--shadow-card-hover)]'
+      } else {
+        el.className = `absolute rounded-[var(--radius-card)] shadow-[var(--shadow-card-hover)] ${TONE_CLASSES[toneIndex % TONE_CLASSES.length]}`
+        toneIndex++
+      }
+
+      el.style.width = TRAIL_SIZE
+      el.style.height = TRAIL_SIZE
+      el.style.opacity = '0'
+      root.appendChild(el)
+
+      // Measured after appending, since the clamp()'d size in TRAIL_SIZE
+      // isn't known until layout — keeps the scatter jitter below
+      // proportional to the block's actual rendered size instead of a
+      // guessed pixel figure.
+      const w = el.offsetWidth
+      const h = el.offsetHeight
+      const scatterX = (Math.random() - 0.5) * w * 0.6
+      const scatterY = (Math.random() - 0.5) * h * 0.15
+      el.style.left = `${x - w / 2 + scatterX}px`
+      el.style.top = `${y - h / 2 + scatterY}px`
+
+      active.push(el)
+      if (active.length > TRAIL_MAX) {
+        const oldest = active.shift()
+        if (oldest) {
+          gsap.killTweensOf(oldest)
+          oldest.remove()
+        }
+      }
+
+      const onDone = () => {
+        active = active.filter((item) => item !== el)
+        el.remove()
+      }
+
+      if (reducedMotion) {
+        // Fade only — no scale/rotate/gravity motion, since unbounded
+        // transform motion is what the reduced-motion preference is meant
+        // to avoid. A plain opacity cross-fade is broadly considered fine
+        // under that preference (no parallax/vestibular-triggering
+        // movement involved).
+        gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power1.out' })
+        gsap.to(el, { opacity: 0, duration: 0.5, ease: 'power1.in', delay: 0.6, onComplete: onDone })
+        return
+      }
+
+      // Elastic pop-in (overshoots past scale 1, like the reference),
+      // settling to a shallow rest tilt; then a straight, accelerating fall
+      // — real gravity, no bounce — down to the hero's own bottom edge,
+      // where the trail root's overflow-hidden (see the markup below)
+      // clips it out of view. Reads as "falling out of the hero" rather
+      // than fading in place. Falls further the higher up it spawned, same
+      // as real gravity would, with a short fade overlapping the tail end
+      // so the clip never looks like a hard cut mid-block.
+      const restRotate = gsap.utils.random(-8, 8)
+      const remaining = Math.max(root.clientHeight - y, h)
+      const fallDistance = remaining * gsap.utils.random(0.85, 1.15)
+      const fallDuration = gsap.utils.clamp(0.5, 1.1, fallDistance / 400)
+
+      gsap
+        .timeline({ onComplete: onDone })
+        .fromTo(
+          el,
+          { scale: 1.3, rotate: gsap.utils.random(-20, 20), opacity: 0 },
+          { scale: 1, rotate: restRotate, opacity: 1, duration: 0.4, ease: 'elastic.out(2, 0.6)' }
+        )
+        .to(el, {
+          y: `+=${fallDistance}`,
+          x: `+=${dirX * 30}`,
+          rotate: `+=${gsap.utils.random(-16, 16)}`,
+          duration: fallDuration,
+          ease: 'power2.in',
+        })
+        .to(el, { opacity: 0, duration: fallDuration * 0.4, ease: 'power1.in' }, `-=${fallDuration * 0.4}`)
+    }
+
+    function clearActive() {
+      active.forEach((el) => {
+        gsap.killTweensOf(el)
+        el.remove()
+      })
+      active = []
+    }
+
+    if (pointerFine) {
+      let lastX = 0
+      let lastY = 0
+      let accumulated = 0
+
+      function onMove(e: MouseEvent) {
+        const rect = hero.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        const dx = x - lastX
+
+        accumulated += Math.abs(dx) + Math.abs(y - lastY)
+        lastX = x
+        lastY = y
+
+        if (accumulated < rect.width * TRAIL_SPAWN_FRACTION) return
+        accumulated = 0
+        spawn(x, y, Math.sign(dx) || 1)
+      }
+
+      // Seeds lastX/Y from where the cursor actually enters the hero,
+      // rather than from (0, 0) or skipping the first mousemove to "prime"
+      // — either of those meant the first block only appeared after an
+      // oddly long initial movement.
+      function onEnter(e: MouseEvent) {
+        const rect = hero.getBoundingClientRect()
+        lastX = e.clientX - rect.left
+        lastY = e.clientY - rect.top
+        accumulated = 0
+      }
+
+      hero.addEventListener('mouseenter', onEnter)
+      hero.addEventListener('mousemove', onMove)
+      return () => {
+        hero.removeEventListener('mouseenter', onEnter)
+        hero.removeEventListener('mousemove', onMove)
+        clearActive()
+      }
+    }
+
+    // Coarse pointer (touch): no cursor position to react to, so blocks
+    // spawn at randomized points across the hero on their own timer
+    // instead of on movement — same pop-in/fall/fade animation as the
+    // mouse-driven version above. Paused via IntersectionObserver while
+    // the hero is scrolled out of view (this hero is `position: sticky`
+    // and can stay mounted, off-screen, for a while — see the file-level
+    // comment at the top of this file), so it's not spawning images and
+    // running GSAP tweens nobody can see.
+    const TRAIL_TOUCH_EDGE_MARGIN = 70
+    let touchTimeoutId: ReturnType<typeof setTimeout> | null = null
+    let touchSpawningActive = false
+
+    function scheduleNextTouchSpawn() {
+      touchTimeoutId = setTimeout(
+        () => {
+          if (touchSpawningActive) {
+            const rect = hero.getBoundingClientRect()
+            const maxX = Math.max(rect.width - TRAIL_TOUCH_EDGE_MARGIN, TRAIL_TOUCH_EDGE_MARGIN)
+            const x = gsap.utils.random(TRAIL_TOUCH_EDGE_MARGIN, maxX)
+            const y = gsap.utils.random(rect.height * 0.1, rect.height * 0.45)
+            spawn(x, y, Math.random() < 0.5 ? -1 : 1)
+          }
+          scheduleNextTouchSpawn()
+        },
+        gsap.utils.random(700, 1400)
+      )
+    }
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        const isVisible = entry?.isIntersecting ?? false
+        if (isVisible && !touchSpawningActive) {
+          touchSpawningActive = true
+          scheduleNextTouchSpawn()
+        } else if (!isVisible && touchSpawningActive) {
+          touchSpawningActive = false
+          if (touchTimeoutId) clearTimeout(touchTimeoutId)
+        }
+      },
+      { threshold: 0.15 }
+    )
+    visibilityObserver.observe(hero)
+
+    return () => {
+      touchSpawningActive = false
+      if (touchTimeoutId) clearTimeout(touchTimeoutId)
+      visibilityObserver.disconnect()
+      clearActive()
+    }
+  }
+
+  function setupCursorTrails() {
+    return Array.from(document.querySelectorAll<HTMLElement>('[data-cursor-trail]'))
+      .map(setupCursorTrail)
+      .filter((fn): fn is () => void => fn !== null)
+  }
+
+  function setupParallax() {
+    // A much smaller drift under reduced motion rather than none at all —
+    // same "slow down, don't stop" reasoning as the cursor trail above and
+    // LogoMarquee.astro's existing precedent. Range must stay within the
+    // image's 14%-per-edge overflow buffer (see the team photo section's
+    // comment in this file) — 10% leaves 4 points of margin, 3% leaves 11.
+    // (An earlier ±6%/±1.5% pass scrolled correctly — confirmed by directly
+    // reading the computed transform at several scroll offsets — but the
+    // resulting ~35px of total travel on an 800-1300px-tall section read as
+    // "no parallax" to the eye.)
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const range = reducedMotion ? 3 : 10
+
+    const triggers = Array.from(document.querySelectorAll<HTMLElement>('[data-parallax-wrapper]'))
+      .map((wrapper) => {
+        const img = wrapper.querySelector<HTMLElement>('[data-parallax-image]')
+        const section = wrapper.parentElement
+        if (!img || !section) return null
+        const tween = gsap.fromTo(
+          img,
+          { yPercent: -range },
+          {
+            yPercent: range,
+            ease: 'none',
+            scrollTrigger: { trigger: section, start: 'top bottom', end: 'bottom top', scrub: true, invalidateOnRefresh: true },
+          }
+        )
+        return tween.scrollTrigger ?? null
+      })
+      .filter((t): t is NonNullable<typeof t> => t !== null)
+
+    // Re-measure trigger boundaries once every image has actually decoded —
+    // the section's height comes from `aspect-*` so it shouldn't shift, but
+    // fonts/images finishing late can still nudge earlier content's height
+    // and throw off where "top bottom" / "bottom top" land for a trigger
+    // this far down the page.
+    Promise.all(Array.from(document.images, (img) => img.decode().catch(() => {}))).then(() =>
+      ScrollTrigger.refresh()
+    )
+
+    return triggers
+  }
+
+  function setupAlumniCarousel() {
+    const track = document.querySelector<HTMLElement>('[data-alumni-track]')
+    if (!track) return null
+
+    const initialActive = track.querySelector<HTMLElement>('[data-active="true"]')
+    if (initialActive) {
+      const center = initialActive.offsetLeft + initialActive.clientWidth / 2 - track.clientWidth / 2
+      track.scrollLeft = center
+    }
+
+    let isDown = false
+    let startX = 0
+    let startScroll = 0
+
+    function onDown(e: MouseEvent) {
+      isDown = true
+      track!.classList.add('select-none')
+      startX = e.pageX
+      startScroll = track!.scrollLeft
+    }
+    function onUp() {
+      isDown = false
+      track!.classList.remove('select-none')
+    }
+    function onMove(e: MouseEvent) {
+      if (!isDown) return
+      e.preventDefault()
+      track!.scrollLeft = startScroll - (e.pageX - startX)
+    }
+
+    track.addEventListener('mousedown', onDown)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('mousemove', onMove)
+
+    function cardWidth() {
+      const first = track!.firstElementChild as HTMLElement | null
+      const gap = parseFloat(getComputedStyle(track!).columnGap || '0')
+      return first ? first.getBoundingClientRect().width + gap : track!.clientWidth
+    }
+
+    const prevBtn = document.querySelector<HTMLButtonElement>('[data-alumni-prev]')
+    const nextBtn = document.querySelector<HTMLButtonElement>('[data-alumni-next]')
+    const onPrev = () => track!.scrollBy({ left: -cardWidth(), behavior: 'smooth' })
+    const onNext = () => track!.scrollBy({ left: cardWidth(), behavior: 'smooth' })
+    prevBtn?.addEventListener('click', onPrev)
+    nextBtn?.addEventListener('click', onNext)
+
+    const cards = Array.from(track.querySelectorAll<HTMLElement>('[data-testimonial-card]'))
+    const activeObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          ;(entry.target as HTMLElement).dataset.active = entry.intersectionRatio > 0.6 ? 'true' : 'false'
+        }
+      },
+      { root: track, threshold: [0, 0.6, 1] }
+    )
+    cards.forEach((c) => activeObserver.observe(c))
+
+    return () => {
+      track.removeEventListener('mousedown', onDown)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('mousemove', onMove)
+      prevBtn?.removeEventListener('click', onPrev)
+      nextBtn?.removeEventListener('click', onNext)
+      activeObserver.disconnect()
+    }
+  }
+
+  let cleanupFns: Array<() => void> = []
+
+  function init() {
+    const trailCleanups = setupCursorTrails()
+    const parallaxTriggers = setupParallax()
+    const carouselCleanup = setupAlumniCarousel()
+
+    cleanupFns = [
+      ...trailCleanups,
+      () => parallaxTriggers.forEach((t) => t.kill()),
+      () => carouselCleanup?.(),
+    ]
+  }
+
+  function teardown() {
+    cleanupFns.forEach((fn) => fn())
+    cleanupFns = []
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

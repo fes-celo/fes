@@ -1,0 +1,59 @@
+---
+/**
+ * Grid of ProjectCards for /projects/, reusing the same variant="featured"
+ * layout as the homepage's Selected Projects row 2 (title/description next
+ * to a fixed-aspect thumbnail) — same aspect ratio (429/280) since that's
+ * the already-vetted "smaller featured card" ratio in this codebase, and
+ * aspect-ratio scales fine to any column width on its own. size="lg" (26px
+ * title, matching Figma's 770:951 exactly) rather than "sm" — this grid's
+ * cards (580px wide, 3-col) run bigger than the homepage's 4-col row 2
+ * that "sm" was tuned for.
+ *
+ * No `icon` prop passed here — the Projects page card has no icon chip in
+ * Figma (confirmed against 770:948's layer tree), unlike the homepage's
+ * featured cards. ProjectCard drops the icon column entirely when `icon`
+ * is omitted.
+ *
+ * Grid gap verified against Figma node 770:947: 28px between columns, 80px
+ * between rows (an intentionally asymmetric gap, not a copy/paste of the
+ * column gap) — gap-x-7/gap-y-20 hits both exactly on Tailwind's default
+ * scale. Mobile stacks with a uniform 28px gap (867:391), i.e. gap-7.
+ *
+ * Filtering itself (show/hide by data-category) is wired in the consuming
+ * page's own <script>, alongside ProjectsFilter's toggle — this component
+ * only renders the markup and the data-project-item / data-category hooks
+ * the page script reads.
+ */
+import ProjectCard from './ProjectCard.astro'
+import type { Project } from '../lib/projects'
+
+interface Props {
+  projects: Project[]
+  class?: string
+}
+
+const { projects, class: className } = Astro.props
+---
+
+<div class:list={['grid grid-cols-1 gap-7 lg:grid-cols-3 lg:gap-x-7 lg:gap-y-20', className]} data-projects-grid>
+  {
+    projects.map((p) => (
+      <div class="transition-opacity duration-300" data-project-item data-category={p.category.join(',')}>
+        <ProjectCard
+          variant="featured"
+          size="sm"
+          href={p.href}
+          title={p.title}
+          description={p.description}
+          image={p.thumbnail}
+          imageAlt={p.title}
+          imageAspect="aspect-[429/280]"
+          imageWidth={429}
+          imageHeight={280}
+          imageSizes="(min-width: 1024px) 33vw, 100vw"
+          tag={p.tag}
+        />
+      </div>
+    ))
+  }
+</div>

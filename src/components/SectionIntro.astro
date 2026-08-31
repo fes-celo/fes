@@ -1,0 +1,49 @@
+---
+/**
+ * Eyebrow + big quote with a first-line indent, plus an optional side column
+ * (description, CTA, list...) via the `aside` slot. Used by the Agency
+ * "About us" and Careers "What is FES?" sections.
+ *
+ * The eyebrow is `float: left`, so it sits at the section's top-left and the
+ * quote's FIRST line box shortens to wrap around it — wrapped lines return
+ * flush left, under the eyebrow. That's the same first-line-indent effect as
+ * Heading.astro's `text-indent`, except the indent is derived from the
+ * eyebrow's own rendered width (+ the 32px `mr-8` gap) instead of a fixed
+ * token, so it stays correct for any eyebrow length at any breakpoint. This
+ * is why it's a float and not grid/flex columns: those shift every line
+ * equally, which loses the indent.
+ *
+ * The eyebrow's line-height is set to exactly one quote line (see <style>)
+ * so its small text optically centers against the quote's first line rather
+ * than riding above its cap height.
+ */
+interface Props {
+  eyebrow: string
+  /** Eyebrow type size — text-body-sm by default (Agency's "About us"); Careers' "What is FES?" and every System page's "Impact" opt into text-body. */
+  eyebrowSize?: 'text-body-sm' | 'text-body'
+  class?: string
+}
+
+const { eyebrow, eyebrowSize = 'text-body-sm', class: className } = Astro.props
+---
+
+<div class:list={['grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-[120px]', className]}>
+  <div>
+    <p class:list={['intro-eyebrow float-left mr-8 font-medium text-accent-default', eyebrowSize]}>{eyebrow}</p>
+    <p class="text-balance text-h1 text-ink" data-anim="split-text"><slot /></p>
+  </div>
+  <div class="flex flex-col items-start gap-10">
+    <slot name="aside" />
+  </div>
+</div>
+
+<style>
+  /* One quote line tall, minus a hair. Matching the quote's own line box
+     height keeps the eyebrow vertically centred against the first line; the
+     -1px guarantees the float is strictly shorter than that line box, so
+     sub-pixel rounding can never push the quote's SECOND line to indent as
+     well. */
+  .intro-eyebrow {
+    line-height: calc(var(--text-h1) * var(--text-h1--line-height) - 1px);
+  }
+</style>

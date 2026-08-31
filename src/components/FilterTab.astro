@@ -1,26 +1,32 @@
 ---
 /**
- * Single tab item — reference: the underlined category row ("All · Fintech
- * · Public · Startups...") on the Figma components canvas (node 302:2).
- * Consumer renders a row of these and owns which one is active.
+ * Single tab item — reference: the category row ("All · Fintech · Public ·
+ * Startups...") on the Projects page (Figma node 770:930 desktop /
+ * 867:768 mobile). Consumer renders a row of these and owns which one is
+ * active. No underline in the real design — active vs inactive is color
+ * only (ink vs neutral-300, confirmed against the rendered Projects page
+ * screenshot; the extracted node JSX didn't capture the per-item color
+ * override, but the render shows it plainly).
+ *
+ * `href` defaults to "#" and `category` sets a `data-category` hook — used
+ * by ProjectsFilter, whose consuming page intercepts the click and filters
+ * client-side rather than navigating (there are no per-category pages).
  */
 interface Props {
-  href: string
+  href?: string
+  category?: string
   active?: boolean
   class?: string
 }
 
-const { href, active = false, class: className } = Astro.props
+const { href = '#', category, active = false, class: className } = Astro.props
 ---
 
 <a
   href={href}
+  data-category={category}
   aria-current={active ? 'true' : undefined}
-  class:list={[
-    'text-body-sm font-medium underline-offset-4',
-    active ? 'text-ink underline decoration-2' : 'text-ink-muted no-underline hover:text-ink-secondary',
-    className,
-  ]}
+  class:list={['transition-colors', active ? 'text-ink' : 'text-neutral-300 hover:text-ink-secondary', className]}
 >
   <slot />
 </a>

@@ -1,8 +1,25 @@
 ---
 /**
- * Content/layout ported from the old React prototype's TestimonialCard.tsx,
- * reskinned onto the new token system. Not yet pulled from Figma directly —
- * same caveat as StatBlock.astro.
+ * variant="light": ported from the old React prototype's TestimonialCard.tsx,
+ * reskinned onto the token system.
+ *
+ * variant="dark": pulled from the homepage Testimonials frame (node
+ * 770:419) — transparent on the section's indigo bg, border-top instead of
+ * a card surface, dimmed to 30% opacity when not the active carousel card.
+ *
+ * variant="clay": same card shape as "light" but on the warm clay ramp
+ * instead of neutral — used by the Careers "Feedback from previous team
+ * members" section so it reads as a distinct palette from the homepage
+ * carousel, reusing the clay tokens the Agency page's culture-pillars
+ * section already established rather than inventing new colors.
+ *
+ * variant="muted": also built for the Careers "Feedback from previous team
+ * members" frame (node 951:1376) — added alongside "clay" (both landed
+ * around the same time from concurrent work on this page; reconcile down to
+ * one before shipping). This one mirrors "dark"'s structure exactly (same
+ * border-top divider, same opacity-30 dimming for inactive cards) rather
+ * than "light"'s card-surface shape, recolored neutral for a white section
+ * background instead of accent-on-indigo.
  */
 interface Props {
   quote: string
@@ -10,35 +27,75 @@ interface Props {
   role: string
   tag?: string
   avatarSrc?: string
+  variant?: 'light' | 'dark' | 'clay' | 'muted'
+  active?: boolean
   class?: string
 }
 
-const { quote, name, role, tag, avatarSrc, class: className } = Astro.props
+const { quote, name, role, tag, avatarSrc, variant = 'light', active = true, class: className } = Astro.props
+
+const cardSchemes: Record<'light' | 'clay', { card: string; accent: string; avatarBg: string; avatarText: string }> = {
+  light: { card: 'bg-surface-sunken', accent: 'text-accent-default', avatarBg: 'bg-neutral-200', avatarText: 'text-ink-secondary' },
+  clay: { card: 'bg-clay-50', accent: 'text-clay-500', avatarBg: 'bg-clay-200', avatarText: 'text-clay-700' },
+}
 ---
 
-<figure
-  class:list={[
-    'flex h-full min-h-[420px] w-full flex-col justify-between rounded-[var(--radius-card)] bg-surface-sunken p-8',
-    className,
-  ]}
->
-  <div>
-    {tag && <p class="pb-2 text-meta uppercase tracking-[0.01em] text-accent-default">{tag}</p>}
-    <blockquote class="text-h3 font-normal text-ink">{quote}</blockquote>
-  </div>
-  <figcaption class="flex items-center gap-4 pt-8">
-    {
-      avatarSrc ? (
-        <img src={avatarSrc} alt={`Portrait of ${name}`} class="size-12 shrink-0 rounded-full object-cover" />
-      ) : (
-        <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-body-sm font-medium text-ink-secondary">
-          {name.charAt(0)}
-        </span>
-      )
-    }
-    <div>
-      <p class="text-body-sm font-medium text-accent-default">{name}</p>
-      <p class="text-body-sm text-ink-secondary">{role}</p>
-    </div>
-  </figcaption>
-</figure>
+{
+  variant === 'muted' ? (
+    <figure
+      data-testimonial-card
+      data-active={active ? 'true' : 'false'}
+      class:list={[
+        'flex h-full shrink-0 flex-col justify-between gap-8 px-[var(--space-gutter)] opacity-30 transition-opacity duration-300 lg:px-0 lg:pr-10 data-[active=true]:opacity-100',
+        className,
+      ]}
+    >
+      <div class="flex flex-col gap-4 border-t border-neutral-300 pt-8">
+        {tag && <p class="text-eyebrow uppercase text-neutral-600">{tag}</p>}
+        <blockquote class="text-h2 font-medium text-neutral-900">{quote}</blockquote>
+      </div>
+      <figcaption class="text-body-sm">
+        <p class="font-medium text-neutral-900">{name}</p>
+        <p class="text-neutral-600">{role}</p>
+      </figcaption>
+    </figure>
+  ) : variant === 'dark' ? (
+    <figure
+      data-testimonial-card
+      data-active={active ? 'true' : 'false'}
+      class:list={[
+        'flex h-full shrink-0 flex-col justify-between gap-8 px-[var(--space-gutter)] opacity-30 transition-opacity duration-300 lg:px-0 lg:pr-10 data-[active=true]:opacity-100',
+        className,
+      ]}
+    >
+      <div class="flex flex-col gap-4 border-t border-accent-700 pt-8">
+        {tag && <p class="text-eyebrow uppercase text-accent-400">{tag}</p>}
+        <blockquote class="text-h2 font-medium text-accent-200">{quote}</blockquote>
+      </div>
+      <figcaption class="text-body-sm">
+        <p class="font-medium text-clay-50">{name}</p>
+        <p class="text-accent-400">{role}</p>
+      </figcaption>
+    </figure>
+  ) : (
+    <figure class:list={['flex h-full min-h-[420px] w-full flex-col justify-between rounded-[var(--radius-card)] p-[var(--space-card-p)]', cardSchemes[variant].card, className]}>
+      <div>
+        {tag && <p class:list={['pb-2 text-meta uppercase tracking-[0.01em]', cardSchemes[variant].accent]}>{tag}</p>}
+        <blockquote class="text-h3 font-normal text-ink">{quote}</blockquote>
+      </div>
+      <figcaption class="flex items-center gap-4 pt-8">
+        {avatarSrc ? (
+          <img src={avatarSrc} alt={`Portrait of ${name}`} class="size-12 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span class:list={['flex size-12 shrink-0 items-center justify-center rounded-full text-body-sm font-medium', cardSchemes[variant].avatarBg, cardSchemes[variant].avatarText]}>
+            {name.charAt(0)}
+          </span>
+        )}
+        <div>
+          <p class:list={['text-body-sm font-medium', cardSchemes[variant].accent]}>{name}</p>
+          <p class="text-body-sm text-ink-secondary">{role}</p>
+        </div>
+      </figcaption>
+    </figure>
+  )
+}
