@@ -25,6 +25,7 @@ import SectionIntro from '../../../../components/SectionIntro.astro'
 import SystemExpertiseRotator from '../../../../components/SystemExpertiseRotator.astro'
 import SystemProblemCards from '../../../../components/SystemProblemCards.astro'
 import PhasesScroll from '../../../../components/PhasesScroll.astro'
+import ScrollCta from '../../../../components/ScrollCta.astro'
 import BuiltForRotator from '../../../../components/BuiltForRotator.astro'
 import SystemAddonsMarquee from '../../../../components/SystemAddonsMarquee.astro'
 import DualCta from '../../../../components/DualCta.astro'
@@ -342,6 +343,12 @@ const eventCategories = [
   {/* ---------- 4. Our approach ---------- */}
   <PhasesScroll steps={approachSteps} class="bg-surface" />
 
+  {
+    /* Same chip as the homepage: shows once "Our approach" scrolls into
+       view, hides once "Selected projects" (further down) does. */
+  }
+  <ScrollCta showSelector="[data-phases-scroll]" hideSelector="[data-selected-projects-section]" />
+
   {/* ---------- 5. Built for ---------- */}
   <BuiltForRotator phrases={builtForPhrases} backgroundImage={builtForBg} />
 
@@ -364,7 +371,7 @@ const eventCategories = [
   </section>
 
   {/* ---------- 8. Selected projects ---------- */}
-  <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]">
+  <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-selected-projects-section>
     <div class="flex flex-col gap-14" data-projects-row>
       <Heading as="h2" indent={false} class="text-lead text-ink">
         Selected projects

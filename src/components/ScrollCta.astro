@@ -1,0 +1,143 @@
+---
+/**
+ * "15 minutes. Your challenge, our take." chip — position: fixed, shown and
+ * hidden by two IntersectionObservers keyed off page-specific elements
+ * (originally the homepage's Selected Work → Testimonials handoff; now
+ * reused on the Systems pages, keyed off "Our approach" → "Selected
+ * projects" instead). `showSelector`/`hideSelector` are plain CSS selectors
+ * resolved client-side, so each page just points them at whatever elements
+ * it already has.
+ *
+ * Kept as light chip colors in every context on purpose — it sits outside
+ * any `.invert-zone` on the homepage and needs to read the same over both
+ * light and dark backgrounds.
+ */
+interface Props {
+  /** Selector for the element whose entry into view shows the chip. */
+  showSelector: string
+  /** Selector for the element whose entry into view hides the chip. */
+  hideSelector: string
+}
+
+const { showSelector, hideSelector } = Astro.props as Props
+---
+
+<div
+  class="fixed inset-x-0 bottom-12 z-40 flex justify-center px-[var(--space-gutter)] opacity-0"
+  data-scroll-cta
+  data-show-selector={showSelector}
+  data-hide-selector={hideSelector}
+>
+  {
+    /* max-w-full + a wrappable label: at 375px the nowrap label and the
+       button together measured 373px of content inside a 327px column, so
+       the chip ran 22px past the right edge and clipped "Book a call".
+       The button keeps its nowrap (it must never break); the label is the
+       part allowed to take a second line. */
+  }
+  <div class="flex max-w-full items-center gap-2 rounded-lg bg-neutral-100 p-2 shadow-[var(--shadow-card-hover)]">
+    <span class="min-w-0 px-3.5 py-3 text-body text-accent-950 sm:whitespace-nowrap">
+      15 minutes. Your challenge, our take.
+    </span>
+    <a
+      href="/contact/"
+      class="shrink-0 whitespace-nowrap rounded-[4px] bg-accent-800 px-3.5 py-3 text-body-sm font-medium text-accent-200 transition-colors hover:bg-accent-700"
+    >
+      Book a call
+    </a>
+  </div>
+</div>
+
+<style>
+  /* Base opacity-0 (Tailwind, above) already keeps it invisible; pointer-
+     events still needs a hard off/on switch so the hidden chip can't eat
+     clicks meant for whatever sits underneath it. */
+  [data-scroll-cta] {
+    pointer-events: none;
+  }
+  [data-scroll-cta].is-visible {
+    pointer-events: auto;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap'
+
+  // Slide-up reveal instead of a plain CSS fade: the chip starts offset
+  // below its resting position (translateY, set once on init) and GSAP
+  // tweens it up to y:0 on show / back down on hide, rather than toggling a
+  // Tailwind transition class. `overwrite: true` lets a fast up/down/up
+  // scroll interrupt whichever tween is running instead of queuing them.
+  const OFFSET_PX = 16
+
+  // Hiding needs the `boundingClientRect.top > 0` branch, not just the
+  // isIntersecting one: scrolling back UP past the show-element used to
+  // leave the chip stranded, because the only thing that removed
+  // is-visible was the hide-element's own observer further down the page.
+  // Now a show-element that has left the viewport downwards (top below the
+  // fold) retracts the chip, while one that left upwards keeps it shown.
+  function setupScrollCta(root: HTMLElement) {
+    const showSelector = root.dataset.showSelector
+    const hideSelector = root.dataset.hideSelector
+    const showEl = showSelector ? document.querySelector<HTMLElement>(showSelector) : null
+    const hideEl = hideSelector ? document.querySelector<HTMLElement>(hideSelector) : null
+    if (!showEl || !hideEl) return []
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    gsap.set(root, { y: OFFSET_PX })
+
+    const show = () =>
+      gsap.to(root, {
+        y: 0,
+        opacity: 1,
+        duration: reduceMotion ? 0 : 0.45,
+        ease: 'power3.out',
+        overwrite: true,
+        onStart: () => root.classList.add('is-visible'),
+      })
+    const hide = () =>
+      gsap.to(root, {
+        y: OFFSET_PX,
+        opacity: 0,
+        duration: reduceMotion ? 0 : 0.3,
+        ease: 'power3.in',
+        overwrite: true,
+        onComplete: () => root.classList.remove('is-visible'),
+      })
+
+    const showObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) show()
+        else if (entry.boundingClientRect.top > 0) hide()
+      },
+      { threshold: 0.2 }
+    )
+    showObserver.observe(showEl)
+
+    const hideObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) hide()
+      },
+      { threshold: 0 }
+    )
+    hideObserver.observe(hideEl)
+
+    return [showObserver, hideObserver]
+  }
+
+  let observers: IntersectionObserver[] = []
+
+  function init() {
+    const root = document.querySelector<HTMLElement>('[data-scroll-cta]')
+    if (!root) return
+    observers = setupScrollCta(root)
+  }
+
+  function teardown() {
+    observers.forEach((o) => o.disconnect())
+    observers = []
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

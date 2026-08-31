@@ -43,6 +43,7 @@ import ProjectCard from '../../../components/ProjectCard.astro'
 import SystemExpertiseRotator from '../../../components/SystemExpertiseRotator.astro'
 import SystemProblemCards from '../../../components/SystemProblemCards.astro'
 import PhasesScroll from '../../../components/PhasesScroll.astro'
+import ScrollCta from '../../../components/ScrollCta.astro'
 import BuiltForRotator from '../../../components/BuiltForRotator.astro'
 import SystemAddonsCarousel from '../../../components/SystemAddonsCarousel.astro'
 import DualCta from '../../../components/DualCta.astro'
@@ -314,6 +315,12 @@ const selectedProjects = [
     {/* ---------- 4. Our approach ---------- */}
     <PhasesScroll steps={approachSteps} class="bg-surface" />
 
+    {
+      /* Same chip as the homepage: shows once "Our approach" scrolls into
+         view, hides once "Selected projects" (further down) does. */
+    }
+    <ScrollCta showSelector="[data-phases-scroll]" hideSelector="[data-selected-projects-section]" />
+
     {/* ---------- 5. Built for ---------- */}
     <BuiltForRotator phrases={builtForPhrases} backgroundImage={builtForBg} />
 
@@ -366,7 +373,7 @@ const selectedProjects = [
       </SectionIntro>
     </section>
 
-    <section class="w-full px-[var(--space-gutter)] pb-[var(--space-section-y)]">
+    <section class="w-full px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-selected-projects-section>
       <div class="flex flex-col gap-9">
         <div class="flex items-start justify-between gap-6 border-t border-line pt-4">
           <Heading as="h2" indent={false} class="text-lead text-ink">

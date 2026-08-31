@@ -88,6 +88,15 @@ import Heading from './Heading.astro'
 
   const container = document.getElementById('hero-shader')
 
+  // The shape's soft-edge framing inside the fragment shader is a fixed
+  // fraction of the box regardless of aspect ratio, so on a narrow portrait
+  // viewport "cover" fit exposes it as visible top/bottom margins. Zooming
+  // in and panning toward the left lobe (tuned by eye at 375 and 768px)
+  // crops past that margin instead of trying to fill it.
+  const MOBILE_QUERY = '(max-width: 1023px)'
+  const desktopParams = { u_scale: 1, u_offsetX: 0 }
+  const mobileParams = { u_scale: 1.45, u_offsetX: -0.2 }
+
   async function mountHeroShader() {
     if (!container) return
 
@@ -96,7 +105,9 @@ import Heading from './Heading.astro'
     image.src = URL.createObjectURL(blob)
     await image.decode()
 
-    new ShaderMount(
+    const mobileQuery = window.matchMedia(MOBILE_QUERY)
+
+    const mount = new ShaderMount(
       container,
       heatmapFragmentShader,
       {
@@ -119,18 +130,21 @@ import Heading from './Heading.astro'
         u_outerGlow: 0.29,
         u_contour: 0.309,
         u_fit: ShaderFitOptions.cover,
-        u_scale: 1,
         u_rotation: 0,
         u_originX: 0.5,
         u_originY: 0.5,
-        u_offsetX: 0,
         u_offsetY: 0,
         u_worldWidth: 0,
         u_worldHeight: 0,
+        ...(mobileQuery.matches ? mobileParams : desktopParams),
       },
       undefined,
       0.5,
     )
+
+    mobileQuery.addEventListener('change', (e) => {
+      mount.setUniforms(e.matches ? mobileParams : desktopParams)
+    })
   }
 
   mountHeroShader()

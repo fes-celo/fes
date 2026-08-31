@@ -11,6 +11,7 @@ import ProjectCard from '../components/ProjectCard.astro'
 import LogoMarquee from '../components/LogoMarquee.astro'
 import UnderlineLink from '../components/UnderlineLink.astro'
 import SystemsWhatWeDo from '../components/SystemsWhatWeDo.astro'
+import ScrollCta from '../components/ScrollCta.astro'
 
 import weWantYou from '../assets/projects/we-want-you.png'
 import weWantYouIcon from '../assets/projects/we-want-you-icon.png'
@@ -237,29 +238,7 @@ const testimonials = [
     /* Outside .invert-zone on purpose — it's position: fixed and keeps its
        own light chip colors over both the light and the dark background. */
   }
-  <div
-    class="fixed inset-x-0 bottom-6 z-40 flex translate-y-4 justify-start px-[var(--space-gutter)] opacity-0 transition-all duration-300"
-    data-scroll-cta
-  >
-    {
-      /* max-w-full + a wrappable label: at 375px the nowrap label and the
-         button together measured 373px of content inside a 327px column, so
-         the chip ran 22px past the right edge and clipped "Book a call".
-         The button keeps its nowrap (it must never break); the label is the
-         part allowed to take a second line. */
-    }
-    <div class="flex max-w-full items-center gap-2 rounded-lg bg-neutral-100 p-2 shadow-[var(--shadow-card-hover)]">
-      <span class="min-w-0 px-3.5 py-3 text-body-sm text-accent-950 sm:whitespace-nowrap">
-        15 minutes. Your challenge, our take.
-      </span>
-      <a
-        href="/contact/"
-        class="shrink-0 whitespace-nowrap rounded-[4px] bg-accent-800 px-3.5 py-3 text-body-sm font-medium text-accent-200 transition-colors hover:bg-accent-700"
-      >
-        Book a call
-      </a>
-    </div>
-  </div>
+  <ScrollCta showSelector="[data-last-project]" hideSelector="[data-testimonials-section]" />
 
   <SystemsWhatWeDo theme="dark" class="relative z-10" />
 
@@ -481,12 +460,6 @@ const testimonials = [
     }
   }
 
-  [data-scroll-cta].is-visible {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-  }
-
 </style>
 
 <script>
@@ -494,41 +467,6 @@ const testimonials = [
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
   gsap.registerPlugin(ScrollTrigger)
-
-  // Selected Work → CTA scroll-trigger keys off the last Featured Work card
-  // via IntersectionObserver, per the section-behaviors spec.
-  function setupScrollCta() {
-    const cta = document.querySelector<HTMLElement>('[data-scroll-cta]')
-    const lastCard = document.querySelector<HTMLElement>('[data-last-project]')
-    const testimonials = document.querySelector<HTMLElement>('[data-testimonials-section]')
-    if (!cta || !lastCard || !testimonials) return []
-
-    // Hiding needs the `boundingClientRect.top > 0` branch, not just the
-    // isIntersecting one: scrolling back UP past the last card used to leave
-    // the chip stranded over the hero, because the only thing that removed
-    // is-visible was the testimonials observer further down the page. Now a
-    // card that has left the viewport downwards (top below the fold) retracts
-    // it, while a card that left upwards keeps it — which is the whole point
-    // of the CTA.
-    const showObserver = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) cta.classList.add('is-visible')
-        else if (entry.boundingClientRect.top > 0) cta.classList.remove('is-visible')
-      },
-      { threshold: 0.2 }
-    )
-    showObserver.observe(lastCard)
-
-    const hideObserver = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) cta.classList.remove('is-visible')
-      },
-      { threshold: 0 }
-    )
-    hideObserver.observe(testimonials)
-
-    return [showObserver, hideObserver]
-  }
 
   function setupDarkInversion() {
     const zone = document.querySelector<HTMLElement>('[data-invert-zone]')
@@ -709,13 +647,11 @@ const testimonials = [
   let cleanupFns: Array<() => void> = []
 
   function init() {
-    const observers = setupScrollCta()
     const darkInversionTrigger = setupDarkInversion()
     const statsCleanup = setupStatsCycle()
     const carouselCleanup = setupTestimonialCarousel()
 
     cleanupFns = [
-      () => observers.forEach((o) => o.disconnect()),
       () => darkInversionTrigger?.kill(),
       () => statsCleanup?.(),
       () => carouselCleanup?.(),
