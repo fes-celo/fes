@@ -23,18 +23,31 @@ import Heading from './Heading.astro'
      and hides, but in practice iOS Safari's 100dvh on the very first paint
      doesn't reliably match what's actually visible yet (the address bar
      hasn't "settled"), which let a strip of the next section show through
-     before any scroll happened. Measuring window.innerHeight in JS and
-     writing it to --hero-vh is the reliable fix; the inline script below
-     runs synchronously (blocking) before the section paints, so there's no
-     flash. The 100dvh fallback only matters with JS disabled. */
+     before any scroll happened. Measuring the viewport in JS and writing
+     it to --hero-vh is the reliable fix; the inline script below runs
+     synchronously (blocking) before the section paints, so there's no
+     flash. The 100dvh fallback only matters with JS disabled.
+
+     window.innerHeight itself isn't safe to use here: on iOS Safari it
+     reports the layout viewport (sized as if the address bar were already
+     collapsed), not what's actually visible while the bar is still on
+     screen — that mismatch was cropping the hero's bottom content and
+     pushing the fade gradient below the fold. visualViewport.height is
+     Safari's own account of what's currently visible, so prefer it and
+     also listen to its resize (innerHeight alone won't fire when only the
+     address bar toggles). */
 }
 <script is:inline>
   ;(function () {
     function setHeroVh() {
-      document.documentElement.style.setProperty('--hero-vh', window.innerHeight + 'px')
+      const height = window.visualViewport ? window.visualViewport.height : window.innerHeight
+      document.documentElement.style.setProperty('--hero-vh', height + 'px')
     }
     setHeroVh()
     window.addEventListener('resize', setHeroVh)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', setHeroVh)
+    }
   })()
 </script>
 <section
