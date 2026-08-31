@@ -26,33 +26,57 @@ import Heading from './Heading.astro'
      before any scroll happened. Measuring the viewport in JS and writing
      it to --hero-vh is the reliable fix; the inline script below runs
      synchronously (blocking) before the section paints, so there's no
-     flash. The 100dvh fallback only matters with JS disabled.
+     flash. The 100lvh fallback only matters with JS disabled.
 
-     window.innerHeight itself isn't safe to use here: on iOS Safari it
-     reports the layout viewport (sized as if the address bar were already
-     collapsed), not what's actually visible while the bar is still on
-     screen — that mismatch was cropping the hero's bottom content and
-     pushing the fade gradient below the fold. visualViewport.height is
-     Safari's own account of what's currently visible, so prefer it and
-     also listen to its resize (innerHeight alone won't fire when only the
-     address bar toggles). */
+     Two different heights matter here, and using one for both is what
+     produced the white band under the hero on iOS Safari:
+
+     - window.innerHeight is the *layout* viewport — everything the page
+       paints into. iOS 26 Safari floats its bottom toolbar on top of that
+       area rather than shrinking it, so painting only as far as the
+       visible area leaves the next (white) section showing through in the
+       strip around the toolbar.
+     - visualViewport.height is what's actually *visible* right now. Bottom
+       content laid out past it disappears behind the browser chrome.
+
+     So the section is sized to the layout viewport (--hero-vh) so its
+     background bleeds behind the toolbar, and the gap between the two
+     (--hero-chrome) is added to the bottom padding so the headline and
+     lead still sit above it. The gap is clamped because an open keyboard
+     shrinks the visual viewport dramatically, and that shouldn't crush the
+     hero's content into the top half of the screen. */
 }
-<script is:inline>
+{
+  /* data-astro-rerun: ClientRouter skips any script (inline included) whose
+     exact text already ran once, and swapping the document also wipes the
+     <html> style attribute this writes --hero-vh into — so without the flag
+     the variable is gone the moment you navigate back here and the hero
+     silently falls back to 100lvh. The listeners are bound once behind a
+     window flag, since only the property write needs repeating. */
+}
+<script is:inline data-astro-rerun>
   ;(function () {
     function setHeroVh() {
-      const height = window.visualViewport ? window.visualViewport.height : window.innerHeight
-      document.documentElement.style.setProperty('--hero-vh', height + 'px')
+      const visible = window.visualViewport ? window.visualViewport.height : window.innerHeight
+      const layout = Math.max(window.innerHeight, visible)
+      const chrome = Math.min(Math.max(0, layout - visible), layout * 0.25)
+      const style = document.documentElement.style
+      style.setProperty('--hero-vh', layout + 'px')
+      style.setProperty('--hero-chrome', chrome + 'px')
     }
     setHeroVh()
-    window.addEventListener('resize', setHeroVh)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', setHeroVh)
+    if (!window.__fesHeroVhBound) {
+      window.__fesHeroVhBound = true
+      window.addEventListener('resize', setHeroVh)
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', setHeroVh)
+      }
     }
   })()
 </script>
 <section
-  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(to_right,#4A40F2,#0E004D)] px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[120px]"
-  style="height: var(--hero-vh, 100dvh)"
+  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(to_right,#4A40F2,#0E004D)] px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem+var(--hero-chrome,0px))] lg:pb-[calc(120px+var(--hero-chrome,0px))]"
+  style="height: var(--hero-vh, 100lvh)"
 >
   <div id="hero-shader" aria-hidden="true" class="pointer-events-none absolute inset-0 size-full"></div>
   {
@@ -123,8 +147,6 @@ import Heading from './Heading.astro'
     ShaderFitOptions,
   } from '@paper-design/shaders'
 
-  const container = document.getElementById('hero-shader')
-
   // The shape's soft-edge framing inside the fragment shader is a fixed
   // fraction of the box regardless of aspect ratio, so on a narrow portrait
   // viewport "cover" fit exposes it as visible top/bottom margins. Zooming
@@ -134,17 +156,61 @@ import Heading from './Heading.astro'
   const desktopParams = { u_scale: 1, u_offsetX: 0 }
   const mobileParams = { u_scale: 1.45, u_offsetX: -0.2 }
 
-  async function mountHeroShader() {
-    if (!container) return
+  // Processed once per full page load and reused for every later mount:
+  // toProcessedHeatmap fetches and re-encodes the shape, which would be a
+  // visible delay before the shader appears each time you return here.
+  let shapePromise: Promise<HTMLImageElement> | null = null
 
-    const { blob } = await toProcessedHeatmap('/hero/hero-heatmap-shape.webp')
-    const image = new Image()
-    image.src = URL.createObjectURL(blob)
-    await image.decode()
+  function loadShape() {
+    shapePromise ??= (async () => {
+      const { blob } = await toProcessedHeatmap('/hero/hero-heatmap-shape.webp')
+      const image = new Image()
+      // The `load` event, not image.decode(): browsers defer decoding for a
+      // document that isn't visible, and the decode() promise then simply
+      // never settles — open the homepage in a background tab and the shader
+      // would stay unmounted even after you switched to it. `load` is enough
+      // for a WebGL texture upload, and it fires either way.
+      const ready = new Promise<void>((resolve, reject) => {
+        image.addEventListener('load', () => resolve(), { once: true })
+        image.addEventListener('error', () => reject(new Error('Hero shader shape failed to load')), {
+          once: true,
+        })
+      })
+      image.src = URL.createObjectURL(blob)
+      await ready
+      return image
+    })().catch((error) => {
+      // Don't cache a rejection: a one-off failure would otherwise keep the
+      // shader off for the rest of the session, since every later mount
+      // awaits this same promise.
+      shapePromise = null
+      throw error
+    })
+    return shapePromise
+  }
 
-    const mobileQuery = window.matchMedia(MOBILE_QUERY)
+  let mount: ShaderMount | null = null
+  let mobileQuery: MediaQueryList | null = null
+  let onQueryChange: ((event: MediaQueryListEvent) => void) | null = null
+  let onContextLost: ((event: Event) => void) | null = null
+  let contextRetried = false
+  // Bumped by every teardown so an in-flight mount (loading the shape is
+  // async) can tell it was superseded and drop its result instead of
+  // attaching a canvas to a section that has already been swapped out.
+  let generation = 0
 
-    const mount = new ShaderMount(
+  async function init() {
+    const container = document.getElementById('hero-shader')
+    // Only the homepage renders it; astro:page-load fires on every page.
+    if (!container || mount) return
+
+    const token = generation
+    const image = await loadShape()
+    if (token !== generation || !container.isConnected) return
+
+    mobileQuery = window.matchMedia(MOBILE_QUERY)
+
+    mount = new ShaderMount(
       container,
       heatmapFragmentShader,
       {
@@ -179,10 +245,57 @@ import Heading from './Heading.astro'
       0.5,
     )
 
-    mobileQuery.addEventListener('change', (e) => {
-      mount.setUniforms(e.matches ? mobileParams : desktopParams)
-    })
+    onQueryChange = (event) => {
+      mount?.setUniforms(event.matches ? mobileParams : desktopParams)
+    }
+    mobileQuery.addEventListener('change', onQueryChange)
+
+    // Mobile Safari drops WebGL contexts under memory pressure (backgrounding
+    // the tab is enough), which leaves the canvas blank and the section
+    // showing only its CSS gradient. preventDefault marks the loss as
+    // recoverable; one remount is enough, and the retry is one-shot so a
+    // device that simply can't hold a context doesn't loop.
+    onContextLost = (event) => {
+      event.preventDefault()
+      if (contextRetried) return
+      contextRetried = true
+      teardown()
+      start()
+    }
+    mount.canvasElement.addEventListener('webglcontextlost', onContextLost)
   }
 
-  mountHeroShader()
+  function teardown() {
+    generation += 1
+    if (mobileQuery && onQueryChange) mobileQuery.removeEventListener('change', onQueryChange)
+    if (mount && onContextLost) mount.canvasElement.removeEventListener('webglcontextlost', onContextLost)
+    // Frees the GL program/textures and removes the canvas — without it a
+    // client-side navigation would leak a context per visit, and browsers
+    // cap how many can be live at once.
+    mount?.dispose()
+    mount = null
+    mobileQuery = null
+    onQueryChange = null
+    onContextLost = null
+  }
+
+  // Setup/teardown pair per feature (see docs/conventions.md). Mounting from
+  // module top-level instead would run exactly once per full page load: with
+  // <ClientRouter /> the module is already in the browser's registry when you
+  // navigate back to the homepage, so the shader never remounted and the
+  // section fell back to its bare CSS gradient.
+  // A failed mount is survivable — the section keeps its CSS gradient — so
+  // the rejection is swallowed rather than left to surface as an unhandled
+  // promise error in the console.
+  function start() {
+    void init().catch(() => {})
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    // A fresh navigation gets a fresh retry budget; the recovery path itself
+    // doesn't, so a device that can't hold a context stops after one attempt.
+    contextRetried = false
+    start()
+  })
+  document.addEventListener('astro:before-swap', teardown)
 </script>
