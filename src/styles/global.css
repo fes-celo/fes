@@ -399,3 +399,22 @@
     outline-offset: 2px;
   }
 }
+
+/*
+  "Selected projects" hover highlight — shared across every system/blueprint
+  page's Selected projects section, each of which already tags its row with
+  data-projects-row and its cards with data-project-card (branding,
+  events-activations, podcast-video-series, digital-communication,
+  influence-reputation). Hovering one card dims the rest to reinforce it.
+
+  Desktop-only (hover: hover): on touch, :hover sticks after a tap with
+  nothing to un-hover it, which would leave the other cards dimmed.
+*/
+[data-project-card] {
+  transition: opacity 300ms ease;
+}
+@media (hover: hover) {
+  [data-projects-row]:has([data-project-card]:hover) [data-project-card]:not(:hover) {
+    opacity: 0.3;
+  }
+}

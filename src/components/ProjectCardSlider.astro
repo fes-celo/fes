@@ -18,7 +18,8 @@ import { Image } from 'astro:assets'
 import PlaceholderBlock from './PlaceholderBlock.astro'
 
 interface Props {
-  href: string
+  /** Omit for a project with no dedicated case-study page yet — renders a plain, non-interactive block instead of a link. */
+  href?: string
   title: string
   description?: string
   images: ImageMetadata[]
@@ -52,6 +53,9 @@ const {
 
 const imageWidths = [0.5, 1, 1.5, 2].map((m) => Math.round(imageWidth * m))
 
+// No dedicated project page to send visitors to yet → a plain block, not a link.
+const Wrapper = href ? 'a' : 'div'
+
 const titleClasses: Record<string, string> = {
   lg: 'text-lead font-medium',
   sm: 'text-body font-medium',
@@ -62,7 +66,7 @@ const descriptionClasses: Record<string, string> = {
 }
 ---
 
-<a href={href} class:list={['group flex flex-col gap-6', className]} data-project-slider data-slider-interval={intervalMs}>
+<Wrapper href={href} class:list={['group flex flex-col gap-6', className]} data-project-slider data-slider-interval={intervalMs}>
   <div class:list={['relative overflow-hidden rounded-[var(--radius-card)] bg-accent-tint', imageAspect]}>
     {
       images.length > 0 ? (
@@ -89,7 +93,7 @@ const descriptionClasses: Record<string, string> = {
     <h3 class:list={[titleClasses[size], 'text-ink']}>{title}</h3>
     {description && <p class:list={[descriptionClasses[size], 'text-ink-muted']}>{description}</p>}
   </div>
-</a>
+</Wrapper>
 
 <style>
   /* Instant swap under reduced motion (the cycling script never starts one
@@ -113,7 +117,11 @@ const descriptionClasses: Record<string, string> = {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reducedMotion) return
 
-    const cards = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-project-slider]'))
+    // Touch devices have no hover to gate the reel on, so it just runs
+    // continuously there instead of sitting frozen on the first photo.
+    const canHover = window.matchMedia('(hover: hover)').matches
+
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-project-slider]'))
 
     cards.forEach((card) => {
       const slides = Array.from(card.querySelectorAll<HTMLElement>('[data-slide]'))
@@ -143,18 +151,23 @@ const descriptionClasses: Record<string, string> = {
         show(0)
       }
 
-      card.addEventListener('mouseenter', start)
-      card.addEventListener('mouseleave', stop)
-      card.addEventListener('focusin', start)
-      card.addEventListener('focusout', stop)
+      if (canHover) {
+        card.addEventListener('mouseenter', start)
+        card.addEventListener('mouseleave', stop)
+        card.addEventListener('focusin', start)
+        card.addEventListener('focusout', stop)
 
-      cleanups.push(() => {
-        window.clearInterval(timer)
-        card.removeEventListener('mouseenter', start)
-        card.removeEventListener('mouseleave', stop)
-        card.removeEventListener('focusin', start)
-        card.removeEventListener('focusout', stop)
-      })
+        cleanups.push(() => {
+          window.clearInterval(timer)
+          card.removeEventListener('mouseenter', start)
+          card.removeEventListener('mouseleave', stop)
+          card.removeEventListener('focusin', start)
+          card.removeEventListener('focusout', stop)
+        })
+      } else {
+        start()
+        cleanups.push(() => window.clearInterval(timer))
+      }
     })
   }
 

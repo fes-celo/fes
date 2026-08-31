@@ -12,6 +12,7 @@
  */
 import { Image } from 'astro:assets'
 import SectionLabel from './SectionLabel.astro'
+import Button from './Button.astro'
 import digitalCommunication from '../assets/systems/what-we-do/digital-communication-light.jpg'
 import influenceReputation from '../assets/systems/what-we-do/influence-reputation.jpg'
 import creativeBlueprint from '../assets/systems/what-we-do/creative-blueprint.jpg'
@@ -65,12 +66,17 @@ const cards = [
       <p class:list={['max-w-[813px] text-h1 font-medium', isDark ? 'text-neutral-100' : 'text-neutral-950']}>
         A system to help companies and leaders build reputation and gain relevance in the market.
       </p>
-      <a
+      <Button
         href="/systems/"
-        class="inline-flex w-fit items-center rounded-[var(--radius-button)] bg-accent-tint px-[22px] py-[14px] text-h4 font-medium text-ink"
+        variant="tint"
+        arrow={false}
+        class:list={[
+          'w-fit !text-body',
+          isDark && '!bg-neutral-900 !text-white hover:!bg-white hover:!text-accent-default',
+        ]}
       >
         Our systems
-      </a>
+      </Button>
 
       <div class="mt-7 grid grid-cols-1 gap-7 lg:grid-cols-3">
         {

@@ -175,6 +175,9 @@ const addons = [
 
 // Client-supplied copy, 2026 revision — not client-approved yet. Each entry's
 // `folder` is its slider's subfolder under selected-projects/ (see above).
+// `href` is kept as a record of the intended destination but isn't passed to
+// ProjectCardSlider below — none of these have a dedicated case-study page
+// live yet, so the cards render as non-interactive blocks, not links.
 const selectedProjects = [
   {
     href: '/projects/orla/',
@@ -339,7 +342,6 @@ const selectedProjects = [
           selectedProjects.map((project) => (
             <li data-project-card>
               <ProjectCardSlider
-                href={project.href}
                 title={project.title}
                 description={project.description}
                 images={project.images}

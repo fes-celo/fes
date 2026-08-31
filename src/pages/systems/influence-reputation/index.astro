@@ -162,6 +162,9 @@ const addons = [
 // block until real thumbnails and case-study pages exist.
 // TODO(marcelo): real thumbnails + case-study pages for Anchorage Digital,
 // Bridge In, New Work and the AI & History study.
+// `href` is kept as a record of the intended destination but isn't passed to
+// ProjectCard below — none of these have a dedicated case-study page live
+// yet, so the cards render as non-interactive blocks, not links.
 const selectedProjects = [
   {
     href: '/projects/dashlane/',
@@ -406,7 +409,6 @@ const selectedProjects = [
             selectedProjects.map((project) => (
               <li class="w-[80vw] shrink-0 sm:w-[60vw] lg:w-auto" data-project-card>
                 <ProjectCard
-                  href={project.href}
                   title={project.title}
                   description={project.description}
                   variant="featured"

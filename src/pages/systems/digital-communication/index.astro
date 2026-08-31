@@ -163,6 +163,9 @@ const addons = [
 // source doc's 8 projects span 3 categories with no shared taxonomy entry
 // for most of them. Only three (We Want You, Blip, Startup Portugal) have a
 // real thumbnail today; the rest render ProjectCard's own no-image tint.
+// `href` is kept as a record of the intended destination but isn't passed to
+// ProjectCard below — none of these have a dedicated case-study page live
+// yet, so the cards render as non-interactive blocks, not links.
 const selectedProjects = [
   {
     href: '/projects/data-makers-fest/',
@@ -389,7 +392,6 @@ const selectedProjects = [
             selectedProjects.map((project) => (
               <li class="w-[80vw] shrink-0 sm:w-[60vw] lg:w-auto" data-project-card>
                 <ProjectCard
-                  href={project.href}
                   title={project.title}
                   description={project.description}
                   variant="featured"

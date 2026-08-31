@@ -19,16 +19,40 @@ import Heading from './Heading.astro'
 ---
 
 {
-  /* h-dvh behind a @supports guard rather than a bare h-screen: 100vh on
-     mobile is the tallest viewport, so the pinned hero overflowed under the
-     address bar and resized as it collapsed. dvh tracks the live viewport,
-     which is the right unit for a hero that has to stay exactly full-bleed
-     while later sections scroll over it. svh would be stable but leaves a
-     strip of the next section showing once the bar hides. The h-screen
-     fallback keeps pre-dvh browsers on today's behaviour. */
+  /* CSS dvh should track the live viewport as mobile browser chrome shows
+     and hides, but in practice iOS Safari's 100dvh on the very first paint
+     doesn't reliably match what's actually visible yet (the address bar
+     hasn't "settled"), which let a strip of the next section show through
+     before any scroll happened. Measuring window.innerHeight in JS and
+     writing it to --hero-vh is the reliable fix; the inline script below
+     runs synchronously (blocking) before the section paints, so there's no
+     flash. The 100dvh fallback only matters with JS disabled. */
 }
-<section class="sticky top-0 z-0 flex h-screen min-h-[720px] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(to_right,#4A40F2,#0E004D)] px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 supports-[height:100dvh]:h-dvh lg:pb-[120px]">
+<script is:inline>
+  ;(function () {
+    function setHeroVh() {
+      document.documentElement.style.setProperty('--hero-vh', window.innerHeight + 'px')
+    }
+    setHeroVh()
+    window.addEventListener('resize', setHeroVh)
+  })()
+</script>
+<section
+  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(to_right,#4A40F2,#0E004D)] px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[120px]"
+  style="height: var(--hero-vh, 100dvh)"
+>
   <div id="hero-shader" aria-hidden="true" class="pointer-events-none absolute inset-0 size-full"></div>
+  {
+    /* Stops follow an ease-out curve (via larsenwork.com/easing-gradients)
+       rather than a plain 2-stop linear-gradient, whose constant alpha
+       ramp reads as a harsh band before fading to nothing. */
+  }
+  <div
+    aria-hidden="true"
+    class="pointer-events-none absolute inset-x-0 bottom-0 h-12 lg:hidden"
+    style="background: linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.738) 19%, rgba(255,255,255,0.541) 34%, rgba(255,255,255,0.382) 47%, rgba(255,255,255,0.278) 56.5%, rgba(255,255,255,0.194) 65%, rgba(255,255,255,0.126) 73%, rgba(255,255,255,0.075) 80.2%, rgba(255,255,255,0.042) 86.1%, rgba(255,255,255,0.021) 91%, rgba(255,255,255,0.008) 95.2%, rgba(255,255,255,0.002) 98.2%, rgba(255,255,255,0) 100%)"
+  >
+  </div>
 
   <nav aria-label="Primary" class="relative z-10">
     <div class="flex items-center justify-between gap-6">

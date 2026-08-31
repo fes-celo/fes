@@ -22,7 +22,8 @@ import { Image } from 'astro:assets'
 import Tag from './Tag.astro'
 
 interface Props {
-  href: string
+  /** variant="featured" only — omit for a project with no dedicated case-study page yet, which renders a plain, non-interactive block instead of a link. */
+  href?: string
   title: string
   description?: string
   tags?: string[]
@@ -142,11 +143,15 @@ const chipIconClasses: Record<string, string> = {
   accent: 'bg-on-accent group-hover:bg-accent-default',
   'dark-card': 'bg-neutral-200 group-hover:bg-ink',
 }
+
+// variant="featured" without an href (no dedicated case-study page yet) →
+// a plain block, not a link.
+const FeaturedTag = href ? 'a' : 'div'
 ---
 
 {
   variant === 'featured' ? (
-    <a href={href} class:list={['group flex flex-col gap-6', className]}>
+    <FeaturedTag href={href} class:list={['group flex flex-col gap-6', className]}>
       <div class:list={['relative overflow-hidden rounded-[var(--radius-card)] bg-accent-tint', imageAspect]}>
         {image && (
           <Image
@@ -196,7 +201,7 @@ const chipIconClasses: Record<string, string> = {
           {description && <p class:list={[featuredDescriptionClasses[size], 'text-ink-muted']}>{description}</p>}
         </div>
       </div>
-    </a>
+    </FeaturedTag>
   ) : (
     <a
       href={href}

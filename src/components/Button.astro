@@ -11,10 +11,11 @@ interface Props {
   href: string
   variant?: 'tint' | 'accent' | 'dark'
   external?: boolean
+  arrow?: boolean
   class?: string
 }
 
-const { href, variant = 'accent', external = false, class: className } = Astro.props
+const { href, variant = 'accent', external = false, arrow = true, class: className } = Astro.props
 
 const fillClasses: Record<string, string> = {
   tint: 'bg-accent-tint text-accent-default hover:bg-accent-tint-hover',
@@ -38,19 +39,24 @@ const arrowSrc = '/icons/icon-arrow-white.svg'
   target={external ? '_blank' : undefined}
   rel={external ? 'noopener noreferrer' : undefined}
   class:list={[
-    'inline-flex items-center gap-3 rounded-[var(--radius-button)] py-1.5 pl-5 pr-1.5 text-body-sm font-medium transition-colors',
+    'inline-flex items-center gap-3 rounded-[var(--radius-button)] py-1.5 text-body-sm font-medium transition-colors',
+    arrow ? 'pl-5 pr-1.5' : 'px-5',
     fillClasses[variant],
     className,
   ]}
 >
   <span><slot /></span>
-  <span class:list={['flex size-7 shrink-0 items-center justify-center rounded-full', chipClasses[variant]]}>
-    <img
-      src={arrowSrc}
-      alt=""
-      class:list={['size-3.5', external && 'rotate-[-45deg]']}
-      width="14"
-      height="14"
-    />
-  </span>
+  {
+    arrow && (
+      <span class:list={['flex size-7 shrink-0 items-center justify-center rounded-full', chipClasses[variant]]}>
+        <img
+          src={arrowSrc}
+          alt=""
+          class:list={['size-3.5', external && 'rotate-[-45deg]']}
+          width="14"
+          height="14"
+        />
+      </span>
+    )
+  }
 </a>
