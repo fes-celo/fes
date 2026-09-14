@@ -75,10 +75,21 @@ import Heading from './Heading.astro'
   })()
 </script>
 <section
-  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(to_right,#4A40F2,#0E004D)] px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(120px_+_var(--hero-chrome,0px))]"
-  style="height: var(--hero-vh, 100lvh)"
+  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(120px_+_var(--hero-chrome,0px))]"
+  style={`height: var(--hero-vh, 100lvh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
 >
-  <div id="hero-shader" aria-hidden="true" class="pointer-events-none absolute inset-0 size-full"></div>
+  {
+    /* Approximates the heatmap shader's two colour lobes in pure CSS so the
+       first paint (before any JS/WebGL) already reads as intentional rather
+       than a flat two-stop gradient — see #hero-shader below, which fades in
+       over this once the shader mounts instead of popping in abruptly. */
+  }
+  <div
+    id="hero-shader"
+    aria-hidden="true"
+    class="pointer-events-none absolute inset-0 size-full opacity-0 transition-opacity duration-700 ease-out"
+  >
+  </div>
   {
     /* Stops follow an ease-out curve (via larsenwork.com/easing-gradients)
        rather than a plain 2-stop linear-gradient, whose constant alpha
@@ -310,6 +321,10 @@ import Heading from './Heading.astro'
       start()
     }
     mount.canvasElement.addEventListener('webglcontextlost', onContextLost)
+
+    // Reveals the canvas over the CSS approximation below it instead of
+    // popping in the instant the shape image + WebGL context are ready.
+    container.classList.remove('opacity-0')
   }
 
   function teardown() {

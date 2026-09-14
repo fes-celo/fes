@@ -81,13 +81,13 @@ const {
 // downloaded the 1772px-wide render of a 343px-wide card.
 const imageWidths = [0.5, 1, 1.5, 2].map((m) => Math.round(imageWidth * m))
 
-// Below lg, title runs at the SAME size as this card's own description (see
-// featuredDescriptionClasses below) rather than its larger desktop size — a
-// single-column mobile layout reads title and description as one block, so
-// the two-tier size difference just looked inconsistent card-to-card. Each
-// size restores its own bigger desktop title at lg.
+// Below lg, both rows share one column width (single-column mobile layout),
+// so a size-"lg" card running its bigger desktop type there read as an
+// arbitrary inconsistency against the size-"sm" cards next to it. Below lg,
+// "lg" now matches "sm"'s sizes (text-body/text-body-sm); each restores its
+// own bigger desktop tier at lg, where the two rows' column widths diverge.
 const featuredTitleClasses: Record<string, string> = {
-  lg: 'text-lead font-medium',
+  lg: 'text-body lg:text-lead font-medium',
   sm: 'text-body font-medium',
 }
 // font-normal is explicit even though text-body/text-lead already carry
@@ -95,7 +95,7 @@ const featuredTitleClasses: Record<string, string> = {
 // parent leaking through the shared `--tw-font-weight` custom property,
 // which utilities resolve through as a fallback rather than a hard value.
 const featuredDescriptionClasses: Record<string, string> = {
-  lg: 'text-body font-normal',
+  lg: 'text-body-sm lg:text-body font-normal',
   sm: 'text-body-sm font-normal',
 }
 
@@ -215,8 +215,8 @@ const FeaturedTag = href ? 'a' : 'div'
             }
           </span>
         )}
-        <div class="flex flex-col gap-1">
-          <h3 class:list={[featuredTitleClasses[size], 'text-ink']}>{title}</h3>
+        <div class="flex min-w-0 flex-col gap-1">
+          <h3 class:list={[featuredTitleClasses[size], 'truncate text-ink']}>{title}</h3>
           {description && <p class:list={[featuredDescriptionClasses[size], 'text-ink-muted']}>{description}</p>}
         </div>
       </div>
