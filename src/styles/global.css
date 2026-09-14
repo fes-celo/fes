@@ -165,6 +165,21 @@
      another raw hex. */
   --color-success: #0BE881;
 
+  /*
+    SystemExpertiseRotator's rest/fill pair — declared HERE, at :root, and
+    not inside the component's own `.expertise-rotator` rule, on purpose.
+    A custom property set on an element always wins over one inherited from
+    an ancestor, so if the component declared its own "light default" on
+    itself, that self-declaration would out-rank whatever `.dark-zone`
+    (an ANCESTOR wrapping some pages' instance) tries to inherit down to it
+    — the exact bug this first shipped with. Living at :root instead means
+    the component only ever CONSUMES these two, the same way it already
+    consumes --color-surface/ink/line, so a `.dark-zone` override on a
+    parent reaches it correctly.
+  */
+  --rotator-rest: var(--color-neutral-100);
+  --rotator-fill: var(--color-neutral-700);
+
   /* ---------- 3. Type ---------- */
 
   --font-sans: "Aeonik", "Inter", ui-sans-serif, system-ui, sans-serif;

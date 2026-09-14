@@ -46,6 +46,19 @@ interface Props {
 }
 
 const { label = 'Built for', phrases, backgroundImage, class: className } = Astro.props as Props
+
+/**
+ * The background's painted width — NOT 100vw.
+ *
+ * The source is square and the box is 180% of the section's height (see
+ * .built-for__bg), so `object-cover` scales to whichever of the two is
+ * larger — and on anything portrait-ish that's the height, not the width. A
+ * 375x812 phone paints this image 1462px wide, nearly 4x what 100vw would
+ * have claimed, which is exactly the case where picking too small a
+ * candidate off the srcset is most visible. Keep the 180 in step with
+ * .built-for__bg's `height`.
+ */
+const BG_SIZES = 'max(100vw, 180vh)'
 ---
 
 <section
@@ -61,11 +74,11 @@ const { label = 'Built for', phrases, backgroundImage, class: className } = Astr
         src={backgroundImage}
         alt=""
         width={2560}
-        height={1440}
-        widths={[960, 1920, 2560]}
-        sizes="100vw"
+        height={2560}
+        widths={[1280, 1920, 2560]}
+        sizes={BG_SIZES}
         loading="lazy"
-        class="built-for__bg pointer-events-none absolute inset-x-0 size-full object-cover"
+        class="built-for__bg pointer-events-none absolute inset-x-0 w-full object-cover"
         data-parallax-bg
       />
     )
@@ -110,12 +123,34 @@ const { label = 'Built for', phrases, backgroundImage, class: className } = Astr
   }
 
   .built-for__bg {
-    /* Oversized vertically so the parallax has slack to drift within
-       without ever exposing the section's own background at either edge —
-       sized with headroom past PARALLAX_Y (48% drift each way) rather than
-       matched exactly to it. */
-    top: -56%;
-    height: 212%;
+    /*
+      Oversized vertically so the parallax has slack to drift within without
+      ever exposing the section's own background at either edge.
+
+      These two numbers are load-bearing against PARALLAX_Y in the script
+      below, and the unit mismatch between them is what broke this: `top`
+      and `height` here are percentages of the SECTION, while GSAP's
+      `yPercent` is a percentage of the IMAGE'S OWN height. So the slack is
+      OVERFLOW% of the section, but the travel is PARALLAX_Y% x
+      (100 + 2 x OVERFLOW)% of it. Reading both as "percent of the section"
+      is what let a 48% drift be paired with 56% of slack — that's really
+      101.8% of travel against 56%, and the top ~45% of the section fell off
+      the bottom of the image and showed the bare fallback colour.
+
+      Held here at OVERFLOW = 40 (top: -40%, height: 180%) — deliberately
+      generous, because the drift is meant to be pronounced rather than
+      subtle. The matching ceiling is PARALLAX_Y <= 40 / 1.8 = 22.2; the
+      script uses 20, which travels 36% of the section each way (72% of a
+      viewport end to end) and keeps 4% in reserve for subpixel rounding and
+      the rubber-band overscroll at either end. Changing either number means
+      re-checking the other against that inequality.
+
+      The source is square (2560x2560), so at this box the `object-cover`
+      crop is horizontal, not vertical — the art is symmetric about its
+      vertical axis, so it takes that crop without losing its composition.
+    */
+    top: -40%;
+    height: 180%;
   }
 
   .built-for__scrim {
@@ -266,8 +301,14 @@ const { label = 'Built for', phrases, backgroundImage, class: className } = Astr
   // hold would leave the phrase in motion nearly all the time.
   const SLIDE = { duration: 0.45, ease: 'power2.out', stagger: 0.015 }
 
-  /** How far the background drifts across the section's own scroll-through range, in %. */
-  const PARALLAX_Y = 48
+  // How far the background drifts across the section's own scroll-through
+  // range, as a percentage of THE IMAGE'S height (that's what `yPercent`
+  // means) — NOT of the section. It is capped by the vertical overflow the
+  // .built-for__bg rule gives the image: with top:-40%/height:180% the
+  // ceiling is 40 / 1.8 = 22.2, and anything past it drags an edge of the
+  // image into frame and exposes the section's fallback colour behind it.
+  // See the long comment on that rule before touching this.
+  const PARALLAX_Y = 20
 
   // Not the shared MOTION_FULL/MOTION_FALLBACK pair: those gate on viewport
   // width too, because pinning is what mobile can't afford. Nothing here
@@ -310,7 +351,26 @@ const { label = 'Built for', phrases, backgroundImage, class: className } = Astr
       words.forEach((word, i) => {
         const next = words[(i + 1) % words.length]!
         tl.to(charsOf(word), { yPercent: -100, opacity: 0, ...SLIDE }, `+=${HOLD}`)
-        tl.fromTo(charsOf(next), { yPercent: 100, opacity: 0 }, { yPercent: 0, opacity: 1, ...SLIDE }, '<')
+        // `immediateRender: false` is the whole fix for the "Built for"
+        // label sitting there with no word next to it.
+        //
+        // fromTo() defaults to immediateRender: true, which means it applies
+        // its FROM values the moment the tween is constructed rather than
+        // when the playhead reaches it. Building the loop therefore walked
+        // every phrase — the last pass wraps around and targets words[0] —
+        // and snapped all of them to { yPercent: 100, opacity: 0 },
+        // overwriting the gsap.set two lines above that had just made the
+        // first phrase visible. The section rendered with NOTHING in the
+        // slot until the first transition completed: HOLD + SLIDE, ~1.35s
+        // after the timeline started playing, and the IntersectionObserver
+        // below pauses the timeline off-screen, so scrolling away during
+        // that window and back held the slot blank indefinitely.
+        tl.fromTo(
+          charsOf(next),
+          { yPercent: 100, opacity: 0 },
+          { yPercent: 0, opacity: 1, immediateRender: false, ...SLIDE },
+          '<'
+        )
       })
 
       // Starts on first view and keeps pace with visibility thereafter — a

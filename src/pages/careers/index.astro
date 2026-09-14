@@ -328,6 +328,7 @@ const alumniFeedback = [
     <div
       class="mt-16 flex cursor-grab gap-6 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory active:cursor-grabbing lg:px-[25vw] [&::-webkit-scrollbar]:hidden"
       data-alumni-track
+      data-anim="slide-right"
     >
       {
         alumniFeedback.map((t, i) => (
@@ -517,12 +518,24 @@ const alumniFeedback = [
       let lastY = 0
       let accumulated = 0
 
+      const initialRect = hero.getBoundingClientRect()
+      // Best-guess cursor position, seeded at the hero's center rather than
+      // (0, 0). Careers is reached from the footer nav, so most visits land
+      // here with the cursor already roughly mid-screen and little reason
+      // to move it — this gives the scroll fallback below something
+      // plausible to jitter around from the very first scroll, instead of
+      // requiring a real mousemove first.
+      let lastKnownX = initialRect.width / 2
+      let lastKnownY = initialRect.height / 2
+
       function onMove(e: MouseEvent) {
         const rect = hero.getBoundingClientRect()
         const x = e.clientX - rect.left
         const y = e.clientY - rect.top
         const dx = x - lastX
 
+        lastKnownX = x
+        lastKnownY = y
         accumulated += Math.abs(dx) + Math.abs(y - lastY)
         lastX = x
         lastY = y
@@ -540,14 +553,60 @@ const alumniFeedback = [
         const rect = hero.getBoundingClientRect()
         lastX = e.clientX - rect.left
         lastY = e.clientY - rect.top
+        lastKnownX = lastX
+        lastKnownY = lastY
         accumulated = 0
       }
 
       hero.addEventListener('mouseenter', onEnter)
       hero.addEventListener('mousemove', onMove)
+
+      // Scroll fallback: the hero is `position: sticky`, so its own
+      // bounding rect barely moves while it's pinned — reacting to the
+      // hero's on-screen position would mean blocks only appear right at
+      // the tail end, as it un-sticks (the earlier approach this replaced).
+      // Raw scroll distance doesn't have that problem: wheel/trackpad
+      // scroll keeps firing the whole time the hero is pinned, so this
+      // spawns steadily through the scroll instead of only at the end.
+      // Reuses the same accumulated-distance threshold as the mouse path,
+      // fed by scroll delta, and spawns near the last known (real or
+      // assumed, see lastKnownX/Y above) cursor position with some jitter
+      // — not tied to actual cursor movement, but reading as though it
+      // were. Gated on the hero still being at least partly on screen, so
+      // it stops once scrolled past rather than spawning into thin air.
+      const TRAIL_SCROLL_JITTER_X = 90
+      const TRAIL_SCROLL_JITTER_Y = 50
+      let scrollAccumulated = 0
+      let lastScrollY = window.scrollY
+
+      function isHeroVisible() {
+        const rect = hero.getBoundingClientRect()
+        return rect.bottom > 0 && rect.top < window.innerHeight
+      }
+
+      function onScroll() {
+        const y = window.scrollY
+        const dy = y - lastScrollY
+        lastScrollY = y
+
+        if (!isHeroVisible()) return
+
+        scrollAccumulated += Math.abs(dy)
+        const rect = hero.getBoundingClientRect()
+        if (scrollAccumulated < rect.width * TRAIL_SPAWN_FRACTION) return
+        scrollAccumulated = 0
+
+        const x = gsap.utils.clamp(0, rect.width, lastKnownX + gsap.utils.random(-TRAIL_SCROLL_JITTER_X, TRAIL_SCROLL_JITTER_X))
+        const spawnY = gsap.utils.clamp(0, rect.height, lastKnownY + gsap.utils.random(-TRAIL_SCROLL_JITTER_Y, TRAIL_SCROLL_JITTER_Y))
+        spawn(x, spawnY, Math.sign(dy) || 1)
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true })
+
       return () => {
         hero.removeEventListener('mouseenter', onEnter)
         hero.removeEventListener('mousemove', onMove)
+        window.removeEventListener('scroll', onScroll)
         clearActive()
       }
     }

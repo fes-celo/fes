@@ -64,6 +64,14 @@ import { projects, projectCategories } from '../../lib/projects'
   let filterCleanup: (() => void) | null = null
 
   function setupProjectsFilter() {
+    // Safari fires `astro:page-load` twice on some navigations (e.g. back
+    // gesture) without an intervening `astro:before-swap` — see
+    // https://github.com/withastro/astro/issues/12858. Without this guard,
+    // a double-fire double-binds the trigger's click listener, so one click
+    // toggles aria-expanded twice and cancels itself out (looks like the
+    // filter "won't open"). Tearing down first keeps setup idempotent.
+    teardownProjectsFilter()
+
     const trigger = document.querySelector<HTMLButtonElement>('[data-filter-trigger]')
     const label = document.querySelector<HTMLElement>('[data-filter-trigger-label]')
     const panel = document.querySelector<HTMLElement>('[data-filter-panel]')

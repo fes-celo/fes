@@ -124,7 +124,7 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
 <style>
   .problem-cards {
     padding-block: var(--space-section-y);
-    --problem-card-gap: 1.75rem;
+    --problem-card-gap: 1.25rem;
   }
 
   /*
@@ -171,13 +171,23 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
     flex-direction: column;
     width: 80vw;
     max-width: 26rem;
-    height: 28.625rem;
+    aspect-ratio: 3 / 4;
     padding: var(--space-card-p);
     overflow: hidden;
     border-radius: var(--radius-control);
     background-color: var(--color-neutral-900);
     scroll-snap-align: start;
     flex: 0 0 auto;
+  }
+
+  /* Same breakpoint as SystemAddonsMarquee/Carousel's `.addons__card`, so
+     the two card rows read as one size where they actually appear
+     together on a Systems/Blueprint detail page. */
+  @media (min-width: 1024px) {
+    .problem-card {
+      width: 22.5rem;
+      max-width: none;
+    }
   }
 
   .problem-card__media {

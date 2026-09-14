@@ -54,7 +54,7 @@ export const DRAG_PHYSICS = {
 } as const
 
 export function pressCards(cards: Element[], pressed: boolean) {
-  gsap.to(cards, { scale: pressed ? PRESS_SCALE : 1, duration: PRESS_DURATION, ease: PRESS_EASE, overwrite: true })
+  gsap.to(cards, { scale: pressed ? PRESS_SCALE : 1, duration: PRESS_DURATION, ease: PRESS_EASE, overwrite: 'auto' })
 }
 
 export function createDragCarousel(track: HTMLElement, opts: { cardSelector: string }): (() => void) | null {

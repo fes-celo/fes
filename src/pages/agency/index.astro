@@ -147,6 +147,21 @@ const pillars = [
   </section>
 
   <section class="relative z-10 bg-surface pt-[var(--space-section-y)]" data-anim="reveal">
+    {
+      /* Drag progress bar for the team strip — the same rule-as-progress-bar
+         pattern as SystemProblemCards' "Sound familiar?" row: a neutral-200
+         track with a neutral-950 fill scaled from the left, tracking the
+         strip's own horizontal scrollLeft. It lives on its own gutter-padded
+         wrapper so it lines up with where the first photo starts instead of
+         running full-bleed. At rest (no-JS, or before the script runs) the
+         fill is at scaleX(0), so it reads as a plain rule. */
+    }
+    <div class="px-[var(--space-gutter)] pb-8 lg:pb-10">
+      <div class="team-progress relative h-px w-full bg-line" aria-hidden="true">
+        <div class="team-progress__fill absolute inset-0 bg-ink" data-team-progress-fill></div>
+      </div>
+    </div>
+
     <div
       id="team"
       class="flex cursor-grab gap-4 overflow-x-auto scroll-smooth px-[var(--space-gutter)] pb-2 [-ms-overflow-style:none] [scrollbar-width:none] active:cursor-grabbing lg:gap-6 [&::-webkit-scrollbar]:hidden"
@@ -196,7 +211,7 @@ const pillars = [
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {
           behaviours.map((item) => (
-            <div class="flex min-h-[280px] flex-col justify-between rounded-[var(--radius-card)] border border-accent-100 bg-accent-50 p-[var(--space-card-p)] lg:min-h-[400px]">
+            <div class="flex min-h-[280px] flex-col justify-between rounded-[var(--radius-control)] bg-accent-50 p-[var(--space-card-p)] lg:min-h-[400px]">
               <h3 class="text-h3 font-medium text-ink">{item.title}</h3>
               <p class="pt-6 text-body text-neutral-400 lg:pt-0">{item.body}</p>
             </div>
@@ -238,6 +253,19 @@ const pillars = [
   </section>
 </BaseLayout>
 
+<style>
+  /*
+    NOT Tailwind's `scale-x-0`: Tailwind v4 implements scale utilities with
+    the INDEPENDENT `scale` property, which composes multiplicatively with
+    whatever is written to `transform` — it would zero the fill out no
+    matter what the script sets. Same note as SystemProblemCards.
+  */
+  .team-progress__fill {
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
+</style>
+
 <script>
   // Team-photo drag mirrors the homepage/Careers testimonial carousels: same
   // press-scale + magnetic snap-to-nearest-card mechanic (see
@@ -245,6 +273,7 @@ const pillars = [
   import { createDragCarousel } from '../../lib/dragCarousel'
 
   let teamDragCleanup: (() => void) | null = null
+  let teamProgressCleanup: (() => void) | null = null
 
   function setupTeamDrag() {
     const track = document.querySelector<HTMLElement>('[data-team-track]')
@@ -252,13 +281,42 @@ const pillars = [
     return createDragCarousel(track, { cardSelector: 'figure' })
   }
 
+  // Plain transform write rather than a GSAP tween: nothing else animates
+  // this element, so there's no timeline to share and no reason to pull the
+  // library into this page's bundle just to set one property per scroll
+  // event.
+  function setupTeamProgress() {
+    const track = document.querySelector<HTMLElement>('[data-team-track]')
+    const fill = document.querySelector<HTMLElement>('[data-team-progress-fill]')
+    if (!track || !fill) return null
+
+    const update = () => {
+      const maxScroll = Math.max(1, track.scrollWidth - track.clientWidth)
+      const ratio = Math.min(Math.max(track.scrollLeft / maxScroll, 0), 1)
+      fill.style.transform = `scaleX(${ratio.toFixed(4)})`
+    }
+
+    track.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    update()
+
+    return () => {
+      track.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+      fill.style.transform = ''
+    }
+  }
+
   function init() {
     teamDragCleanup = setupTeamDrag()
+    teamProgressCleanup = setupTeamProgress()
   }
 
   function teardown() {
     teamDragCleanup?.()
     teamDragCleanup = null
+    teamProgressCleanup?.()
+    teamProgressCleanup = null
   }
 
   document.addEventListener('astro:page-load', init)

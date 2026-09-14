@@ -23,8 +23,17 @@ import { SplitText } from 'gsap/SplitText'
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
 
+// Mobile Safari's address bar hiding/showing on scroll fires resize events,
+// which by default trigger a full ScrollTrigger.refresh() — recalculating
+// every trigger's start/end mid-scroll can strand a `once: true` reveal at
+// its `gsap.from` opacity:0 state (the projects-page filter is one of these
+// reveal targets, so this can present as the filter never becoming visible
+// or interactive). https://gsap.com/docs/v3/Plugins/ScrollTrigger/static.config()
+ScrollTrigger.config({ ignoreMobileResize: true })
+
 // Tuning surface — the taste knobs live here rather than scattered inline.
 const REVEAL = { y: 24, duration: 0.8, stagger: 0.08, ease: 'power2.out', start: 'top 85%' }
+const SLIDE_RIGHT = { x: 100, duration: 0.7, stagger: 0.1, ease: 'power2.out', start: 'top 85%' }
 const SPLIT = { y: '110%', duration: 0.9, stagger: 0.07, ease: 'power3.out', start: 'top 85%' }
 /** How far the per-line clip box extends below the line box to clear descenders. */
 const DESCENDER_PAD = '0.2em'
@@ -63,6 +72,10 @@ function revealTargets(el: HTMLElement): HTMLElement[] {
   if (children.length === 1 && children[0].children.length > 1) {
     children = Array.from(children[0].children).filter((c): c is HTMLElement => c instanceof HTMLElement)
   }
+  // A child marked `slide-right` (the testimonial tracks) runs its own
+  // per-card entrance below — left in here it would additionally animate as
+  // one block under the section's fade, doubling up.
+  children = children.filter((c) => c.dataset.anim !== 'slide-right')
   return children.length > 0 ? children : [el]
 }
 
@@ -95,6 +108,57 @@ function setupReveals(reduced: boolean): Cleanup[] {
       tween.scrollTrigger?.kill()
       tween.kill()
       gsap.set(targets, { clearProps: 'opacity,transform' })
+    })
+  })
+
+  return cleanups
+}
+
+/**
+ * `data-anim="slide-right"` — the testimonial/feedback card tracks. Each
+ * direct child (one `TestimonialCard` figure) slides in from the right and
+ * settles into its resting position, staggered, the first time the track
+ * scrolls into view. Kept separate from `setupReveals` because it targets
+ * individual cards rather than section-level blocks, and moves on x instead
+ * of y.
+ *
+ * Position only, no opacity fade: the cards carry their own
+ * `transition-opacity` (the carousel's active/inactive dimming), and a CSS
+ * transition on a property fights a JS tween on that same property — the
+ * transition's generated value outranks GSAP's inline write in the cascade,
+ * so the fade never actually reached the resting opacity. Sliding position
+ * doesn't have a competing transition, so it's left as the only motion.
+ *
+ * Reduced motion: skipped entirely rather than swapped for a cross-fade —
+ * the same clash would apply, and no motion is the correct outcome anyway.
+ */
+function setupSlideRight(reduced: boolean): Cleanup[] {
+  if (reduced) return []
+
+  const cleanups: Cleanup[] = []
+
+  document.querySelectorAll<HTMLElement>('[data-anim="slide-right"]').forEach((track) => {
+    const targets = Array.from(track.children).filter((c): c is HTMLElement => c instanceof HTMLElement)
+    if (targets.length === 0) return
+
+    const tween = gsap.from(
+      targets,
+      schedule(
+        track,
+        {
+          x: SLIDE_RIGHT.x,
+          duration: SLIDE_RIGHT.duration,
+          stagger: SLIDE_RIGHT.stagger,
+          ease: SLIDE_RIGHT.ease,
+        },
+        SLIDE_RIGHT.start
+      )
+    )
+
+    cleanups.push(() => {
+      tween.scrollTrigger?.kill()
+      tween.kill()
+      gsap.set(targets, { clearProps: 'transform' })
     })
   })
 
@@ -344,7 +408,7 @@ export async function initMotion() {
 
   if (mine !== generation) return
 
-  cleanups = [...setupReveals(reduced), ...setupSplitText(reduced)]
+  cleanups = [...setupReveals(reduced), ...setupSlideRight(reduced), ...setupSplitText(reduced)]
   ScrollTrigger.refresh()
 }
 

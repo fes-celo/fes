@@ -32,6 +32,7 @@ import brandingBg from '../../../assets/systems/creative-projects-blueprint/bran
 import eventsBg from '../../../assets/systems/creative-projects-blueprint/events-activations/hero-bg.jpg'
 import videoSeriesBg from '../../../assets/systems/creative-projects-blueprint/podcast-video-series/hero-bg.jpg'
 import DualCta from '../../../components/DualCta.astro'
+import SystemCard from '../../../components/SystemCard.astro'
 
 const blueprints = [
   {
@@ -153,33 +154,16 @@ const faqs = [
       <div class="grid grid-cols-1 gap-7 lg:grid-cols-3">
         {
           blueprints.map((b) => (
-            <a
-              href={b.href}
-              class="bp-card group relative flex min-h-[420px] flex-col justify-between overflow-hidden rounded-[var(--radius-card)] bg-neutral-50 p-[var(--space-card-p)] lg:min-h-[572px]"
-            >
-              <Image
-                src={b.bg}
-                alt=""
-                width={1200}
-                height={882}
-                sizes="(min-width: 1024px) 33vw, 100vw"
-                class="absolute inset-0 size-full object-cover"
-              />
-
-              <h3 class="bp-card-title relative z-10 font-medium text-ink">{b.title}</h3>
-              <p class="relative z-10 max-w-[85%] text-body font-normal text-neutral-900">{b.subheading}</p>
-
-              <div class="relative z-10 flex items-end justify-between gap-4">
-                <ul class="flex flex-col gap-2 text-body-sm text-neutral-900">
-                  {b.questions.map((q) => (
-                    <li>→ {q}</li>
-                  ))}
-                </ul>
-                <span class="flex size-9 shrink-0 items-center justify-center rounded-full border border-ink/30 transition-colors duration-200 group-hover:border-ink group-hover:bg-ink group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                  <span class="chip-arrow size-4 bg-ink transition-colors duration-200 group-hover:bg-white" />
-                </span>
-              </div>
-            </a>
+            <SystemCard href={b.href} title={b.title} image={b.bg} variant="light" class="h-[22rem] lg:h-[419px]">
+              <Fragment slot="subheading">
+                <p class="relative z-10 max-w-[85%] text-body font-normal text-neutral-900">{b.subheading}</p>
+              </Fragment>
+              <ul class="flex flex-col gap-1 text-body-sm text-neutral-900">
+                {b.questions.map((q) => (
+                  <li>→ {q}</li>
+                ))}
+              </ul>
+            </SystemCard>
           ))
         }
       </div>
@@ -208,10 +192,10 @@ const faqs = [
               >
                 <span class="text-h3 text-ink">{f.question}</span>
                 <span
-                  class="flex size-6 shrink-0 items-center justify-center rounded-full border border-neutral-200 text-neutral-400 transition-transform duration-200"
+                  class="flex size-6 shrink-0 items-center justify-center text-neutral-400 transition-transform duration-200"
                   data-faq-icon
                 >
-                  <img src="/icons/icon-plus.svg" alt="" class="size-3" width="12" height="12" />
+                  <img src="/icons/icon-cross.svg" alt="" class="size-3" width="12" height="12" />
                 </span>
               </button>
               <div id={`faq-answer-${i}`} data-faq-panel>
@@ -238,29 +222,6 @@ const faqs = [
 </BaseLayout>
 
 <style>
-  /* "The blueprints" card — duplicated verbatim from SystemsWhatWeDo.astro's
-     .wwd-card/.wwd-card-title (container-query title sizing), since Astro
-     scopes component <style> blocks per-component and this page can't reach
-     them directly. Keep in sync if that design ever changes. */
-  .bp-card {
-    container-type: inline-size;
-  }
-  .bp-card-title {
-    font-size: clamp(1.125rem, calc((100cqw - 3.5rem) / 9.5), 2.75rem);
-    line-height: 1.12;
-    letter-spacing: -0.01em;
-  }
-  .chip-arrow {
-    mask-image: url('/icons/icon-arrow-white.svg');
-    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
-    mask-repeat: no-repeat;
-    -webkit-mask-repeat: no-repeat;
-    mask-position: center;
-    -webkit-mask-position: center;
-    mask-size: contain;
-    -webkit-mask-size: contain;
-  }
-
   /* FAQ accordion: grid-template-rows 0fr/1fr animates height without
      measuring scrollHeight in JS — the inner overflow-hidden div clips the
      collapsed content. Driven entirely by the trigger's aria-expanded, so

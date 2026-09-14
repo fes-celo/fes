@@ -453,6 +453,37 @@ const numberOf = (n: string) => n.replace(/^—\s*/, '')
       }
       measure()
 
+      /**
+       * The one place the track's position is derived from a progress value.
+       *
+       * It exists so that onRefresh can apply it too, not just onUpdate —
+       * which is the whole bug fix. Note that progress 0 is NOT y 0: slot 1
+       * is the anchor, so step 0 rests a full row DOWN (y = +rowHeight) to
+       * leave slot 0 empty above it. The stage's untouched CSS position is
+       * y 0, i.e. exactly where fractionalIndex 1 belongs — so a section
+       * that had never received a scrub frame was rendering STEP 2 in the
+       * anchor slot, and the first frame of the pin then yanked the whole
+       * track down a full row to step 1. That's the "starts on the second
+       * step and then jumps back to the first" report, and it showed up
+       * "sometimes" only because arriving with the pin already mid-range
+       * hides it. ScrollTrigger fires no onUpdate while progress is still
+       * its initial 0, so nothing was ever going to place the track before
+       * the user scrolled — it has to be placed at refresh time.
+       *
+       * Calling it from onRefresh fixes the resize case for free as well:
+       * rowHeight was being re-measured there while the transform built
+       * from the OLD rowHeight stayed on screen until the next scroll frame.
+       */
+      const render = (progress: number) => {
+        const fractionalIndex = progress * lastIndex
+        // Slot 1 is the anchor: subtracting 1 before scaling by rowHeight
+        // is what leaves slot 0 blank for step 0 (fractionalIndex 0 → a
+        // full row of empty space above) and brings the previous step
+        // into view above the active one for every step after.
+        gsap.set(stage, { y: -(fractionalIndex - 1) * rowHeight })
+        setActive(Math.round(fractionalIndex))
+      }
+
       let activeIndex = 0
       function setActive(index: number) {
         if (index === activeIndex) return
@@ -489,16 +520,14 @@ const numberOf = (n: string) => n.replace(/^—\s*/, '')
         scrub: true,
         invalidateOnRefresh: true,
         snap: { snapTo: 1 / lastIndex, duration: 0.35, ease: 'power2.inOut' },
-        onRefresh: measure,
-        onUpdate: (self) => {
-          const fractionalIndex = self.progress * lastIndex
-          // Slot 1 is the anchor: subtracting 1 before scaling by rowHeight
-          // is what leaves slot 0 blank for step 0 (fractionalIndex 0 → a
-          // full row of empty space above) and brings the previous step
-          // into view above the active one for every step after.
-          gsap.set(stage, { y: -(fractionalIndex - 1) * rowHeight })
-          setActive(Math.round(fractionalIndex))
+        // Measure THEN paint, both on every refresh — the initial one
+        // included, which is what puts step 0 in the anchor slot before the
+        // section is ever scrolled into. See `render` above.
+        onRefresh: (self) => {
+          measure()
+          render(self.progress)
         },
+        onUpdate: (self) => render(self.progress),
       })
 
       // Belt-and-braces re-measure on resize, so a resize can never leave the

@@ -310,7 +310,7 @@ const selectedProjects = [
     {/* ---------- 3. Introduction ---------- */}
     <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
       <div class="flex flex-col gap-10 lg:flex-row lg:gap-7">
-        <Heading as="p" class="text-h2 text-ink lg:w-1/2">
+        <Heading as="p" indent={false} class="text-h2 text-ink lg:w-1/2">
           A system that helps companies and leaders build reputation and earn relevance in their market.
         </Heading>
         <div class="flex flex-col gap-6 text-lead text-ink lg:w-1/2">
@@ -464,6 +464,11 @@ const selectedProjects = [
     --color-ink-muted: var(--color-neutral-400);
     --color-line: var(--color-neutral-800);
     --color-accent-tint: var(--color-neutral-900);
+    /* SystemExpertiseRotator's rest/fill pair — same "barely there at rest,
+       fully arrived once filled" logic as the light default, mirrored for a
+       near-black surface. */
+    --rotator-rest: var(--color-neutral-800);
+    --rotator-fill: var(--color-neutral-100);
     background-color: var(--color-surface);
   }
 

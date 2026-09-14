@@ -87,6 +87,14 @@ export function horizontalLoop(
       startX +
       spaceBefore[0]! +
       last.offsetWidth * (gsap.getProperty(last, 'scaleX') as number) +
+      // The last item's own trailing margin. `offsetWidth` stops at the border
+      // box, so without this the loop's period is one gap SHORT of the strip's
+      // real pitch — every item that wraps lands flush against the item ahead
+      // of it, and the seam reads as two cards glued together while every other
+      // pair keeps its gap. Every track here spaces its cells with margin-right
+      // (the addons cards, LogoMarquee's `mr-12`/`lg:mr-20`), so this is the gap
+      // that belongs after the last one too.
+      parseFloat(gsap.getProperty(last, 'marginRight', 'px') as string) +
       (config.paddingRight ?? 0)
     )
   }
@@ -164,6 +172,11 @@ export function horizontalLoop(
   }
 
   const next = (vars: gsap.TweenVars = {}) => {
+    // Copied rather than mutated in place — callers (e.g. SystemAddonsCarousel's
+    // autoplay tick) reuse the same `vars` object across every call, so writing
+    // `modifiers`/`overwrite` onto it directly would leak the wrap-point's
+    // `modifiers` into every later, non-wrapping tween too.
+    vars = { ...vars }
     // Recomputed from the timeline's actual current time rather than a
     // remembered index — a manual drag moves `tl`'s playhead without going
     // through this function, so trusting a stale index would tween from the

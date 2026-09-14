@@ -1,0 +1,243 @@
+---
+/**
+ * Shared "system card" shell — the photo card used by the homepage/Systems
+ * "What we do" grid and the Creative Projects Blueprint hub's "The
+ * blueprints" grid. One template so the two stay in sync automatically,
+ * replacing a hand-copied second version of this card's CSS that used to
+ * live on the Blueprint hub page (Astro scopes component `<style>` blocks
+ * per-component, which is how that copy drifted — 4px radius instead of
+ * this one's 8px, and a translate-on-hover arrow this one doesn't have).
+ *
+ * `variant` picks the two color skins already in use: `dark` (white text
+ * over a photo, homepage/Systems hub) and `light` (ink text over a photo,
+ * Blueprint hub). Each keeps its own arrow-chip fill color so both existing
+ * looks survive the merge unchanged — only the shell (radius, arrow
+ * shape/motion, title underline) is unified.
+ *
+ * Height is deliberately NOT part of this shell — pass it via `class`.
+ *
+ * The arrow chip is already filled (no color transition) and reveals on
+ * hover/focus with a GSAP fade + 8px slide-in from the left (see the
+ * <script> below) — `(hover: none)` devices (touch, no pointer to hover
+ * with) skip all of that and keep it always visible instead, since they'll
+ * never fire the hover that would reveal it.
+ *
+ * The title's hover underline is NOT UnderlineLink (that component's own
+ * docstring says it's for a single-line CTA run): its one box spans the
+ * widest line, so on a title that wraps to two lines the "line" drew under
+ * the SHORT second line at the LONG first line's width — wrong shape,
+ * floating well past the actual word.
+ *
+ * It is also not a `background-image` wipe (`background-size: 0%→100%`).
+ * That version wrapped correctly, but a background box cannot skip-ink —
+ * only `text-decoration` can — so it had to be pushed clear of the
+ * descenders in "Digital", "System", "Project", "Branding" with padding,
+ * which left the line visibly detached from the word. The usual fix for
+ * that (knocking descenders out with `text-shadow` in the background
+ * colour) is unavailable here: these cards sit on a photo, so there is no
+ * flat colour to paint the notch with.
+ *
+ * So: a real `text-decoration: underline` — skip-ink and all, tucked in
+ * close with `text-underline-offset` — drawn on an `aria-hidden` duplicate
+ * of the title, absolutely positioned over the real one with its glyphs
+ * knocked out by `-webkit-text-fill-color: transparent` (which is why the
+ * decoration needs a colour of its own; see `--sys-card-rule` below). The
+ * duplicate inherits the same font and box, so it wraps identically; the
+ * animation is a `clip-path` inset wiping off its right edge, which
+ * reveals the decoration left→right without touching the real text
+ * underneath.
+ */
+import { Image } from 'astro:assets'
+import type { ImageMetadata } from 'astro'
+
+interface Props {
+  href: string
+  title: string
+  image: ImageMetadata
+  overlay?: ImageMetadata | null
+  variant?: 'dark' | 'light'
+  class?: string
+}
+
+const { href, title, image, overlay = null, variant = 'dark', class: className } = Astro.props
+const isDark = variant === 'dark'
+---
+
+<a
+  href={href}
+  class:list={[
+    'sys-card group relative flex flex-col justify-between overflow-hidden rounded-[var(--radius-control)] p-[var(--space-card-p)]',
+    isDark ? 'bg-neutral-900' : 'sys-card--light bg-neutral-50',
+    className,
+  ]}
+  data-sys-card
+>
+  <Image
+    src={image}
+    alt=""
+    width={1200}
+    height={882}
+    sizes="(min-width: 1024px) 33vw, 100vw"
+    class="absolute inset-0 size-full object-cover"
+  />
+  {
+    overlay && (
+      <Image
+        src={overlay}
+        alt=""
+        width={640}
+        height={360}
+        class="absolute inset-x-0 bottom-0 h-full w-full object-cover object-bottom"
+      />
+    )
+  }
+
+  <h3 class:list={['sys-card-title relative z-10 font-medium', isDark ? 'text-white' : 'text-ink']}>
+    {title}
+    <span class="sys-card-title-rule" aria-hidden="true">{title}</span>
+  </h3>
+
+  <slot name="subheading" />
+
+  <div class="relative z-10 flex items-end justify-between gap-4">
+    <slot />
+    <span
+      class:list={['sys-card-arrow flex size-10 shrink-0 items-center justify-center rounded-full', isDark ? 'bg-accent-50' : 'bg-ink']}
+      aria-hidden="true"
+    >
+      <span class:list={['sys-card-arrow-glyph size-4 shrink-0', isDark ? 'bg-neutral-950' : 'bg-white']} />
+    </span>
+  </div>
+</a>
+
+<style>
+  /* Container-query title sizing, same technique as ProjectCard.astro's
+     .card-title (dark-card variant) — divisor re-tuned for this design's
+     smaller 38px desktop cap instead of that one's 56px. */
+  .sys-card {
+    container-type: inline-size;
+
+    /* The underline cannot ride `currentColor` — see .sys-card-title-rule
+       below — so each skin names its own ink for it here. */
+    --sys-card-rule: var(--color-white);
+  }
+
+  .sys-card--light {
+    --sys-card-rule: var(--color-ink);
+  }
+
+  .sys-card-title {
+    font-size: clamp(1.125rem, calc((100cqw - 3.5rem) / 9.5), 2.75rem);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+  }
+
+  /* The wipe-in underline: a copy of the title, stacked exactly over the
+     real one and inked only in its decoration. `inset: 0` gives it the
+     h3's own box, and it inherits the h3's font, so it breaks its lines in
+     the same places — every wrapped line gets its own underline at its own
+     width, which is what the single-box UnderlineLink could not do.
+
+     `clip-path` wipes the whole block from the right, so on a two-line
+     title both lines are revealed by one left→right sweep rather than
+     racing each other to their separate widths. */
+  .sys-card-title-rule {
+    position: absolute;
+    inset: 0;
+    -webkit-text-fill-color: transparent;
+    text-decoration-line: underline;
+    /* Explicit, NOT `currentColor`: Blink resolves a currentColor
+       decoration through `-webkit-text-fill-color`, so the underline would
+       inherit the very transparency that hides this copy's glyphs and
+       nothing would paint at all. */
+    text-decoration-color: var(--sys-card-rule);
+    text-decoration-thickness: max(2px, 0.055em);
+    text-decoration-skip-ink: auto;
+    text-underline-offset: 0.12em;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 0.45s ease-out;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .group:hover .sys-card-title-rule,
+  .group:focus-visible .sys-card-title-rule {
+    clip-path: inset(0 0 0 0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sys-card-title-rule {
+      transition: none;
+    }
+  }
+
+  .sys-card-arrow-glyph {
+    mask-image: url('/icons/icon-arrow-white.svg');
+    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-position: center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+  }
+</style>
+
+<script>
+  import { gsap } from 'gsap'
+
+  // Same hover-motion language as UnderlineLink.astro's CTA underline: a
+  // quicker power2.out on the way in, power2.in on the way out.
+  const SHOW = { duration: 0.45, ease: 'power2.out' }
+  const HIDE = { duration: 0.35, ease: 'power2.in' }
+  const OFFSET_X = 8
+
+  let cleanups: Array<() => void> = []
+
+  function setupCardArrows() {
+    // (hover: none) devices never fire mouseenter/focusin — the arrow stays
+    // in its plain, always-visible resting markup for them instead of
+    // getting hidden by a reveal that can never trigger.
+    if (!window.matchMedia('(hover: hover)').matches) return
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    document.querySelectorAll<HTMLElement>('[data-sys-card]').forEach((card) => {
+      const arrow = card.querySelector<HTMLElement>('.sys-card-arrow')
+      if (!arrow) return
+
+      gsap.set(arrow, { opacity: 0, x: -OFFSET_X })
+
+      const show = () => {
+        gsap.killTweensOf(arrow)
+        gsap.to(arrow, { opacity: 1, x: 0, duration: reduced ? 0 : SHOW.duration, ease: SHOW.ease })
+      }
+      const hide = () => {
+        gsap.killTweensOf(arrow)
+        gsap.to(arrow, { opacity: 0, x: -OFFSET_X, duration: reduced ? 0 : HIDE.duration, ease: HIDE.ease })
+      }
+
+      card.addEventListener('mouseenter', show)
+      card.addEventListener('mouseleave', hide)
+      card.addEventListener('focusin', show)
+      card.addEventListener('focusout', hide)
+
+      cleanups.push(() => {
+        gsap.killTweensOf(arrow)
+        card.removeEventListener('mouseenter', show)
+        card.removeEventListener('mouseleave', hide)
+        card.removeEventListener('focusin', show)
+        card.removeEventListener('focusout', hide)
+        gsap.set(arrow, { clearProps: 'opacity,transform' })
+      })
+    })
+  }
+
+  function teardownCardArrows() {
+    cleanups.forEach((fn) => fn())
+    cleanups = []
+  }
+
+  document.addEventListener('astro:page-load', setupCardArrows)
+  document.addEventListener('astro:before-swap', teardownCardArrows)
+</script>

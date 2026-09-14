@@ -70,28 +70,27 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
     /* Fixed size in CSS, per horizontalLoop's measure note: the loop
        geometry has to be correct before any content reflows it. Mobile
        matches SystemProblemCards' ("Sound familiar?") own mobile card; the
-       desktop rule below matches its PINNED card, which is the state the two
+       desktop rule below matches its width, which is the state the two
        sections are actually seen in next to each other. */
     width: 80vw;
     max-width: 26rem;
-    height: 28.625rem;
-    margin-right: 1.75rem;
+    aspect-ratio: 3 / 4;
+    margin-right: 1.25rem;
     flex-shrink: 0;
     padding: var(--space-card-p);
-    border-radius: var(--radius-card);
+    border-radius: var(--radius-control);
     background-color: var(--color-azure-50);
   }
 
-  /* 3:4 at the same 30rem height as SystemProblemCards' pinned cards, so
-     both card rows on the page are one size. Kept as literals rather than
-     shared tokens: this component is a sibling, not a child, of that one — a
-     custom property can't cross between them without being promoted to a
-     global, which would put page-section geometry into the token layer. */
+  /* Same width as SystemProblemCards' pinned card, so both card rows on the
+     page are one size. Kept as a literal rather than a shared token: this
+     component is a sibling, not a child, of that one — a custom property
+     can't cross between them without being promoted to a global, which
+     would put page-section geometry into the token layer. */
   @media (min-width: 1024px) {
     .addons__card {
       width: 22.5rem;
       max-width: none;
-      height: 30rem;
     }
   }
 </style>
