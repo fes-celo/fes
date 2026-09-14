@@ -291,9 +291,17 @@
      calibration (24px at 1440) scaled up by 5/3 per brand direction, so it
      renders 40px at 1440 and 53px at 1920. Unlike the type scale its max is
      capped at the 1920 value rather than F×4/3 — past that width the logo
-     stops growing instead of continuing to 2560. */
+     stops growing instead of continuing to 2560.
+
+     The 2.7778vw term only overtakes the floor once the viewport passes
+     ~1200px, so every phone/tablet width was rendering the logo at that
+     flat floor — the actual "mobile size". Raised from 2.083rem (33px) to
+     2.75rem (44px) so it reads clearly in the mobile header instead of
+     looking undersized next to the Menu button; the floor now holds until
+     ~1584px, then blends up to the same 3.333rem (53px) max at 1920 as
+     before. */
   --space-gutter: clamp(0.75rem, 3.125vw, 5rem);
-  --nav-logo-h: clamp(2.083rem, 2.7778vw, 3.333rem);
+  --nav-logo-h: clamp(2.75rem, 2.7778vw, 3.333rem);
 
   /*
     Vertical rhythm, previously the one axis that ignored this scale: every
