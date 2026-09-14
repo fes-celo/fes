@@ -285,22 +285,35 @@
   --text-eyebrow--font-weight: 500;
 
   /* ---------- 4. Spacing / radius / elevation ---------- */
-  /* Fluid, same 1920/1440 derivation as the type scale above. --space-gutter
-     mirrors the artboard's 60px page margin (F=60) — the site's horizontal
-     page margin, and nothing else (see the split below). --nav-logo-h is the previous
-     calibration (24px at 1440) scaled up by 5/3 per brand direction, so it
-     renders 40px at 1440 and 53px at 1920. Unlike the type scale its max is
-     capped at the 1920 value rather than F×4/3 — past that width the logo
-     stops growing instead of continuing to 2560.
+  /*
+    Horizontal page margin — the site's one gutter, and nothing else (see
+    the split below).
 
-     The 2.7778vw term only overtakes the floor once the viewport passes
-     ~1200px, so every phone/tablet width was rendering the logo at that
-     flat floor — the actual "mobile size". Raised from 2.083rem (33px) to
-     2.75rem (44px) so it reads clearly in the mobile header instead of
-     looking undersized next to the Menu button; the floor now holds until
-     ~1584px, then blends up to the same 3.333rem (53px) max at 1920 as
-     before. */
-  --space-gutter: clamp(0.75rem, 3.125vw, 5rem);
+    Re-derived on the same two-point basis as the type scale: 12px at a
+    375px viewport, 40px at 1920, capped at that line's value at 2560. The
+    artboard specifies a 60px margin at 1920 (F=60, the old flat `3.125vw`
+    line) — this runs DELIBERATELY tighter than spec, per direct request
+    for a narrower page margin across the site. The 1920 anchor is where
+    that decision lives; retune it there rather than by bending the floor
+    or the cap.
+
+    The mobile floor is unchanged at 12px and, as before, stops binding at
+    ~375px, so phones render within ~0.1px of their previous gutter and
+    this reads as a desktop/tablet change in practice:
+
+        768   19px  (was 24)
+        1024  24px  (was 32)
+        1440  31px  (was 45)
+        1920  40px  (was 60)
+        2560  52px  (was 80, the old cap)
+
+    Note that the two hardcoded compositional insets do NOT track this and
+    were left alone: the testimonial carousels' `lg:px-[25vw]` (which has
+    card-positioning maths in JS keyed to it) and --space-heading-indent
+    below, whose indent is measured from this margin and so now begins
+    further left.
+  */
+  --space-gutter: clamp(0.75rem, calc(0.3252rem + 1.8123vw), 3.2249rem); /* 12 → 40 */
 
   /*
     --space-gutter used to carry three unrelated jobs at once: the page
@@ -318,6 +331,18 @@
   */
   --space-page-top: clamp(0.75rem, 3.125vw, 5rem);
   --space-nav-gap: clamp(0.75rem, 3.125vw, 5rem);
+  /* The previous calibration (24px at 1440) scaled up by 5/3 per brand
+     direction, so it renders 40px at 1440 and 53px at 1920. Unlike the type
+     scale its max is capped at the 1920 value rather than F×4/3 — past that
+     width the logo stops growing instead of continuing to 2560.
+
+     The 2.7778vw term only overtakes the floor once the viewport passes
+     ~1200px, so every phone/tablet width was rendering the logo at that
+     flat floor — the actual "mobile size". Raised from 2.083rem (33px) to
+     2.75rem (44px) so it reads clearly in the mobile header instead of
+     looking undersized next to the Menu button; the floor now holds until
+     ~1584px, then blends up to the same 3.333rem (53px) max at 1920 as
+     before. */
   --nav-logo-h: clamp(2.75rem, 2.7778vw, 3.333rem);
 
   /*
