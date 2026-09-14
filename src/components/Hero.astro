@@ -75,7 +75,7 @@ import Heading from './Heading.astro'
   })()
 </script>
 <section
-  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
+  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
   style={`height: var(--hero-vh, 100lvh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
 >
   {
@@ -93,7 +93,17 @@ import Heading from './Heading.astro'
   {
     /* Stops follow an ease-out curve (via larsenwork.com/easing-gradients)
        rather than a plain 2-stop linear-gradient, whose constant alpha
-       ramp reads as a harsh band before fading to nothing. */
+       ramp reads as a harsh band before fading to nothing.
+
+       This is 48px of near-white sitting over the bottom of the hero, and
+       the lead below it is text-neutral-50 — so it sets a FLOOR on the
+       section's mobile bottom padding, which is why that padding is 4rem
+       up to `lg` rather than the gutter the other three sides use. At the
+       gutter's 12px the lead's last two lines landed 36px inside this
+       gradient, on a ground ~64% white. The two share the `lg` breakpoint
+       deliberately: this element is `lg:hidden`, so the padding can drop
+       to the gutter at exactly the width where the gradient stops
+       painting. Move one and the other has to move with it. */
   }
   <div
     aria-hidden="true"
