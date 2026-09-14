@@ -166,7 +166,7 @@ const selectedProjects = [
 >
   {/* ---------- 1. Hero ---------- */}
   <section
-    class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-page-top)] pb-[var(--space-section-y)] supports-[height:100dvh]:min-h-dvh"
+    class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-gutter)] supports-[height:100dvh]:min-h-dvh"
   >
     <Image
       src={heroBg}
@@ -181,7 +181,7 @@ const selectedProjects = [
     />
 
     <nav aria-label="Primary" class="relative z-10">
-      <div class="flex items-center justify-between gap-6">
+      <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
           <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
         </a>
@@ -215,7 +215,7 @@ const selectedProjects = [
 
     <div class="relative z-10 flex flex-col gap-9 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
       <div class="flex flex-col gap-9">
-        <Heading as="h1" indent={false} class="max-w-[16ch] text-display text-ink lg:max-w-[50vw]" data-anim="split-text">
+        <Heading as="h1" indent={false} class="text-display text-balance text-ink" data-anim="split-text">
           Turn expertise into influence
         </Heading>
         <p class="text-body text-ink" data-anim="reveal">Creative Projects Blueprint · Podcast & Video-Series</p>

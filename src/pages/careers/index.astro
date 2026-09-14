@@ -116,7 +116,7 @@ const alumniFeedback = [
   hideHeader
   bordered
 >
-  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-neutral-950 px-[var(--space-gutter)] pt-[var(--space-page-top)] pb-[var(--space-section-y)]">
+  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-neutral-950 px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-gutter)]">
     {
       /* Cursor image trail (see the file-level note above for the photo
          source and the <script> below for the animation). Sits above the
@@ -130,7 +130,7 @@ const alumniFeedback = [
     ></div>
 
     <nav aria-label="Primary" class="relative z-10">
-      <div class="flex items-center justify-between gap-6">
+      <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
           <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
         </a>
@@ -160,12 +160,11 @@ const alumniFeedback = [
 
     <div class="relative z-10">
       {
-        /* Was max-w-[636px] — far too tight for text-display's font-size,
-           wrapping to 8+ lines even at the 1440 reference width. ch scales
-           with the element's own font-size so the wrap stays proportional
-           as the fluid type scale grows with the viewport. */
+        /* Runs the full width of the gutter, like every other hero title —
+           see the note in Hero.astro. Previously capped at max-w-[636px],
+           then at 22ch/50vw. */
       }
-      <Heading as="h1" indent={false} class="max-w-[22ch] text-display text-neutral-50 lg:max-w-[50vw]" data-anim="split-text">
+      <Heading as="h1" indent={false} class="text-display text-balance text-neutral-50" data-anim="split-text">
         Work on the brands that define Portugal's tech scene.
       </Heading>
       <p class="mt-6 max-w-2xl text-lead text-neutral-50" data-anim="reveal">

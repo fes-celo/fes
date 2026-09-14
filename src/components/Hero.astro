@@ -75,7 +75,7 @@ import Heading from './Heading.astro'
   })()
 </script>
 <section
-  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-page-top)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(120px_+_var(--hero-chrome,0px))]"
+  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
   style={`height: var(--hero-vh, 100lvh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
 >
   {
@@ -103,7 +103,7 @@ import Heading from './Heading.astro'
   </div>
 
   <nav aria-label="Primary" class="relative z-10">
-    <div class="flex items-center justify-between gap-6">
+    <div class="flex items-start justify-between gap-6">
       <a href="/" class="shrink-0">
         <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
       </a>
@@ -133,13 +133,20 @@ import Heading from './Heading.astro'
 
   <div class="relative z-10">
     {
-      /* max-w in ch, not a fixed px value: text-display's font-size is
-         fluid (see global.css), so a fixed px cap wraps progressively
-         tighter as the viewport (and font) grows past the 1440 reference —
-         2 lines at 1440 became 4 at 2560. ch scales with the element's own
-         font-size, so the wrap point stays proportional. */
+      /* No max-width: the headline wraps at the gutter, per brand direction
+         that hero titles run the full measure of the page. It previously
+         carried a `22ch` / `lg:50vw` cap — ch rather than px, so the wrap
+         point stayed proportional as text-display's fluid size grew. That
+         reasoning still holds for any heading that DOES want a cap; it just
+         no longer applies here, where the container edge is the wrap point.
+
+         The tradeoff this accepts: at very wide viewports the line length
+         runs past a comfortable reading measure. That's deliberate for
+         display type, where line length is a composition decision — see
+         --measure-prose in global.css, which is the token for the cases
+         where it isn't. */
     }
-    <Heading as="h1" indent={false} class="max-w-[22ch] text-display text-neutral-50 lg:max-w-[50vw]" data-anim="split-text">
+    <Heading as="h1" indent={false} class="text-display text-balance text-neutral-50" data-anim="split-text">
       We make tech companies impossible to ignore
     </Heading>
     <p class="mt-6 max-w-2xl text-lead text-neutral-50" data-anim="reveal">
