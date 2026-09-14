@@ -75,7 +75,7 @@ import Heading from './Heading.astro'
   })()
 </script>
 <section
-  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(120px_+_var(--hero-chrome,0px))]"
+  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-page-top)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(120px_+_var(--hero-chrome,0px))]"
   style={`height: var(--hero-vh, 100lvh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
 >
   {
@@ -107,7 +107,7 @@ import Heading from './Heading.astro'
       <a href="/" class="shrink-0">
         <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
       </a>
-      <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+      <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
         {
           navItems.map((item) => (
             <li>

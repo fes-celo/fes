@@ -286,8 +286,8 @@
 
   /* ---------- 4. Spacing / radius / elevation ---------- */
   /* Fluid, same 1920/1440 derivation as the type scale above. --space-gutter
-     mirrors the artboard's 60px page margin (F=60) — used for the header's
-     horizontal padding and its nav-item gap. --nav-logo-h is the previous
+     mirrors the artboard's 60px page margin (F=60) — the site's horizontal
+     page margin, and nothing else (see the split below). --nav-logo-h is the previous
      calibration (24px at 1440) scaled up by 5/3 per brand direction, so it
      renders 40px at 1440 and 53px at 1920. Unlike the type scale its max is
      capped at the 1920 value rather than F×4/3 — past that width the logo
@@ -301,6 +301,23 @@
      ~1584px, then blends up to the same 3.333rem (53px) max at 1920 as
      before. */
   --space-gutter: clamp(0.75rem, 3.125vw, 5rem);
+
+  /*
+    --space-gutter used to carry three unrelated jobs at once: the page
+    margin above, the top padding of every hero/nav block (21 `pt-` uses),
+    and the desktop nav's item gap (19 `lg:gap-` uses). They shared one
+    number by accident of origin rather than by design — the gutter was
+    simply the value at hand — which meant the page margin could not be
+    retuned without dragging the nav's rhythm and the page's top edge along
+    with it.
+
+    Split out here AT TODAY'S VALUE, so this separation renders identically
+    and only makes the three independently adjustable. If a future change
+    does want them to track each other again, say so explicitly with
+    `var(--space-gutter)` rather than collapsing them back into one token.
+  */
+  --space-page-top: clamp(0.75rem, 3.125vw, 5rem);
+  --space-nav-gap: clamp(0.75rem, 3.125vw, 5rem);
   --nav-logo-h: clamp(2.75rem, 2.7778vw, 3.333rem);
 
   /*

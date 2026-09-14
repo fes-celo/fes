@@ -14,12 +14,12 @@ import { navItems } from '../../lib/nav'
   description="How FES Agency collects, uses and protects personal data of users of this website."
   hideHeader
 >
-  <nav aria-label="Primary" class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)]">
+  <nav aria-label="Primary" class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-page-top)]">
     <div class="flex items-center justify-between gap-6">
       <a href="/" class="shrink-0">
         <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
       </a>
-      <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+      <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
         {
           navItems.map((item) => (
             <li>

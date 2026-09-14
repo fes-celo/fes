@@ -69,7 +69,7 @@ const faqs = [
   hideHeader
   bordered
 >
-  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]">
+  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-page-top)] pb-[var(--space-section-y)]">
     <Image
       src={heroLight}
       alt=""
@@ -83,7 +83,7 @@ const faqs = [
         <a href="/" class="shrink-0">
           <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
         </a>
-        <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+        <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
           {
             navItems.map((item) => (
               <li>

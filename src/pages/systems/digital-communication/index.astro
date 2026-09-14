@@ -224,7 +224,7 @@ const selectedProjects = [
   <div class="dark-zone">
     {/* ---------- 1. Hero ---------- */}
     <section
-      class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)] supports-[height:100dvh]:min-h-dvh"
+      class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-surface px-[var(--space-gutter)] pt-[var(--space-page-top)] pb-[var(--space-section-y)] supports-[height:100dvh]:min-h-dvh"
     >
       <Image
         src={heroBg}
@@ -247,7 +247,7 @@ const selectedProjects = [
           <a href="/" class="shrink-0">
             <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
           </a>
-          <ul class="hidden items-center lg:flex lg:gap-[var(--space-gutter)]">
+          <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
             {
               navItems.map((item) => (
                 <li>
