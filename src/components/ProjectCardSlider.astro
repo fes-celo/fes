@@ -85,7 +85,11 @@ const descriptionClasses: Record<string, string> = {
           />
         ))
       ) : (
-        <PlaceholderBlock alt={`[Slider photos for ${title} — drop into the project's selected-projects folder]`} class="size-full" />
+        <PlaceholderBlock
+          tone="tint"
+          alt={`[Slider photos for ${title} — drop into the project's selected-projects folder]`}
+          class="size-full"
+        />
       )
     }
   </div>

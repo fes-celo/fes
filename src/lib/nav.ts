@@ -16,18 +16,14 @@ export const navItems = [
 // /resources/ sub-paths as the most likely eventual home.
 export const footerItems = [
   { label: 'Newsletter', href: '/resources/newsletter/' },
-  { label: 'Entrepreneur Spotlight', href: '/resources/entrepreneur-spotlight/' },
   { label: 'Tech Refresh', href: '/tech-refresh/' },
   { label: 'Careers', href: '/careers/' },
   { label: 'Contact', href: '/contact/' },
 ]
 
-// TODO: real profile URLs aren't documented anywhere in the project yet —
-// these are placeholders until FES Agency's actual social links are
-// confirmed.
 export const socialItems = [
-  { label: 'Facebook', href: '#' },
-  { label: 'Linkedin', href: '#' },
-  { label: 'Instagram', href: '#' },
-  { label: 'Behance', href: '#' },
+  { label: 'Facebook', href: 'https://www.facebook.com/wearefesagency' },
+  { label: 'Linkedin', href: 'https://www.linkedin.com/company/wearefesagency' },
+  { label: 'Instagram', href: 'http://instagram.com/wearefesagency' },
+  { label: 'Behance', href: 'https://www.behance.net/wearefesagency' },
 ]

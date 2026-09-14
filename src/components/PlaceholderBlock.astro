@@ -7,7 +7,7 @@
  */
 interface Props {
   alt: string
-  tone?: 'accent' | 'clay' | 'neutral'
+  tone?: 'accent' | 'clay' | 'neutral' | 'tint'
   class?: string
 }
 
@@ -17,6 +17,12 @@ const toneClasses: Record<string, string> = {
   accent: 'bg-accent-100',
   clay: 'bg-clay-100',
   neutral: 'bg-neutral-200',
+  // The only theme-aware tone: `--color-accent-tint` is a semantic token the
+  // Systems pages' `.dark-zone`/`.reveal-zone` re-point at neutral-900, so a
+  // placeholder sitting inside one of those zones goes dark with it instead
+  // of staying a fixed pale blue. Use it wherever the placeholder fills a
+  // `bg-accent-tint` image well (ProjectCard's featured variant).
+  tint: 'bg-accent-tint',
 }
 ---
 

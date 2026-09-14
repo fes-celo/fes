@@ -44,8 +44,8 @@ const team = [
   { name: 'Beatriz Ventura', role: 'Intern', src: beatriz },
   { name: 'Marcelo Nunes', role: 'Communication Designer', src: marcelo },
   { name: 'Cláudia Barros', role: 'Communication Designer', src: claudia },
-  { name: 'Diana Maia', role: 'Marketing Manager & Business Developer', src: diana },
-  { name: 'Maria Dias', role: 'Events & Operations Manager', src: maria },
+  { name: 'Diana Maia', role: 'Strategist', src: diana },
+  { name: 'Maria Dias', role: 'Events Manager', src: maria },
 ]
 
 const behaviours = [
@@ -87,9 +87,10 @@ const pillars = [
   },
 ]
 
-// Same six logos as the homepage "Trusted by" marquee (node 770:341's
-// client set) — Figma renders them monochrome here (grayscale filter) in a
-// static bordered row instead of the homepage's animated marquee.
+// Same client logos as the homepage "Trusted by" marquee (see
+// src/lib/clients.ts) — Figma renders them monochrome here (grayscale
+// filter) in a static bordered row instead of the homepage's animated
+// marquee.
 ---
 
 <BaseLayout
@@ -238,43 +239,17 @@ const pillars = [
 </BaseLayout>
 
 <script>
-  // Team-photo drag-scroll mirrors the homepage testimonial carousel's
-  // mousedown/mousemove approach.
+  // Team-photo drag mirrors the homepage/Careers testimonial carousels: same
+  // press-scale + magnetic snap-to-nearest-card mechanic (see
+  // src/lib/dragCarousel.ts) instead of a plain mousedown/mousemove scroll.
+  import { createDragCarousel } from '../../lib/dragCarousel'
+
   let teamDragCleanup: (() => void) | null = null
 
   function setupTeamDrag() {
     const track = document.querySelector<HTMLElement>('[data-team-track]')
     if (!track) return null
-
-    let isDown = false
-    let startX = 0
-    let startScroll = 0
-
-    function onDown(e: MouseEvent) {
-      isDown = true
-      track!.classList.add('select-none')
-      startX = e.pageX
-      startScroll = track!.scrollLeft
-    }
-    function onUp() {
-      isDown = false
-      track!.classList.remove('select-none')
-    }
-    function onMove(e: MouseEvent) {
-      if (!isDown) return
-      e.preventDefault()
-      track!.scrollLeft = startScroll - (e.pageX - startX)
-    }
-
-    track.addEventListener('mousedown', onDown)
-    window.addEventListener('mouseup', onUp)
-    window.addEventListener('mousemove', onMove)
-
-    return () => {
-      track.removeEventListener('mousedown', onDown)
-      window.removeEventListener('mouseup', onUp)
-      window.removeEventListener('mousemove', onMove)
-    }
+    return createDragCarousel(track, { cardSelector: 'figure' })
   }
 
   function init() {

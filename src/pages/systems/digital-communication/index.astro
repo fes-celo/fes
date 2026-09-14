@@ -175,13 +175,6 @@ const selectedProjects = [
     thumbnail: undefined,
   },
   {
-    href: '/projects/setof/',
-    title: 'SETOF',
-    description:
-      'An SEO strategy built to capture higher-intent demand, driving a 35% increase in bookings in 2025 compared with the same period the year before.',
-    thumbnail: undefined,
-  },
-  {
     href: '/projects/we-want-you/',
     title: 'Natixis',
     description: 'A multichannel recruitment campaign generating 1,809 started applications at a cost per application of €1.66.',
@@ -289,7 +282,7 @@ const selectedProjects = [
           </Heading>
           <p class="text-body text-ink" data-anim="reveal">Digital Communication System</p>
         </div>
-        <p class="shrink-0 text-body text-ink lg:text-right" data-anim="reveal">Duration: 6 months</p>
+        <p class="shrink-0 text-body text-ink lg:text-right" data-anim="reveal">Duration: 6 months (minimum)</p>
       </div>
     </section>
 
@@ -492,15 +485,29 @@ const selectedProjects = [
     const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
     if (cards.length === 0) return
 
+    // fromTo, never from, for the opacity half of this reveal. A `from` tween
+    // derives its END value by clearing the inline style and reading the
+    // card's computed opacity straight back out of the DOM — and
+    // ScrollTrigger.refresh() re-runs that revert-and-measure pass. If
+    // anything in CSS transitions opacity on these cards, that read returns
+    // the mid-transition value (i.e. the 0 the tween itself just wrote), the
+    // reveal records 0 as its target, and the row animates 0 → 0: laid out,
+    // moving, permanently invisible. That exact bug shipped once already —
+    // see the [data-project-card] note in src/styles/global.css. Stating both
+    // endpoints keeps the reveal correct no matter what CSS lands on them.
     mm.add(MOTION_FULL, () => {
-      const tween = gsap.from(cards, {
-        opacity: 0,
-        y: 24,
-        duration: 0.8,
-        stagger: 0.08,
-        ease: 'power2.out',
-        scrollTrigger: { trigger: root, start: 'top 85%', once: true },
-      })
+      const tween = gsap.fromTo(
+        cards,
+        { opacity: 0, y: 24 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.08,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: root, start: 'top 85%', once: true },
+        },
+      )
       return () => {
         tween.scrollTrigger?.kill()
         tween.kill()
@@ -509,11 +516,15 @@ const selectedProjects = [
     })
 
     mm.add(MOTION_FALLBACK, () => {
-      const tween = gsap.from(cards, {
-        opacity: 0,
-        duration: 0.4,
-        scrollTrigger: { trigger: root, start: 'top 90%', once: true },
-      })
+      const tween = gsap.fromTo(
+        cards,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.4,
+          scrollTrigger: { trigger: root, start: 'top 90%', once: true },
+        },
+      )
       return () => {
         tween.scrollTrigger?.kill()
         tween.kill()

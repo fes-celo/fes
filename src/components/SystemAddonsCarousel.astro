@@ -116,6 +116,7 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 
 <script>
   import type { HorizontalLoop } from '../lib/horizontalLoop'
+  import { pressCards } from '../lib/dragCarousel'
 
   const SPEED = 0.35
   /** How long each card holds in place before the next ease-forward. */
@@ -160,6 +161,34 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
       })
       if (!loop) return
       loops.push(loop)
+
+      // Same press-scale feedback as the testimonial/team drag carousels
+      // (see src/lib/dragCarousel.ts's pressCards + PRESS_SCALE) — the cards
+      // shrink toward their own center for the duration of the drag, same
+      // gesture, applied here to horizontalLoop's own Draggable instead of
+      // createDragCarousel's. Skipped under reduced motion, matching
+      // createDragCarousel's own bail-out (transform feedback is exactly
+      // what that preference asks to drop) — the loop's native drag itself
+      // still works either way.
+      if (!reducedMotion) {
+        const cards = Array.from(track.querySelectorAll<HTMLElement>('.addons-carousel__card'))
+        const onPress = () => pressCards(cards, true)
+        const onRelease = () => pressCards(cards, false)
+        // Release listeners on `window`, not the track: once a drag starts,
+        // GSAP's Draggable tracks the pointer via document-level listeners
+        // regardless of where it travels, so a release outside the track's
+        // own bounds (dragging past the strip's edge, common with a fast
+        // flick) must still restore scale — a track-scoped `pointerup`/
+        // `pointerleave` would fire on that boundary cross mid-drag instead.
+        track.addEventListener('pointerdown', onPress)
+        window.addEventListener('pointerup', onRelease)
+        window.addEventListener('pointercancel', onRelease)
+        cleanups.push(() => {
+          track.removeEventListener('pointerdown', onPress)
+          window.removeEventListener('pointerup', onRelease)
+          window.removeEventListener('pointercancel', onRelease)
+        })
+      }
 
       // Reduced motion: drag still works (paused: true above already
       // covers that), but nothing advances on its own.

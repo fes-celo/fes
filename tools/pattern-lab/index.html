@@ -1,0 +1,1136 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FES — Pattern Lab</title>
+<style>
+/*
+  Chrome da tool: monocromático, mono, um único acento. Fica deliberadamente
+  neutro para não competir com a cor da peça, que é o que estamos a julgar.
+  Sem web fonts — em file:// o carregamento de fontes é bloqueado por CORS.
+*/
+:root{
+  --bg:#0A0A0A; --panel:#101010; --sunken:#050505; --stage:#070707;
+  --line:#1F1F1F; --line-2:#2E2E2E;
+  --ink:#EDEDED; --ink-2:#8C8C8C; --ink-3:#5A5A5A;
+  --acc:#FF5C00;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --head:44px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:11px/1.4 var(--mono); letter-spacing:.01em;
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+button,input,select{font:inherit;color:inherit;letter-spacing:inherit}
+::selection{background:var(--acc);color:#000}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:288px 1fr;height:100dvh}
+
+/* O aside inteiro scrolla, com topo e rodapé colados. Assim nada fica
+   inacessível por muito baixa que a janela seja. */
+.side{
+  border-right:1px solid var(--line); background:var(--panel);
+  overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain;
+}
+.side-head{
+  position:sticky; top:0; z-index:3; background:var(--panel);
+  border-bottom:1px solid var(--line); padding:13px 14px 12px;
+}
+.side-foot{
+  position:sticky; bottom:0; z-index:3; background:var(--panel);
+  border-top:1px solid var(--line); padding:11px 14px; display:grid; gap:6px;
+}
+.side-body{padding-bottom:6px}
+
+.brand{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.brand .dot{width:7px;height:7px;background:var(--acc);flex:none}
+.brand b{font-weight:500;font-size:11px;letter-spacing:.19em;text-transform:uppercase}
+.brand span{margin-left:auto;font-size:9px;letter-spacing:.16em;color:var(--ink-3)}
+
+.main{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--stage)}
+.tabs{
+  flex:none;display:flex;align-items:stretch;gap:0;height:var(--head);
+  border-bottom:1px solid var(--line);background:var(--panel);padding:0 12px;
+}
+.tab{
+  background:none;border:0;border-bottom:2px solid transparent;padding:0 12px;cursor:pointer;
+  color:var(--ink-3);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+}
+.tab:hover{color:var(--ink-2)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--acc)}
+.tab-meta{margin-left:auto;display:flex;align-items:center;color:var(--ink-3);
+  font-size:9.5px;letter-spacing:.07em;font-variant-numeric:tabular-nums}
+
+/* ---------- palco ----------
+   container-type:size deixa o papel dimensionar-se com cqh, e o
+   min(100%, 100cqh * rácio) escolhe sozinho a dimensão dominante — é isto
+   que faz um 9:16 caber em vez de ser cortado. */
+.stage{
+  flex:1;min-height:0;min-width:0;container-type:size;
+  display:flex;align-items:center;justify-content:center;padding:26px;overflow:hidden;
+  background-image:radial-gradient(var(--line) 1px,transparent 1px);
+  background-size:15px 15px;background-position:-1px -1px;
+}
+.paper{
+  aspect-ratio:var(--ar);
+  width:min(100%, calc(100cqh * var(--arn)));
+  max-width:100%;max-height:100%;
+  outline:1px solid var(--line-2);outline-offset:0;
+}
+.paper svg{display:block;width:100%;height:100%}
+
+.sheet{flex:1;min-height:0;overflow-y:auto;padding:14px;display:grid;gap:10px;
+  grid-template-columns:repeat(auto-fill,minmax(168px,1fr));align-content:start}
+.thumb{border:1px solid var(--line);overflow:hidden;background:#000;cursor:pointer;
+  position:relative;padding:0;display:block;line-height:0}
+.thumb:hover{border-color:var(--acc)}
+.thumb svg{width:100%;height:auto;display:block}
+.thumb i{position:absolute;left:0;right:0;bottom:0;padding:4px 6px;font-style:normal;
+  font-size:9px;letter-spacing:.08em;background:rgba(0,0,0,.7);color:#fff;opacity:0;transition:opacity .12s}
+.thumb:hover i{opacity:1}
+
+/* ---------- painéis ---------- */
+.panel{border-bottom:1px solid var(--line)}
+.panel > summary{
+  list-style:none;cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:9px;
+  font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);user-select:none;
+}
+.panel > summary::-webkit-details-marker{display:none}
+.panel > summary:hover{color:var(--ink)}
+.panel[open] > summary{color:var(--ink)}
+.panel .num{color:var(--ink-3);font-size:9px;letter-spacing:.06em;flex:none;min-width:14px}
+.panel[open] .num{color:var(--acc)}
+.lock{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:8.5px;
+  letter-spacing:.1em;color:var(--ink-3)}
+.lock input{margin:0}
+.panel-body{padding:0 14px 13px;display:grid;gap:7px}
+
+.row{display:grid;grid-template-columns:74px 1fr;align-items:center;gap:10px;min-height:22px}
+.row > label{
+  color:var(--ink-3);font-size:9px;letter-spacing:.09em;text-transform:uppercase;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.row .val{display:flex;align-items:center;gap:8px;min-width:0}
+.row output{font-size:9.5px;color:var(--ink-2);min-width:32px;text-align:right;flex:none;
+  font-variant-numeric:tabular-nums}
+
+input[type=text],input[type=number],select{
+  width:100%;min-width:0;background:var(--sunken);border:1px solid var(--line-2);border-radius:0;
+  padding:4px 6px;outline:none;font-size:10.5px;
+}
+select{appearance:none;padding-right:16px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 9px) 51%,calc(100% - 5px) 51%;
+  background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--acc)}
+
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;min-width:0;background:none;height:14px;margin:0;
+}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--line-2)}
+input[type=range]::-moz-range-track{height:1px;background:var(--line-2)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:9px;height:9px;background:var(--ink);border:0;border-radius:0;margin-top:-4px;cursor:ew-resize}
+input[type=range]::-moz-range-thumb{width:9px;height:9px;background:var(--ink);border:0;border-radius:0;cursor:ew-resize}
+input[type=range]:hover::-webkit-slider-thumb{background:var(--acc)}
+input[type=range]:hover::-moz-range-thumb{background:var(--acc)}
+
+input[type=checkbox]{
+  -webkit-appearance:none;appearance:none;width:11px;height:11px;flex:none;
+  border:1px solid var(--line-2);background:var(--sunken);cursor:pointer;position:relative;
+}
+input[type=checkbox]:checked{background:var(--acc);border-color:var(--acc)}
+input[type=color]{width:26px;height:20px;padding:0;border:1px solid var(--line-2);border-radius:0;
+  background:none;cursor:pointer;flex:none}
+
+.btn{
+  background:var(--sunken);border:1px solid var(--line-2);border-radius:0;padding:7px 9px;cursor:pointer;
+  text-align:center;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);
+}
+.btn:hover{border-color:var(--acc);color:var(--ink)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#000;font-weight:600}
+.btn.primary:hover{filter:brightness(1.1);color:#000}
+.btns{display:flex;gap:5px}
+.btns .btn{flex:1;padding:6px 4px}
+
+.seg{display:flex;border:1px solid var(--line-2)}
+.seg button{
+  flex:1;background:none;border:0;border-top:2px solid transparent;padding:6px 3px;cursor:pointer;
+  color:var(--ink-3);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+}
+.seg button:hover{color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:#1A1A1A;color:var(--ink);border-top-color:var(--acc)}
+
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.sw{aspect-ratio:1;border:1px solid var(--line-2);border-radius:0;cursor:pointer;padding:0;
+  position:relative;overflow:hidden}
+.sw:hover{border-color:var(--acc)}
+.sw[aria-pressed="true"]{outline:1px solid var(--acc);outline-offset:1px}
+.sw i{position:absolute;inset:28%;display:block}
+
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{
+  background:var(--sunken);border:1px solid var(--line-2);border-radius:0;padding:4px 7px;cursor:pointer;
+  font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);
+}
+.chip:hover{border-color:var(--acc);color:var(--ink)}
+.hide{display:none !important}
+
+/* ---------- responsivo ---------- */
+@media (max-width:900px){
+  body{overflow:auto}
+  .app{grid-template-columns:1fr;height:auto;min-height:100dvh}
+  .main{order:-1;height:58dvh;position:sticky;top:0;z-index:4}
+  .side{border-right:0;overflow:visible}
+  .side-head{top:58dvh}
+  .stage{padding:16px}
+}
+@media (max-width:420px){
+  .app{grid-template-columns:1fr}
+  .row{grid-template-columns:64px 1fr}
+  .swatches{grid-template-columns:repeat(8,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="side-head">
+      <div class="brand"><i class="dot"></i><b>Pattern&nbsp;Lab</b><span>FES</span></div>
+      <div class="row" style="grid-template-columns:84px 1fr">
+        <label for="seed">Semente</label>
+        <div class="val">
+          <input type="text" id="seed" value="fes-01" spellcheck="false">
+          <button class="btn" id="newSeed" title="Nova semente (S)" style="flex:none;padding:4px 8px">NOVA</button>
+        </div>
+      </div>
+      <div class="seg" id="engineSeg" style="margin-top:9px">
+        <button data-engine="cascade" aria-pressed="true">Cascata</button>
+        <button data-engine="ramp" aria-pressed="false">Gradiente</button>
+        <button data-engine="modules" aria-pressed="false">Módulos</button>
+      </div>
+    </div>
+
+    <div class="side-body" id="panels"></div>
+
+    <div class="side-foot">
+      <button class="btn primary" id="randomize">Randomizar &nbsp;<kbd>R</kbd></button>
+      <div class="btns">
+        <button class="btn" id="expSvg">SVG</button>
+        <button class="btn" id="expPng2">PNG @2×</button>
+        <button class="btn" id="expPng3">@3×</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="tabs">
+      <button class="tab" data-view="editor" aria-selected="true">Editor</button>
+      <button class="tab" data-view="sheet" aria-selected="false">Contact sheet</button>
+      <div class="tab-meta"><span id="meta"></span></div>
+    </div>
+    <div class="stage" id="stage"></div>
+    <div class="sheet hide" id="sheet"></div>
+  </main>
+
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* =====================================================================
+   1. RNG determinístico — mesma semente, mesmo resultado, sempre.
+   ===================================================================== */
+
+function xmur3(str){
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++){
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return (h ^= h >>> 16) >>> 0;
+  };
+}
+function mulberry32(a){
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rngFrom = seed => mulberry32(xmur3(String(seed))());
+
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const rgb2hex = c => '#' + c.map(v => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('');
+/* Interpolação em sRGB, não em luz linear: é o que o CSS e o Figma fazem,
+   por isso o que vês aqui é o que sai lá. */
+const mix = (a, b, t) => { const A = hex2rgb(a), B = hex2rgb(b); return rgb2hex(A.map((v, i) => v + (B[i] - v) * t)); };
+const lum = h => { const c = hex2rgb(h).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const pick = (rand, arr) => arr[Math.floor(rand() * arr.length)];
+const round = (v, d = 2) => +v.toFixed(d);
+
+/* =====================================================================
+   2. ENGINE — pura. generate(state, W, H) -> { shapes[], meta }
+   ===================================================================== */
+
+/* Campo de densidade: projeta o ponto numa direção e devolve 0..1.
+   É o parâmetro com mais impacto expressivo — o gamma controla se a
+   transição vazio→cheio é suave ou súbita. */
+function fieldValue(nx, ny, angleDeg, gamma, origin){
+  const a = angleDeg * Math.PI / 180;
+  const dx = Math.cos(a), dy = -Math.sin(a);       // y cresce para baixo em SVG
+  const half = (Math.abs(dx) + Math.abs(dy)) / 2;
+  const t = (nx - 0.5) * dx + (ny - 0.5) * dy;
+  const u = clamp((t + half) / (2 * half) + origin, 0, 1);
+  return Math.pow(u, gamma);
+}
+
+/* Zona de exclusão: o padrão nunca entra aqui, para o texto respirar.
+   Testa interseção de retângulos (não o centro) para não cortar barras a meio. */
+function makeExcluder(zone, W, H){
+  if (!zone.on) return () => false;
+  const zx = zone.x * W, zy = zone.y * H, zw = zone.w * W, zh = zone.h * H;
+  return (x, y, w, h) => x < zx + zw && x + w > zx && y < zy + zh && y + h > zy;
+}
+
+const EASE = {
+  linear: t => t,
+  ease:   t => t * t * (3 - 2 * t),
+  circ:   t => 1 - Math.sqrt(Math.max(0, 1 - t * t)),
+  expo:   t => t <= 0 ? 0 : Math.pow(2, 10 * (t - 1))
+};
+
+const FRACS = {
+  half:   [0.5],
+  mixed:  [0.5, 2/3],
+  thirds: [1/3, 0.5, 2/3]
+};
+
+/* ---------- motor A: cascata / código de barras ---------- */
+function genCascade(p, W, H, rand, excludes){
+  const shapes = [];
+  const pitch = W / p.cols;
+  const barW  = pitch * p.barRatio;
+  const bandH = H / p.rows;
+  const fracs = FRACS[p.fracs] || FRACS.mixed;
+
+  const curve = t =>
+      p.curve === 'ease'  ? t * t * (3 - 2 * t)
+    : p.curve === 'steps' ? Math.floor(t * p.steps) / Math.max(1, p.steps - 1)
+    : t;
+
+  const flipX = p.dir === 'nw' || p.dir === 'sw';
+  const sign  = (p.dir === 'ne' || p.dir === 'nw') ? -1 : 1;   // -1 = sobe
+  const rise  = p.stagger * p.rows * bandH;
+
+  for (let c = 0; c < p.cols; c++){
+    const x  = c * pitch + (pitch - barW) / 2;
+    const ci = flipX ? (p.cols - 1 - c) : c;
+    const t  = p.cols > 1 ? ci / (p.cols - 1) : 0;
+    const off = curve(t) * rise * sign;
+
+    const r0 = Math.floor(-off / bandH) - 1;
+    const r1 = Math.ceil((H - off) / bandH) + 1;
+    let prevFilled = false;
+
+    for (let r = r0; r <= r1; r++){
+      const y  = off + r * bandH;
+      const nx = (x + barW / 2) / W;
+      const ny = (y + bandH / 2) / H;
+
+      if (excludes(x, y, barW, bandH)){ prevFilled = false; continue; }
+
+      let filled = rand() < fieldValue(nx, ny, p.angle, p.gamma, p.origin);
+      // anti-adjacência: nunca um bloco chapado, mantém o ritmo de código de barras
+      if (filled && prevFilled && rand() < p.alternation) filled = false;
+      prevFilled = filled;
+      if (!filled) continue;
+
+      let yy = y, hh = bandH;
+      if (rand() < p.partial){                       // barra parcial → equalizador
+        hh = bandH * pick(rand, fracs);
+        const anchor = p.anchor === 'random' ? pick(rand, ['top','bottom','center']) : p.anchor;
+        if (anchor === 'bottom')      yy = y + bandH - hh;
+        else if (anchor === 'center') yy = y + (bandH - hh) / 2;
+      }
+      shapes.push(`<rect x="${round(x)}" y="${round(yy)}" width="${round(barW)}" height="${round(hh)}"${
+        p.radius ? ` rx="${round(Math.min(p.radius, barW / 2, hh / 2))}"` : ''}/>`);
+    }
+  }
+  return shapes;
+}
+
+/* ---------- motor B: módulos (Truchet) ---------- */
+const TILE_SETS = {
+  arcs:   ['arcBand'],
+  solid:  ['quarterDisc', 'halfSquare', 'full'],
+  mixed:  ['arcBand', 'quarterDisc', 'halfSquare', 'halfDisc', 'bar']
+};
+
+function tilePath(kind, s, w){
+  const R = s / 2 + w / 2, r = Math.max(0.001, s / 2 - w / 2);
+  switch (kind){
+    case 'quarterDisc':
+      return `M0 0 L${s} 0 A${s} ${s} 0 0 1 0 ${s} Z`;
+    case 'halfSquare':
+      return `M0 0 L${s} 0 L0 ${s} Z`;
+    case 'halfDisc':
+      return `M0 0 A${s/2} ${s/2} 0 0 0 ${s} 0 Z`;
+    case 'bar':
+      return `M${(s-w)/2} 0 L${(s+w)/2} 0 L${(s+w)/2} ${s} L${(s-w)/2} ${s} Z`;
+    case 'full':
+      return `M0 0 L${s} 0 L${s} ${s} L0 ${s} Z`;
+    case 'arcBand':
+      return `M${R} 0 A${R} ${R} 0 0 1 0 ${R} L0 ${r} A${r} ${r} 0 0 0 ${r} 0 Z` +
+             `M${s-R} ${s} A${R} ${R} 0 0 1 ${s} ${s-R} L${s} ${s-r} A${r} ${r} 0 0 0 ${s-r} ${s} Z`;
+  }
+  return '';
+}
+
+/* ---------- motor C: gradiente de barras (screen ramp) ----------
+   O tom não vem da cor — vem da percentagem de cobertura de tinta, como numa
+   trama de serigrafia. A barra afina e o vão engorda ao longo do eixo.
+
+   Costura zero: `snap` arredonda TODAS as arestas — as das barras e as das
+   faixas — a inteiros. Uma fronteira em coordenada inteira não produz
+   anti-aliasing, por isso barras encostadas e faixas empilhadas leem como
+   uma massa sólida em vez de mostrarem a fresta clara de meio pixel que
+   aparece quando duas formas partilham uma aresta fracionária. O merge por
+   corridas apanha o resto: onde o vão colapsa, N barras saem como UM rect,
+   o que também é o que queres ao abrir isto no Figma. */
+function genRamp(p, W, H, rand, excludes){
+  const q   = p.snap ? (v => Math.round(v)) : (v => round(v, 2));
+  const EPS = p.snap ? 0 : Math.max(.02, W / 2500);
+  const ez  = EASE[p.ease] || EASE.linear;
+  const fracs = FRACS[p.fracs] || FRACS.mixed;
+  const nb = Math.max(1, p.bands);
+  const parts = [];
+
+  // arestas das faixas, snapped -> fronteiras exatas entre faixas adjacentes
+  const rows = [];
+  for (let b = 0; b <= nb; b++) rows.push(q(b * H / nb));
+
+  for (let b = 0; b < nb; b++){
+    const by = rows[b] + p.bandGap / 2;
+    const bh = rows[b + 1] - rows[b] - p.bandGap;
+    if (bh <= 0) continue;
+
+    // offset de tom: cada faixa arranca noutro ponto da curva -> diagonal
+    const tOff = p.offsetMode === 'alt'  ? (b % 2 ? -1 : 1) * p.offset / 2
+               : p.offsetMode === 'rand' ? (rand() * 2 - 1) * p.offset
+               : (b - (nb - 1) / 2) * p.offset;
+
+    // --- passagem 1: percorre o eixo e funde corridas ---
+    const segs = [];
+    let x = 0, guard = 0;
+    while (x < W && guard++ < 5000){
+      let t = x / W;
+      if (p.dir === 'rl') t = 1 - t;
+      const u   = ez(clamp(t + tOff, 0, 1));
+      const cov = clamp(p.covA + (p.covB - p.covA) * Math.pow(clamp(u, 0, 1), p.gamma), 0, 1);
+      const barW = p.pitch * cov;
+      const adv  = Math.max(barW + p.pitch * (1 - cov) * p.spread, p.pitch * .15, .5);
+
+      // limiar mínimo: abaixo dele a barra DESAPARECE em vez de renderizar
+      // sub-pixel — uma barra de 0.3px sai cinzenta e parte a bicromia.
+      const thr = p.minBar * (1 + (rand() * 2 - 1) * p.jitter);
+      if (barW >= thr){
+        const l = q(x), r = q(x + barW);
+        if (r > l && !excludes(l, by, r - l, bh)){
+          const last = segs[segs.length - 1];
+          if (last && l - last.r <= EPS) last.r = Math.max(last.r, r);
+          else segs.push({ l, r });
+        }
+      }
+      x += adv;
+    }
+
+    // --- passagem 2: altura DEPOIS do merge, para os blocos largos saírem
+    //     sólidos e só as barras curtas variarem, como na referência ---
+    for (const sg of segs){
+      const w = sg.r - sg.l;
+      let y = by, h = bh;
+      if (w <= p.pitch * p.solidFrom && rand() < p.partial){
+        h = Math.max(1, q(bh * pick(rand, fracs)));
+        const a = p.anchor === 'random' ? pick(rand, ['top','bottom','center']) : p.anchor;
+        if (a === 'bottom')      y = by + bh - h;
+        else if (a === 'center') y = q(by + (bh - h) / 2);
+      }
+      parts.push({ x: sg.l, y, w, h });
+    }
+  }
+
+  // --- passagem 3: merge vertical de colunas idênticas e contíguas.
+  //     Cosmético (o snap já matou a costura), mas corta nós a sério e
+  //     entrega formas inteiras ao Figma em vez de pilhas de slivers. ---
+  const cols = new Map();
+  for (const s of parts){
+    const k = s.x + ':' + s.w;
+    if (!cols.has(k)) cols.set(k, []);
+    cols.get(k).push(s);
+  }
+  const shapes = [];
+  for (const list of cols.values()){
+    list.sort((a, b) => a.y - b.y);
+    let cur = null;
+    for (const s of list){
+      if (cur && Math.abs(s.y - (cur.y + cur.h)) <= EPS) cur.h = s.y + s.h - cur.y;
+      else { if (cur) shapes.push(cur); cur = { ...s }; }
+    }
+    if (cur) shapes.push(cur);
+  }
+
+  return shapes.map(s => `<rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}"${
+    p.radius ? ` rx="${round(Math.min(p.radius, s.w / 2, s.h / 2))}"` : ''}/>`);
+}
+
+function genModules(p, W, H, rand, excludes){
+  const shapes = [];
+  const s = W / p.cols;
+  const rows = Math.ceil(H / s);
+  const yOff = (H - rows * s) / 2;                  // centra o excedente → sangra em cima e em baixo
+  const kinds = TILE_SETS[p.set] || TILE_SETS.mixed;
+  const w = s * p.weight;
+
+  for (let r = 0; r < rows; r++){
+    for (let c = 0; c < p.cols; c++){
+      const x = c * s, y = yOff + r * s;
+      if (excludes(x, y, s, s)) continue;
+
+      const f = p.useField ? fieldValue((x + s/2) / W, (y + s/2) / H, p.angle, p.gamma, p.origin) : 1;
+      if (rand() > f * p.density) continue;
+
+      const kind = pick(rand, kinds);
+      const rot  = Math.floor(rand() * 4) * 90;
+      const d = tilePath(kind, round(s, 3), round(w, 3));
+      shapes.push(`<g transform="translate(${round(x)} ${round(y)}) rotate(${rot} ${round(s/2)} ${round(s/2)})"><path d="${d}"/></g>`);
+    }
+  }
+  return shapes;
+}
+
+/* ---------- gradientes de cor ----------
+   Dois eixos independentes do padrão: o fundo e a forma podem cada um levar
+   um gradiente. `bands` > 0 troca a rampa contínua por paragens duras, o que
+   dá vários tons chapados sem introduzir cinzentos — a forma de manter o
+   espírito da bicromia enquanto se ganha profundidade. */
+function gradStops(a, b, bands){
+  if (!bands || bands < 2) return `<stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/>`;
+  let out = '';
+  for (let i = 0; i < bands; i++){
+    const c = mix(a, b, i / (bands - 1));
+    out += `<stop offset="${round(i / bands, 4)}" stop-color="${c}"/><stop offset="${round((i + 1) / bands, 4)}" stop-color="${c}"/>`;
+  }
+  return out;
+}
+
+function gradDef(id, a, b, g, W, H, userSpace){
+  const st = gradStops(a, b, g.bands);
+  if (g.type === 'radial'){
+    return userSpace
+      ? `<radialGradient id="${id}" gradientUnits="userSpaceOnUse" cx="${round(W/2)}" cy="${round(H/2)}" r="${round(Math.hypot(W, H) / 2)}">${st}</radialGradient>`
+      : `<radialGradient id="${id}">${st}</radialGradient>`;
+  }
+  const rad = g.angle * Math.PI / 180, dx = Math.cos(rad), dy = -Math.sin(rad);
+  if (userSpace){
+    // projeta o eixo sobre a peça inteira: cada forma revela a sua fatia
+    const half = (Math.abs(dx) * W + Math.abs(dy) * H) / 2;
+    return `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${round(W/2 - dx*half)}" y1="${round(H/2 - dy*half)}" x2="${round(W/2 + dx*half)}" y2="${round(H/2 + dy*half)}">${st}</linearGradient>`;
+  }
+  return `<linearGradient id="${id}" x1="${round(.5 - dx/2, 3)}" y1="${round(.5 - dy/2, 3)}" x2="${round(.5 + dx/2, 3)}" y2="${round(.5 + dy/2, 3)}">${st}</linearGradient>`;
+}
+
+/* Pior contraste possível entre qualquer tom do fundo e qualquer tom da
+   forma. Conservador de propósito: com os dois eixos perpendiculares todas
+   as combinações ocorrem mesmo algures na peça. Abaixo de ~1.5 o padrão
+   desaparece nessa zona. */
+function minContrast(st){
+  const bg = st.swap ? st.fg : st.bg, fg = st.swap ? st.bg : st.fg;
+  let m = Infinity;
+  for (let i = 0; i <= 8; i++){
+    const b = st.bgGrad.on ? mix(bg, st.bgGrad.c2, i / 8) : bg;
+    for (let j = 0; j <= 8; j++){
+      const f = st.fgGrad.on ? mix(fg, st.fgGrad.c2, j / 8) : fg;
+      m = Math.min(m, contrast(b, f));
+      if (!st.fgGrad.on) break;
+    }
+    if (!st.bgGrad.on) break;
+  }
+  return m;
+}
+
+/* ---------- render ---------- */
+function renderSVG(st, opts = {}){
+  const { W, H } = st;
+  const rand = rngFrom(st.seed + '|' + st.engine);
+  const bg = st.swap ? st.fg : st.bg;
+  const fg = st.swap ? st.bg : st.fg;
+  const excludes = makeExcluder(st.zone, W, H);
+
+  const gen = { cascade: genCascade, ramp: genRamp, modules: genModules }[st.engine];
+  const shapes = gen(st[st.engine], W, H, rand, excludes);
+
+  const i = st.inset;
+  const uid = 'c' + Math.abs(xmur3(st.seed + st.engine + W + H)()).toString(36);
+  const size = opts.scale ? ` width="${W * opts.scale}" height="${H * opts.scale}"` : ` width="${W}" height="${H}"`;
+
+  let defs = `<clipPath id="${uid}"><rect x="${i}" y="${i}" width="${W - 2*i}" height="${H - 2*i}"/></clipPath>`;
+  let bgFill = bg, fgFill = fg;
+  if (st.bgGrad.on){
+    defs += gradDef(uid + 'b', bg, st.bgGrad.c2, st.bgGrad, W, H, true);
+    bgFill = `url(#${uid}b)`;
+  }
+  if (st.fgGrad.on){
+    defs += gradDef(uid + 'f', fg, st.fgGrad.c2, st.fgGrad, W, H, st.fgGrad.scope !== 'shape');
+    fgFill = `url(#${uid}f)`;
+  }
+
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"${size}>`;
+  out += `<defs>${defs}</defs>`;
+  out += `<rect width="${W}" height="${H}" fill="${bgFill}"/>`;
+  out += `<g clip-path="url(#${uid})" fill="${fgFill}">${shapes.join('')}</g>`;
+  if (st.frame){
+    const o = st.frameW / 2;
+    out += `<rect x="${i + o}" y="${i + o}" width="${W - 2*i - st.frameW}" height="${H - 2*i - st.frameW}" fill="none" stroke="${fgFill}" stroke-width="${st.frameW}"/>`;
+  }
+  if (opts.guides && st.zone.on && st.zone.show){
+    out += `<rect x="${round(st.zone.x*W)}" y="${round(st.zone.y*H)}" width="${round(st.zone.w*W)}" height="${round(st.zone.h*H)}" fill="none" stroke="${fg}" stroke-opacity=".35" stroke-width="${Math.max(1, W/900)}" stroke-dasharray="${Math.max(4, W/150)} ${Math.max(4, W/150)}"/>`;
+  }
+  out += `</svg>`;
+  return { svg: out, count: shapes.length };
+}
+
+/* =====================================================================
+   3. Presets — dois níveis independentes: paleta e receita.
+   ===================================================================== */
+
+/* Pares tirados dos tokens do brand (src/styles/global.css). Qualquer
+   combinação daqui é brand-safe; os color pickers ficam livres na mesma. */
+/* bg2/fg2 são o segundo ponto de cada gradiente, tirados da MESMA rampa do
+   token — assim qualquer gradiente que a tool gere continua brand-safe. */
+const PALETTES = [
+  { name: 'Azure',        bg: '#DEEAFF', bg2: '#F2F7FF', fg: '#1863DC', fg2: '#00215C' },
+  { name: 'Accent',       bg: '#E3E8FF', bg2: '#F4F6FF', fg: '#4A40F2', fg2: '#1B0175' },
+  { name: 'Clay',         bg: '#FFE3D9', bg2: '#FFF4F0', fg: '#B15533', fg2: '#461300' },
+  { name: 'Ink',          bg: '#F6F7F8', bg2: '#FFFFFF', fg: '#151617', fg2: '#4E5053' },
+  { name: 'Ink inverso',  bg: '#151617', bg2: '#393B3D', fg: '#F6F7F8', fg2: '#FFFFFF' },
+  { name: 'Accent deep',  bg: '#0E004D', bg2: '#1B0175', fg: '#7C8CFF', fg2: '#C6D0FF' },
+  { name: 'Azure deep',   bg: '#00123C', bg2: '#00215C', fg: '#5796FF', fg2: '#BAD4FF' },
+  { name: 'Clay deep',    bg: '#2C0900', bg2: '#461300', fg: '#EEA287', fg2: '#FFC3AD' }
+];
+
+const RECIPES = [
+  { name: 'Cascata', engine: 'cascade', p: { cols:16, rows:7, barRatio:.58, radius:0, stagger:.7, dir:'ne', curve:'linear', steps:5, angle:32, gamma:2.4, origin:.34, alternation:.35, partial:.4, fracs:'mixed', anchor:'random' } },
+  { name: 'Denso',   engine: 'cascade', p: { cols:24, rows:14, barRatio:.7, radius:0, stagger:.3, dir:'ne', curve:'ease', steps:5, angle:60, gamma:.9, origin:.1, alternation:.2, partial:.15, fracs:'half', anchor:'top' } },
+  { name: 'Equalizador', engine: 'cascade', p: { cols:20, rows:10, barRatio:.5, radius:0, stagger:.15, dir:'ne', curve:'linear', steps:5, angle:90, gamma:1.2, origin:0, alternation:.6, partial:.75, fracs:'thirds', anchor:'bottom' } },
+  { name: 'Escada',  engine: 'cascade', p: { cols:9, rows:7, barRatio:.72, radius:0, stagger:.95, dir:'ne', curve:'steps', steps:5, angle:45, gamma:1.3, origin:.05, alternation:.35, partial:.2, fracs:'half', anchor:'top' } },
+  { name: 'Fio',     engine: 'cascade', p: { cols:34, rows:18, barRatio:.4, radius:0, stagger:.45, dir:'se', curve:'ease', steps:5, angle:30, gamma:2.2, origin:0, alternation:.5, partial:.45, fracs:'mixed', anchor:'random' } },
+  { name: 'Cápsula', engine: 'cascade', p: { cols:14, rows:8, barRatio:.55, radius:60, stagger:.6, dir:'nw', curve:'linear', steps:5, angle:135, gamma:1.5, origin:0, alternation:.55, partial:.4, fracs:'mixed', anchor:'center' } },
+  { name: 'Ramp',     engine: 'ramp', p: { bands:6, pitch:44, spread:1, covA:.03, covB:1, gamma:1.9, ease:'linear', dir:'lr', offset:.11, offsetMode:'linear', partial:.5, fracs:'mixed', anchor:'random', solidFrom:2.5, minBar:1.5, jitter:.3, bandGap:0, radius:0, snap:true } },
+  { name: 'Ramp suave', engine: 'ramp', p: { bands:8, pitch:28, spread:1, covA:.02, covB:1, gamma:1.25, ease:'ease', dir:'lr', offset:.055, offsetMode:'linear', partial:.18, fracs:'half', anchor:'top', solidFrom:2, minBar:1.5, jitter:.25, bandGap:0, radius:0, snap:true } },
+  { name: 'Ramp duro',  engine: 'ramp', p: { bands:4, pitch:64, spread:1, covA:.06, covB:1, gamma:2.8, ease:'linear', dir:'lr', offset:.19, offsetMode:'linear', partial:.7, fracs:'thirds', anchor:'random', solidFrom:2, minBar:2, jitter:.35, bandGap:0, radius:0, snap:true } },
+  { name: 'Persiana',   engine: 'ramp', p: { bands:5, pitch:36, spread:1.9, covA:.05, covB:.92, gamma:1.5, ease:'circ', dir:'rl', offset:.09, offsetMode:'alt', partial:0, fracs:'half', anchor:'top', solidFrom:1, minBar:1.5, jitter:.2, bandGap:8, radius:0, snap:true } },
+  { name: 'Arcos',   engine: 'modules', p: { cols:10, set:'arcs', weight:.34, density:.95, useField:false, angle:45, gamma:1.4, origin:0 } },
+  { name: 'Sólidos', engine: 'modules', p: { cols:12, set:'solid', weight:.34, density:.85, useField:true, angle:45, gamma:1.5, origin:.05 } },
+  { name: 'Misto',   engine: 'modules', p: { cols:14, set:'mixed', weight:.28, density:.9, useField:true, angle:60, gamma:1.2, origin:0 } },
+  { name: 'Esparso', engine: 'modules', p: { cols:8,  set:'mixed', weight:.42, density:.45, useField:true, angle:20, gamma:2, origin:.1 } }
+];
+
+/* =====================================================================
+   4. Estado
+   ===================================================================== */
+
+const state = {
+  seed: 'fes-01',
+  engine: 'cascade',
+  W: 1920, H: 1080,
+  inset: 16, frame: true, frameW: 3,
+  bg: '#DEEAFF', fg: '#1863DC', swap: false,
+  bgGrad: { on: false, c2: '#F2F7FF', type: 'linear', angle: 90, bands: 0 },
+  fgGrad: { on: false, c2: '#00215C', type: 'linear', angle: 90, bands: 0, scope: 'global' },
+  zone: { on: true, show: true, x: .05, y: .30, w: .42, h: .40 },
+  cascade: { ...RECIPES[0].p },
+  ramp:    { ...RECIPES[6].p },
+  modules: { ...RECIPES[10].p }
+};
+const locks = { grid: false, field: false, texture: false, color: false };
+
+const get = k => k.split('.').reduce((o, s) => o[s], state);
+const set = (k, v) => {
+  const parts = k.split('.');
+  const last = parts.pop();
+  parts.reduce((o, s) => o[s], state)[last] = v;
+};
+
+/* =====================================================================
+   5. UI — painéis declarativos
+   ===================================================================== */
+
+const PANELS = [
+  { id:'format', title:'Formato', open:true, ctrls:[
+    { k:'W', label:'Largura', type:'num', min:100, max:8000, step:1 },
+    { k:'H', label:'Altura',  type:'num', min:100, max:8000, step:1 },
+    { type:'button', label:'Trocar W×H', action:'swapWH' },
+    { k:'inset',  label:'Inset',   type:'range', min:0, max:120, step:1 },
+    { k:'frame',  label:'Moldura', type:'check' },
+    { k:'frameW', label:'Espessura', type:'range', min:1, max:12, step:.5 }
+  ]},
+
+  { id:'color', title:'Cor', open:true, lock:'color', ctrls:[
+    { type:'palettes' },
+    { k:'bg', label:'Fundo', type:'color' },
+    { k:'fg', label:'Forma', type:'color' },
+    { k:'swap', label:'Inverter', type:'check' }
+  ]},
+
+  { id:'gradbg', title:'Gradiente · fundo', open:false, lock:'color', ctrls:[
+    { k:'bgGrad.on',    label:'Ativo',  type:'check' },
+    { k:'bgGrad.c2',    label:'2ª cor', type:'color' },
+    { k:'bgGrad.type',  label:'Tipo',   type:'select', opts:[['linear','Linear'],['radial','Radial']] },
+    { k:'bgGrad.angle', label:'Ângulo', type:'range', min:0, max:360, step:1 },
+    { k:'bgGrad.bands', label:'Bandas', type:'range', min:0, max:12, step:1 }
+  ]},
+  { id:'gradfg', title:'Gradiente · forma', open:false, lock:'color', ctrls:[
+    { k:'fgGrad.on',    label:'Ativo',   type:'check' },
+    { k:'fgGrad.c2',    label:'2ª cor',  type:'color' },
+    { k:'fgGrad.type',  label:'Tipo',    type:'select', opts:[['linear','Linear'],['radial','Radial']] },
+    { k:'fgGrad.angle', label:'Ângulo',  type:'range', min:0, max:360, step:1 },
+    { k:'fgGrad.bands', label:'Bandas',  type:'range', min:0, max:12, step:1 },
+    { k:'fgGrad.scope', label:'Aplicar', type:'select', opts:[['global','À peça inteira'],['shape','A cada forma']] }
+  ]},
+
+  { id:'recipe', title:'Receita', open:true, ctrls:[ { type:'recipes' } ] },
+
+  { id:'grid', title:'Grelha', open:true, lock:'grid', engine:'cascade', ctrls:[
+    { k:'cascade.cols',     label:'Colunas', type:'range', min:3,  max:60, step:1 },
+    { k:'cascade.rows',     label:'Bandas',  type:'range', min:2,  max:40, step:1 },
+    { k:'cascade.barRatio', label:'Barra/vão', type:'range', min:.15, max:1, step:.01 },
+    { k:'cascade.radius',   label:'Cantos',  type:'range', min:0, max:120, step:1 }
+  ]},
+  { id:'cascade', title:'Cascata', open:true, lock:'field', engine:'cascade', ctrls:[
+    { k:'cascade.stagger', label:'Passo',   type:'range', min:0, max:2, step:.01 },
+    { k:'cascade.dir',     label:'Direção', type:'select', opts:[['ne','↗'],['se','↘'],['nw','↖'],['sw','↙']] },
+    { k:'cascade.curve',   label:'Curva',   type:'select', opts:[['linear','Linear'],['ease','Ease'],['steps','Degraus']] },
+    { k:'cascade.steps',   label:'Degraus', type:'range', min:2, max:12, step:1 },
+    { k:'cascade.angle',   label:'Campo °', type:'range', min:0, max:360, step:1 },
+    { k:'cascade.gamma',   label:'Gamma',   type:'range', min:.2, max:4, step:.05 },
+    { k:'cascade.origin',  label:'Deslocar', type:'range', min:-.5, max:.5, step:.01 }
+  ]},
+  { id:'texture', title:'Textura', open:true, lock:'texture', engine:'cascade', ctrls:[
+    { k:'cascade.alternation', label:'Alternância', type:'range', min:0, max:1, step:.01 },
+    { k:'cascade.partial',     label:'Parciais',    type:'range', min:0, max:1, step:.01 },
+    { k:'cascade.fracs',       label:'Frações',     type:'select', opts:[['half','1/2'],['mixed','1/2 · 2/3'],['thirds','1/3 · 1/2 · 2/3']] },
+    { k:'cascade.anchor',      label:'Âncora',      type:'select', opts:[['random','Aleatória'],['top','Topo'],['bottom','Base'],['center','Centro']] }
+  ]},
+
+  { id:'rgrid', title:'Grelha', open:true, lock:'grid', engine:'ramp', ctrls:[
+    { k:'ramp.bands',   label:'Faixas',    type:'range', min:1, max:24, step:1 },
+    { k:'ramp.pitch',   label:'Passo',     type:'range', min:6, max:220, step:1 },
+    { k:'ramp.spread',  label:'Abertura',  type:'range', min:.1, max:3, step:.05 },
+    { k:'ramp.bandGap', label:'Vão faixa', type:'range', min:0, max:80, step:1 },
+    { k:'ramp.radius',  label:'Cantos',    type:'range', min:0, max:60, step:1 }
+  ]},
+  { id:'rgrad', title:'Gradiente', open:true, lock:'field', engine:'ramp', ctrls:[
+    { k:'ramp.covA',       label:'Início',  type:'range', min:0, max:1, step:.005 },
+    { k:'ramp.covB',       label:'Fim',     type:'range', min:0, max:1, step:.005 },
+    { k:'ramp.gamma',      label:'Gamma',   type:'range', min:.2, max:5, step:.05 },
+    { k:'ramp.ease',       label:'Curva',   type:'select', opts:[['linear','Linear'],['ease','Ease'],['circ','Circular'],['expo','Exponencial']] },
+    { k:'ramp.dir',        label:'Sentido', type:'select', opts:[['lr','Cheio à direita'],['rl','Cheio à esquerda']] },
+    { k:'ramp.offset',     label:'Offset',  type:'range', min:-.5, max:.5, step:.005 },
+    { k:'ramp.offsetMode', label:'Modo',    type:'select', opts:[['linear','Diagonal'],['alt','Alternado'],['rand','Aleatório']] }
+  ]},
+  { id:'rtex', title:'Textura', open:true, lock:'texture', engine:'ramp', ctrls:[
+    { k:'ramp.partial',   label:'Parciais',   type:'range', min:0, max:1, step:.01 },
+    { k:'ramp.fracs',     label:'Frações',    type:'select', opts:[['half','1/2'],['mixed','1/2 · 2/3'],['thirds','1/3 · 1/2 · 2/3']] },
+    { k:'ramp.anchor',    label:'Âncora',     type:'select', opts:[['random','Aleatória'],['top','Topo'],['bottom','Base'],['center','Centro']] },
+    { k:'ramp.solidFrom', label:'Sólido a',   type:'range', min:1, max:10, step:.25 },
+    { k:'ramp.minBar',    label:'Barra mín.', type:'range', min:0, max:8, step:.25 },
+    { k:'ramp.jitter',    label:'Jitter',     type:'range', min:0, max:1, step:.01 },
+    { k:'ramp.snap',      label:'Arestas 0px', type:'check' }
+  ]},
+
+  { id:'mgrid', title:'Grelha', open:true, lock:'grid', engine:'modules', ctrls:[
+    { k:'modules.cols',   label:'Colunas',   type:'range', min:3, max:40, step:1 },
+    { k:'modules.set',    label:'Módulos',   type:'select', opts:[['arcs','Arcos'],['solid','Sólidos'],['mixed','Misto']] },
+    { k:'modules.weight', label:'Espessura', type:'range', min:.06, max:.9, step:.01 }
+  ]},
+  { id:'mfield', title:'Campo', open:true, lock:'field', engine:'modules', ctrls:[
+    { k:'modules.density',  label:'Densidade', type:'range', min:.1, max:1, step:.01 },
+    { k:'modules.useField', label:'Gradiente', type:'check' },
+    { k:'modules.angle',    label:'Campo °',   type:'range', min:0, max:360, step:1 },
+    { k:'modules.gamma',    label:'Gamma',     type:'range', min:.2, max:4, step:.05 },
+    { k:'modules.origin',   label:'Deslocar',  type:'range', min:-.5, max:.5, step:.01 }
+  ]},
+
+  { id:'zone', title:'Zona de exclusão', open:false, ctrls:[
+    { k:'zone.on',   label:'Ativa', type:'check' },
+    { k:'zone.show', label:'Guia',  type:'check' },
+    { k:'zone.x', label:'X', type:'range', min:0, max:1, step:.005 },
+    { k:'zone.y', label:'Y', type:'range', min:0, max:1, step:.005 },
+    { k:'zone.w', label:'L', type:'range', min:0, max:1, step:.005 },
+    { k:'zone.h', label:'A', type:'range', min:0, max:1, step:.005 }
+  ]}
+];
+
+const $ = s => document.querySelector(s);
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+
+const bound = [];   // [{ctrl, input, out}] para sincronizar após randomize/preset
+
+function buildPanels(){
+  const host = $('#panels');
+  host.innerHTML = '';
+  for (const P of PANELS){
+    const d = el('details', 'panel');
+    d.open = P.open !== false;
+    d.dataset.panel = P.id;
+    if (P.engine) d.dataset.engine = P.engine;
+
+    const sum = el('summary', null, `<span class="num"></span><span>${P.title}</span>`);
+    if (P.lock){
+      const lk = el('label', 'lock', `<input type="checkbox" data-lock="${P.lock}"> lock`);
+      lk.addEventListener('click', e => e.stopPropagation());
+      sum.appendChild(lk);
+    }
+    d.appendChild(sum);
+
+    const body = el('div', 'panel-body');
+    for (const c of P.ctrls) body.appendChild(buildCtrl(c));
+    d.appendChild(body);
+    host.appendChild(d);
+  }
+  host.querySelectorAll('[data-lock]').forEach(cb =>
+    cb.addEventListener('change', () => { locks[cb.dataset.lock] = cb.checked; }));
+}
+
+function buildCtrl(c){
+  if (c.type === 'palettes'){
+    const wrap = el('div', 'swatches');
+    PALETTES.forEach(p => {
+      const b = el('button', 'sw', `<i style="background:${p.fg}"></i>`);
+      b.style.background = p.bg;
+      b.title = p.name;
+      b.dataset.pal = p.name;
+      b.addEventListener('click', () => {
+        state.bg = p.bg; state.fg = p.fg;
+        state.bgGrad.c2 = p.bg2; state.fgGrad.c2 = p.fg2;
+        sync(); render();
+      });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+  if (c.type === 'recipes'){
+    const wrap = el('div', 'chips');
+    RECIPES.forEach(r => {
+      const b = el('button', 'chip', r.name);
+      b.addEventListener('click', () => { applyRecipe(r); });
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+  if (c.type === 'button'){
+    const b = el('button', 'btn', c.label);
+    b.addEventListener('click', () => {
+      if (c.action === 'swapWH'){ const w = state.W; state.W = state.H; state.H = w; sync(); render(); }
+    });
+    return b;
+  }
+
+  const row = el('div', 'row' + (c.type === 'check' ? ' check' : ''));
+  row.appendChild(el('label', null, c.label));
+  const val = el('div', 'val');
+  let input, out = null;
+
+  if (c.type === 'range'){
+    input = el('input'); input.type = 'range';
+    input.min = c.min; input.max = c.max; input.step = c.step;
+    out = el('output');
+  } else if (c.type === 'num'){
+    input = el('input'); input.type = 'number';
+    input.min = c.min; input.max = c.max; input.step = c.step;
+  } else if (c.type === 'check'){
+    input = el('input'); input.type = 'checkbox';
+  } else if (c.type === 'color'){
+    input = el('input'); input.type = 'color';
+    out = el('input'); out.type = 'text'; out.spellcheck = false;
+    out.addEventListener('input', () => {
+      const v = out.value.trim();
+      if (/^#[0-9a-f]{6}$/i.test(v)){ set(c.k, v); input.value = v; render(); }
+    });
+  } else if (c.type === 'select'){
+    input = el('select');
+    c.opts.forEach(([v, l]) => { const o = el('option', null, l); o.value = v; input.appendChild(o); });
+  }
+
+  const commit = () => {
+    let v;
+    if (c.type === 'check') v = input.checked;
+    else if (c.type === 'range' || c.type === 'num') v = clamp(parseFloat(input.value) || 0, c.min, c.max);
+    else v = input.value;
+    set(c.k, v);
+    if (c.type === 'range' && out) out.value = fmt(v);
+    if (c.type === 'color' && out) out.value = v;
+    render();
+  };
+  input.addEventListener('input', commit);
+
+  if (c.type === 'color'){ val.appendChild(input); val.appendChild(out); }
+  else { val.appendChild(input); if (out) val.appendChild(out); }
+  row.appendChild(val);
+
+  bound.push({ c, input, out });
+  return row;
+}
+
+const fmt = v => Number.isInteger(v) ? String(v) : (Math.abs(v) < 10 ? v.toFixed(2) : v.toFixed(1));
+
+/* Escreve o estado de volta nos controlos (após randomize, preset ou swap). */
+function sync(){
+  for (const { c, input, out } of bound){
+    const v = get(c.k);
+    if (c.type === 'check') input.checked = !!v;
+    else input.value = v;
+    if (c.type === 'range' && out) out.value = fmt(v);
+    if (c.type === 'color' && out) out.value = v;
+  }
+  $('#seed').value = state.seed;
+  document.querySelectorAll('[data-pal]').forEach(b => {
+    const p = PALETTES.find(x => x.name === b.dataset.pal);
+    b.setAttribute('aria-pressed', String(p.bg === state.bg && p.fg === state.fg));
+  });
+  document.querySelectorAll('#engineSeg button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.engine === state.engine)));
+  document.querySelectorAll('[data-engine][data-panel]').forEach(d =>
+    d.classList.toggle('hide', d.dataset.engine !== state.engine));
+  let k = 0;
+  document.querySelectorAll('.panel').forEach(d => {
+    if (d.classList.contains('hide')) return;
+    d.querySelector('.num').textContent = String(++k).padStart(2, '0');
+  });
+}
+
+function applyRecipe(r){
+  state.engine = r.engine;
+  Object.assign(state[r.engine], r.p);
+  sync(); render();
+}
+
+/* =====================================================================
+   6. Render + views
+   ===================================================================== */
+
+let view = 'editor';
+
+function render(){
+  if (view === 'editor'){
+    const { svg, count } = renderSVG(state, { guides: true });
+    $('#stage').innerHTML = `<div class="paper" style="--ar:${state.W} / ${state.H};--arn:${round(state.W / state.H, 5)}">${svg}</div>`;
+    const cmin = minContrast(state);
+    const warn = cmin < 1.5 ? ' ⚠' : '';
+    $('#meta').textContent = `${state.W}×${state.H} · ${count} formas · ${state.seed} · contraste ${cmin.toFixed(2)}${warn}`;
+  } else {
+    renderSheet();
+  }
+}
+
+function renderSheet(){
+  const host = $('#sheet');
+  host.innerHTML = '';
+  const base = state.seed.replace(/-\d+$/, '');
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < 24; i++){
+    const seed = `${base}-${String(i + 1).padStart(2, '0')}`;
+    const { svg } = renderSVG({ ...state, seed }, {});
+    const b = el('button', 'thumb', svg + `<i>${seed}</i>`);
+    b.addEventListener('click', () => {
+      state.seed = seed;
+      setView('editor');
+      sync();
+    });
+    frag.appendChild(b);
+  }
+  host.appendChild(frag);
+  $('#meta').textContent = `24 sementes · base ${base}`;
+}
+
+function setView(v){
+  view = v;
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === v)));
+  $('#stage').classList.toggle('hide', v !== 'editor');
+  $('#sheet').classList.toggle('hide', v !== 'sheet');
+  render();
+}
+
+/* =====================================================================
+   7. Randomize (respeita os locks) + semente
+   ===================================================================== */
+
+const WORDS = ['fes','arc','grid','flux','node','scale','beam','band','sig','port','mesh','drift'];
+
+function newSeed(){
+  const r = Math.random;
+  return WORDS[Math.floor(r() * WORDS.length)] + '-' + String(Math.floor(r() * 90 + 10));
+}
+
+function randomize(){
+  const r = Math.random;
+  state.seed = newSeed();
+
+  if (state.engine === 'cascade'){
+    const p = state.cascade;
+    if (!locks.grid){
+      p.cols = Math.round(6 + r() * 26);
+      p.rows = Math.round(5 + r() * 12);
+      p.barRatio = round(.35 + r() * .4);
+      p.radius = r() < .2 ? Math.round(r() * 80) : 0;
+    }
+    if (!locks.field){
+      p.stagger = round(.1 + r() * 1.0);
+      p.dir = pick(r, ['ne','se','nw','sw']);
+      p.curve = pick(r, ['linear','linear','ease','steps']);
+      p.steps = Math.round(3 + r() * 6);
+      p.angle = Math.round(r() * 360);
+      p.gamma = round(.5 + r() * 2.3);
+      p.origin = round(-.2 + r() * .4);
+    }
+    if (!locks.texture){
+      p.alternation = round(r() * .8);
+      p.partial = round(r() * .7);
+      p.fracs = pick(r, ['half','mixed','thirds']);
+      p.anchor = pick(r, ['random','top','bottom','center']);
+    }
+  } else if (state.engine === 'ramp'){
+    const p = state.ramp;
+    if (!locks.grid){
+      p.bands   = Math.round(3 + r() * 7);
+      p.pitch   = Math.round(16 + r() * 72);
+      p.spread  = round(.6 + r() * 1.5);
+      p.bandGap = r() < .25 ? Math.round(r() * 26) : 0;
+      p.radius  = r() < .15 ? Math.round(r() * 30) : 0;
+    }
+    if (!locks.field){
+      p.covA = round(r() * .12);
+      p.covB = round(.78 + r() * .22);
+      p.gamma = round(.8 + r() * 2.8);
+      p.ease = pick(r, ['linear','linear','ease','circ']);
+      p.dir = pick(r, ['lr','rl']);
+      p.offset = round(-.24 + r() * .48, 3);
+      p.offsetMode = pick(r, ['linear','linear','alt','rand']);
+    }
+    if (!locks.texture){
+      p.partial   = round(r() * .8);
+      p.fracs     = pick(r, ['half','mixed','thirds']);
+      p.anchor    = pick(r, ['random','top','bottom','center']);
+      p.solidFrom = round(1.5 + r() * 4);
+    }
+  } else {
+    const p = state.modules;
+    if (!locks.grid){
+      p.cols = Math.round(6 + r() * 20);
+      p.set = pick(r, ['arcs','solid','mixed']);
+      p.weight = round(.14 + r() * .45);
+    }
+    if (!locks.field){
+      p.density = round(.4 + r() * .6);
+      p.useField = r() < .7;
+      p.angle = Math.round(r() * 360);
+      p.gamma = round(.5 + r() * 2);
+      p.origin = round(-.15 + r() * .3);
+    }
+  }
+
+  if (!locks.color){
+    const p = pick(r, PALETTES);
+    state.bg = p.bg; state.fg = p.fg;
+    state.bgGrad.c2 = p.bg2; state.fgGrad.c2 = p.fg2;
+    state.bgGrad.on = r() < .35;
+    state.fgGrad.on = r() < .5;
+    for (const g of [state.bgGrad, state.fgGrad]){
+      g.type  = r() < .8 ? 'linear' : 'radial';
+      g.angle = Math.round(r() * 360);
+      g.bands = r() < .3 ? Math.round(2 + r() * 5) : 0;
+    }
+  }
+  sync(); render();
+}
+
+/* =====================================================================
+   8. Export
+   ===================================================================== */
+
+const fileBase = () => `fes-pattern_${state.engine}_${state.seed}_${state.W}x${state.H}`;
+
+function saveBlob(name, blob){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportSVG(){
+  const { svg } = renderSVG(state, {});
+  saveBlob(fileBase() + '.svg', new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+}
+
+function exportPNG(scale){
+  const { svg } = renderSVG(state, { scale });
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = state.W * scale; cv.height = state.H * scale;
+    cv.getContext('2d').drawImage(img, 0, 0);
+    cv.toBlob(b => saveBlob(`${fileBase()}@${scale}x.png`, b), 'image/png');
+  };
+  img.onerror = () => alert('Falhou a rasterização para PNG. Exporta em SVG.');
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+/* =====================================================================
+   9. Ligações
+   ===================================================================== */
+
+buildPanels();
+
+$('#seed').addEventListener('input', e => { state.seed = e.target.value; render(); });
+$('#newSeed').addEventListener('click', () => { state.seed = newSeed(); sync(); render(); });
+$('#randomize').addEventListener('click', randomize);
+$('#expSvg').addEventListener('click', exportSVG);
+$('#expPng2').addEventListener('click', () => exportPNG(2));
+$('#expPng3').addEventListener('click', () => exportPNG(3));
+
+document.querySelectorAll('#engineSeg button').forEach(b =>
+  b.addEventListener('click', () => { state.engine = b.dataset.engine; sync(); render(); }));
+document.querySelectorAll('.tab').forEach(t =>
+  t.addEventListener('click', () => setView(t.dataset.view)));
+
+addEventListener('keydown', e => {
+  const t = e.target.tagName;
+  if (t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA') return;
+  if (e.key === 'r' || e.key === 'R') randomize();
+  if (e.key === 's' || e.key === 'S'){ state.seed = newSeed(); sync(); render(); }
+  if (e.key === 'e' || e.key === 'E') exportSVG();
+});
+
+sync();
+render();
+})();
+</script>
+</body>
+</html>

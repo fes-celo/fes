@@ -13,9 +13,9 @@
 // thing whenever it's available.
 import type { ImageMetadata } from 'astro'
 import weWantYou from '../assets/projects/we-want-you.png'
-import weWantYouIcon from '../assets/projects/we-want-you-icon.png'
+import weWantYouIcon from '../assets/projects/we-want-you-icon-icon.png'
 import blipTedx from '../assets/projects/blip-tedx.png'
-import blipTedxIcon from '../assets/projects/blip-tedx-icon.png'
+import blipTedxIcon from '../assets/projects/Blip-icon.png'
 import tenXForward from '../assets/projects/10x-forward.png'
 import tenXForwardIcon from '../assets/projects/10x-forward-icon.svg'
 import coverflex from '../assets/projects/coverflex.png'
@@ -23,7 +23,7 @@ import coverflexIcon from '../assets/projects/coverflex-icon.png'
 import dashlane from '../assets/projects/dashlane.png'
 import dashlaneIcon from '../assets/projects/dashlane-icon.png'
 import startupPortugalProject from '../assets/projects/startup-portugal.png'
-import startupPortugalProjectIcon from '../assets/projects/startup-portugal-icon.png'
+import startupPortugalProjectIcon from '../assets/projects/Startup Portugal-icon.png'
 
 export interface Project {
   href: string
@@ -39,16 +39,7 @@ export interface Project {
 // First entry is the filter's implicit "show everything" option — its
 // display label ("All Projects") is special-cased in ProjectsFilter, not
 // stored here.
-export const projectCategories = [
-  'All',
-  'Fintech',
-  'Public',
-  'Startups',
-  'Enterprise',
-  'Community',
-  'Events',
-  'Impact',
-]
+export const projectCategories = ['All', 'Startups & Scaleups', 'Enterprise', 'Public & Institutions']
 
 export const projects: Project[] = [
   {
@@ -59,7 +50,7 @@ export const projects: Project[] = [
     icon: weWantYouIcon,
     iconBg: '#450E61',
     tag: 'Campaign',
-    category: ['Fintech', 'Enterprise'],
+    category: ['Enterprise'],
   },
   {
     href: '/projects/blip-tedx/',
@@ -69,7 +60,7 @@ export const projects: Project[] = [
     icon: blipTedxIcon,
     iconBg: '#323F48',
     tag: 'Video-series',
-    category: ['Startups', 'Events'],
+    category: ['Startups & Scaleups'],
   },
   {
     href: '/projects/10x-forward/',
@@ -79,7 +70,7 @@ export const projects: Project[] = [
     icon: tenXForwardIcon,
     iconBg: 'var(--color-neutral-50)',
     tag: 'Case study',
-    category: ['Startups', 'Public', 'Community'],
+    category: ['Startups & Scaleups', 'Public & Institutions'],
   },
   {
     href: '/projects/coverflex/',
@@ -89,7 +80,7 @@ export const projects: Project[] = [
     icon: coverflexIcon,
     iconBg: 'var(--color-neutral-50)',
     tag: 'Brand film',
-    category: ['Fintech', 'Enterprise', 'Events'],
+    category: ['Startups & Scaleups', 'Enterprise'],
   },
   {
     href: '/projects/dashlane/',
@@ -99,7 +90,7 @@ export const projects: Project[] = [
     icon: dashlaneIcon,
     iconBg: '#09363F',
     tag: 'Web design',
-    category: ['Enterprise', 'Fintech'],
+    category: ['Enterprise'],
   },
   {
     href: '/projects/startup-portugal/',
@@ -109,6 +100,6 @@ export const projects: Project[] = [
     icon: startupPortugalProjectIcon,
     iconBg: '#E8DB37',
     tag: 'Social',
-    category: ['Public', 'Startups', 'Community'],
+    category: ['Public & Institutions', 'Startups & Scaleups'],
   },
 ]

@@ -75,7 +75,7 @@ import Heading from './Heading.astro'
   })()
 </script>
 <section
-  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(to_right,#4A40F2,#0E004D)] px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem+var(--hero-chrome,0px))] lg:pb-[calc(120px+var(--hero-chrome,0px))]"
+  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden bg-[linear-gradient(to_right,#4A40F2,#0E004D)] px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(120px_+_var(--hero-chrome,0px))]"
   style="height: var(--hero-vh, 100lvh)"
 >
   <div id="hero-shader" aria-hidden="true" class="pointer-events-none absolute inset-0 size-full"></div>
@@ -147,14 +147,54 @@ import Heading from './Heading.astro'
     ShaderFitOptions,
   } from '@paper-design/shaders'
 
-  // The shape's soft-edge framing inside the fragment shader is a fixed
-  // fraction of the box regardless of aspect ratio, so on a narrow portrait
-  // viewport "cover" fit exposes it as visible top/bottom margins. Zooming
-  // in and panning toward the left lobe (tuned by eye at 375 and 768px)
-  // crops past that margin instead of trying to fill it.
+  // The shape asset wants to be authored 1:1. toProcessedHeatmap()
+  // letterboxes it into a 1000px box, surrounds that with 375px of blur
+  // margin on every side, and the fragment shader then un-pads by a *fixed*
+  // 1000/1750 on both axes — which is only exact for a square source. The
+  // original 16:9 export padded to 1750x1312, where the shape fills just
+  // 562/1312 vertically against the 1000/1750 the shader assumes, so ~13%
+  // of bare padding showed at each end: the band that appeared once the
+  // window grew taller than 16:9.
+  //
+  // With a square asset the two agree, fillScale() below is a flat 1, and
+  // cover fit crops the top and bottom of a tall window while keeping the
+  // full width of the frame on screen. It's derived from the processed
+  // texture rather than hardcoded so that a non-square export degrades to a
+  // zoom-to-fill instead of silently bringing the band back — that costs a
+  // tighter crop on the other axis, which is the reason to keep it square.
+  const PROCESS_BOX = 1000 // toProcessedHeatmap's longest-side box
+  const PROCESS_PADDING = 375 // blur margin it adds on every side
+
+  function fillScale(image: HTMLImageElement, container: HTMLElement) {
+    const textureWidth = image.naturalWidth
+    const textureHeight = image.naturalHeight
+    // Share of the texture the shader assumes the shape covers, over the
+    // share it actually covers, per axis.
+    const assumed = PROCESS_BOX / (PROCESS_BOX + 2 * PROCESS_PADDING)
+    const deficitX = assumed / ((textureWidth - 2 * PROCESS_PADDING) / textureWidth)
+    const deficitY = assumed / ((textureHeight - 2 * PROCESS_PADDING) / textureHeight)
+    // Mirrors the vertex shader's own cover box for the image layer: the
+    // overflowing axis stays at 1, the other shrinks by the aspect gap.
+    const textureAspect = textureWidth / textureHeight
+    const aspect = (container.clientWidth || 1) / (container.clientHeight || 1)
+    return Math.max(
+      Math.min(1, aspect / textureAspect) * deficitX,
+      Math.min(1, textureAspect / aspect) * deficitY,
+    )
+  }
+
+  // Panning toward the left lobe on narrow viewports is art direction, not
+  // a fix: filling the height of a phone crops most of the width away, and
+  // the gap between the two lobes reads better there than a lobe's middle.
   const MOBILE_QUERY = '(max-width: 1023px)'
-  const desktopParams = { u_scale: 1, u_offsetX: 0 }
-  const mobileParams = { u_scale: 1.45, u_offsetX: -0.2 }
+  const MOBILE_OFFSET_X = -0.2
+
+  function viewParams(image: HTMLImageElement, container: HTMLElement) {
+    return {
+      u_scale: fillScale(image, container),
+      u_offsetX: mobileQuery?.matches ? MOBILE_OFFSET_X : 0,
+    }
+  }
 
   // Processed once per full page load and reused for every later mount:
   // toProcessedHeatmap fetches and re-encodes the shape, which would be a
@@ -191,7 +231,8 @@ import Heading from './Heading.astro'
 
   let mount: ShaderMount | null = null
   let mobileQuery: MediaQueryList | null = null
-  let onQueryChange: ((event: MediaQueryListEvent) => void) | null = null
+  let resizeObserver: ResizeObserver | null = null
+  let onQueryChange: (() => void) | null = null
   let onContextLost: ((event: Event) => void) | null = null
   let contextRetried = false
   // Bumped by every teardown so an in-flight mount (loading the shape is
@@ -239,16 +280,22 @@ import Heading from './Heading.astro'
         u_offsetY: 0,
         u_worldWidth: 0,
         u_worldHeight: 0,
-        ...(mobileQuery.matches ? mobileParams : desktopParams),
+        ...viewParams(image, container),
       },
       undefined,
       0.5,
     )
 
-    onQueryChange = (event) => {
-      mount?.setUniforms(event.matches ? mobileParams : desktopParams)
+    onQueryChange = () => {
+      mount?.setUniforms(viewParams(image, container))
     }
     mobileQuery.addEventListener('change', onQueryChange)
+    // Only load-bearing while the asset isn't square, but it's what keeps a
+    // non-square one filling as the section's aspect ratio changes — window
+    // drags, rotation, the mobile URL bar collapsing on scroll. setUniforms
+    // skips unchanged values, so with a square asset this costs nothing.
+    resizeObserver = new ResizeObserver(onQueryChange)
+    resizeObserver.observe(container)
 
     // Mobile Safari drops WebGL contexts under memory pressure (backgrounding
     // the tab is enough), which leaves the canvas blank and the section
@@ -268,6 +315,7 @@ import Heading from './Heading.astro'
   function teardown() {
     generation += 1
     if (mobileQuery && onQueryChange) mobileQuery.removeEventListener('change', onQueryChange)
+    resizeObserver?.disconnect()
     if (mount && onContextLost) mount.canvasElement.removeEventListener('webglcontextlost', onContextLost)
     // Frees the GL program/textures and removes the canvas — without it a
     // client-side navigation would leak a context per visit, and browsers
@@ -275,6 +323,7 @@ import Heading from './Heading.astro'
     mount?.dispose()
     mount = null
     mobileQuery = null
+    resizeObserver = null
     onQueryChange = null
     onContextLost = null
   }

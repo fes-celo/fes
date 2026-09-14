@@ -409,12 +409,27 @@
 
   Desktop-only (hover: hover): on touch, :hover sticks after a tap with
   nothing to un-hover it, which would leave the other cards dimmed.
+
+  Both rules target the card's CHILDREN, never [data-project-card] itself.
+  Every one of those sections also runs a staggered GSAP reveal —
+  `gsap.from(cards, { opacity: 0, y: 24 })` — on the card elements, and a CSS
+  transition on a property GSAP animates silently corrupts it: GSAP reads an
+  element's natural end value by clearing its inline style and reading
+  getComputedStyle back SYNCHRONOUSLY (ScrollTrigger.refresh() reverts and
+  re-measures every `from` tween that way). With `transition: opacity` on the
+  card, that read returns the mid-transition value — 0, the value the tween
+  itself had just written — so the reveal recorded 0 as the "animate back to"
+  target and played 0 → 0. The cards kept their layout space and animated
+  their y, but never became visible; transforms survived because GSAP caches
+  those on the element's own _gsap object instead of re-reading the DOM.
+  Dimming the children is visually identical (they don't overlap) and leaves
+  the card's own opacity entirely to GSAP.
 */
-[data-project-card] {
+[data-project-card] > * {
   transition: opacity 300ms ease;
 }
 @media (hover: hover) {
-  [data-projects-row]:has([data-project-card]:hover) [data-project-card]:not(:hover) {
+  [data-projects-row]:has([data-project-card]:hover) [data-project-card]:not(:hover) > * {
     opacity: 0.3;
   }
 }

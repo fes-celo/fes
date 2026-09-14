@@ -19,7 +19,7 @@ import { Image } from 'astro:assets'
 import { clientLogos } from '../lib/clients'
 
 interface Props {
-  logos?: { src: ImageMetadata; name: string }[]
+  logos?: { src: ImageMetadata; name: string; scale?: number }[]
   /** Scroll pace — roughly 100px per second at 1. */
   speed?: number
   /** Agency-page treatment: logos desaturated. */
@@ -46,7 +46,13 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 )
 
 const cellClass = 'mr-12 flex w-[160px] shrink-0 items-center justify-center lg:mr-20 lg:w-[200px]'
-const logoClass = `h-auto max-h-[45px] w-auto object-contain lg:max-h-[65px]${grayscale ? ' grayscale' : ''}`
+// Fixed bounding box (not just a max-height) so every logo reads at the same
+// visual size regardless of its native aspect ratio — wordmark-shaped logos
+// like Infraspeak/Natixis/Subvisual are far wider-than-tall than the rest of
+// the set, so height-only constraints let them render 2-3x wider than the
+// squarer logos once scaled up. object-contain keeps each one's own aspect
+// ratio inside that shared box.
+const logoClass = `h-[40px] w-[130px] object-contain lg:h-[56px] lg:w-[170px]${grayscale ? ' grayscale' : ''}`
 ---
 
 <div
@@ -67,6 +73,11 @@ const logoClass = `h-auto max-h-[45px] w-auto object-contain lg:max-h-[65px]${gr
       cells.map(({ logo, isDuplicate }) => (
         <div class={cellClass}>
           {
+            // Per-logo `scale` (e.g. Blip down, Infraspeak/Natixis up) is a
+            // transform, not a change to the shared box above — it resizes
+            // what's drawn without touching cell spacing, so the strip's
+            // rhythm stays even while individual logos read as visually
+            // balanced against each other.
             // TODO: astro:assets' image service 400s optimizing SVGs —
             // serve them unoptimized until that's fixed.
             logo.src.format === 'svg' ? (
@@ -75,6 +86,7 @@ const logoClass = `h-auto max-h-[45px] w-auto object-contain lg:max-h-[65px]${gr
                 alt={isDuplicate ? '' : `${logo.name} logo`}
                 aria-hidden={isDuplicate ? 'true' : undefined}
                 class={logoClass}
+                style={logo.scale ? `transform: scale(${logo.scale})` : undefined}
                 loading="lazy"
                 decoding="async"
                 draggable="false"
@@ -86,6 +98,7 @@ const logoClass = `h-auto max-h-[45px] w-auto object-contain lg:max-h-[65px]${gr
                 aria-hidden={isDuplicate ? 'true' : undefined}
                 width={400}
                 class={logoClass}
+                style={logo.scale ? `transform: scale(${logo.scale})` : undefined}
                 loading="lazy"
                 draggable="false"
               />

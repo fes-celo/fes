@@ -98,6 +98,7 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 
 <script>
   import type { HorizontalLoop } from '../lib/horizontalLoop'
+  import { pressCards } from '../lib/dragCarousel'
 
   // Still passed through even with no autoplay: horizontalLoop's `speed`
   // sets the underlying timeline's total duration, which is what maps drag
@@ -150,6 +151,8 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
     // horizontalLoop's own drag/inertia/snap-to-nearest work identically
     // whether the underlying repeat:-1 timeline is playing or not; dragging
     // just scrubs its progress directly.
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
     tracks.forEach((track) => {
       const loop = horizontalLoop(track.children, {
         speed: SPEED,
@@ -158,6 +161,28 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
       })
       if (!loop) return
       loops.push(loop)
+
+      // Same press-scale feedback as the testimonial/team drag carousels
+      // (see src/lib/dragCarousel.ts's pressCards + PRESS_SCALE), applied
+      // to horizontalLoop's own Draggable instance — the loop's `snap`
+      // already lands on the nearest card, this just adds the shrink-on-
+      // press half of that mechanic. Skipped under reduced motion, same as
+      // createDragCarousel's own bail-out; the drag itself still works.
+      if (reducedMotion) return
+      const cards = Array.from(track.querySelectorAll<HTMLElement>('.addons__card'))
+      const onPress = () => pressCards(cards, true)
+      const onRelease = () => pressCards(cards, false)
+      // Release listeners on `window`, not the track — see
+      // SystemAddonsCarousel's identical note: a drag can end outside the
+      // track's own bounds (a fast flick past the strip's edge).
+      track.addEventListener('pointerdown', onPress)
+      window.addEventListener('pointerup', onRelease)
+      window.addEventListener('pointercancel', onRelease)
+      cleanups.push(() => {
+        track.removeEventListener('pointerdown', onPress)
+        window.removeEventListener('pointerup', onRelease)
+        window.removeEventListener('pointercancel', onRelease)
+      })
     })
   }
 

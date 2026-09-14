@@ -14,17 +14,16 @@ import SystemsWhatWeDo from '../components/SystemsWhatWeDo.astro'
 import ScrollCta from '../components/ScrollCta.astro'
 
 import weWantYou from '../assets/projects/we-want-you.png'
-import weWantYouIcon from '../assets/projects/we-want-you-icon.png'
+import weWantYouIcon from '../assets/projects/we-want-you-icon-icon.png'
 import blipTedx from '../assets/projects/blip-tedx.png'
-import blipTedxIcon from '../assets/projects/blip-tedx-icon.png'
+import blipTedxIcon from '../assets/projects/Blip-icon.png'
 import tenXForward from '../assets/projects/10x-forward.png'
 import tenXForwardIcon from '../assets/projects/10x-forward-icon.svg'
-import coverflex from '../assets/projects/coverflex.png'
-import coverflexIcon from '../assets/projects/coverflex-icon.png'
+import shamirIcon from '../assets/projects/Shamir-icon.png'
 import dashlane from '../assets/projects/dashlane.png'
 import dashlaneIcon from '../assets/projects/dashlane-icon.png'
 import startupPortugalProject from '../assets/projects/startup-portugal.png'
-import startupPortugalProjectIcon from '../assets/projects/startup-portugal-icon.png'
+import startupPortugalProjectIcon from '../assets/projects/Startup Portugal-icon.png'
 
 import lilianaCastro from '../assets/people/FES_Liliana-cutout.png'
 
@@ -36,20 +35,21 @@ import lilianaCastro from '../assets/people/FES_Liliana-cutout.png'
 // system cards do).
 const featuredRow1 = [
   {
+    href: '/projects/shamir/',
+    title: 'Shamir',
+    // Placeholder: no case-study content or cover photo yet — see the
+    // solid-tint fallback below (image omitted) and PlaceholderBlock.astro.
+    description: 'Case study coming soon.',
+    icon: shamirIcon,
+    iconBg: 'var(--color-neutral-50)',
+  },
+  {
     href: '/projects/we-want-you/',
     title: 'We Want You',
     description: 'A concept creation, dedicated website and campaigns.',
     image: weWantYou,
     icon: weWantYouIcon,
     iconBg: '#450E61',
-  },
-  {
-    href: '/projects/blip-tedx/',
-    title: 'Blip x TEDx',
-    description: 'We help startups, tech companies and disruptive businesses',
-    image: blipTedx,
-    icon: blipTedxIcon,
-    iconBg: '#323F48',
   },
 ]
 
@@ -63,12 +63,12 @@ const featuredRow2 = [
     iconBg: 'var(--color-neutral-50)',
   },
   {
-    href: '/projects/coverflex/',
-    title: 'Coverflex',
+    href: '/projects/blip-tedx/',
+    title: 'Blip x TEDx',
     description: 'We help startups, tech companies and disruptive businesses',
-    image: coverflex,
-    icon: coverflexIcon,
-    iconBg: 'var(--color-neutral-50)',
+    image: blipTedx,
+    icon: blipTedxIcon,
+    iconBg: '#323F48',
   },
   {
     href: '/projects/dashlane/',
@@ -99,32 +99,48 @@ const stats = [
   { value: '+50k', label: 'paid media investment per year' },
 ]
 
-// Shipped exactly as authored in the Figma Testimonials frame (node
-// 770:419) per user decision, including its inconsistencies: cards 1 and 2
-// share an identical name/role with two different quotes, and all three
-// share the same category tag even though card 3's quote is about
-// Anchorage Digital, not NDC Conferences.
 const testimonials = [
   {
-    tag: '[Event Production + NDC Conferences]',
     quote:
-      'FES Agency was all you could wish for in a partner! Supportive, pro-active, mindful about what we needed, and what we valued as an invidual company, rather than a cookie-cutter solution. High-visibility PR has a lot to do with timing. FES helped us be on top of PR opportunities, and at the same time supporting us in our PR needs.',
-    name: 'Heather Fabela',
-    role: 'Head of Ops @ NDC Conferences',
+      'BRIDGE IN has greatly benefited from the expertise of FES Agency, especially Joana and Liliana. Their guidance on our messaging was invaluable, resulting in our appearance in major Portuguese media outlets. They are consistently on time, reliable, and professional. We highly recommend their services.',
+    name: 'Elisa Tarzia',
+    role: 'VP of Growth @ BRIDGE IN',
   },
   {
-    tag: '[Event Production + NDC Conferences]',
+    quote:
+      'There are very few players in the Portuguese tech ecosystem that are able to keep up with a dynamic and fast-paced environment. FES agency is our go-to partner in everything community related! They have been our right hand (and left) in making our employer branding strategy happen. This world-class team is not only agile and empathic, they are true experts in navigating this ecosystem.',
+    name: 'Rita Gouveia',
+    role: 'People Experience Leads @ xgeeks',
+  },
+  {
+    quote:
+      "Limited resources, little time, and a lot of ambition are typically the perfect combination for a service provider's biggest headache. FES Agency was incredible in how they helped us achieve what we wanted and understood exactly what we needed. I highly recommend them!",
+    name: 'Liliana Pinho',
+    role: 'Strategic Marketing Director @ Infraspeak',
+  },
+  {
+    quote:
+      'FES is more than an agency. It is a true partner. They seek to understand our business, our needs, and acts as an extension of the company to better serve its purpose.',
+    name: 'Mafalda Garcês',
+    role: 'Country Leader & Senior People Director @ Dashlane',
+  },
+  {
+    quote:
+      'FES Agency was all you could wish for in a partner! Supportive, pro-active, mindful about what we needed, and what we valued as an individual company, rather than a cookie-cutter solution. High-visibility PR has a lot to do with timing. FES helped us be on top of PR opportunities, and at the same time supporting us in our PR needs.',
+    name: 'João Peixoto',
+    role: 'Ex-Engineering Leadership @ Anchorage Digital',
+  },
+  {
+    quote:
+      "We've been working with FES Agency for many years, and having them helping out in our events is a synonym to add peace of mind to a process that is typically stressful. Their professional yet personalized approach, coupled with their ability to bring together a diverse range of suppliers and manage every aspect of the event, is remarkable. Their dedication and creative problem-solving, even for last-minute surprises, ensures a flawless experience, leaving a lasting impact on both participants and organizers alike.",
+    name: 'Rafael Pires',
+    role: 'IT Labs Manager @ MC (SONAE)',
+  },
+  {
     quote:
       'We could not have pulled off NDC Porto 2023 without the amazing FES Agency! Working with Liliana, Mariana, and their entire team gives us piece of mind. We know we are in the best hands, and it makes our job so much easier.',
     name: 'Heather Fabela',
     role: 'Head of Ops @ NDC Conferences',
-  },
-  {
-    tag: '[Event Production + NDC Conferences]',
-    quote:
-      "We've worked with FES Agency for years, and their help adds peace of mind to stressful events. Their professional, personalised approach and ability to manage suppliers is remarkable. Their dedication and problem-solving ensure a flawless experience for participants and organisers.",
-    name: 'João Peixoto',
-    role: 'Ex-Engineering Leadership @ Anchorage Digital',
   },
 ]
 ---
@@ -217,20 +233,26 @@ const testimonials = [
       data-anim="reveal"
     >
       <div>
-        <SectionLabel>We drive results</SectionLabel>
+        <SectionLabel>Our Impact</SectionLabel>
         <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-7">
           <dl class="grid grid-cols-2 gap-x-7 lg:col-span-4" data-stats-cycle>
             {stats.map((s, i) => <StatBlock variant="minimal" value={s.value} label={s.label} active={i === 0} />)}
           </dl>
           <div class="flex flex-col items-start gap-10 lg:col-span-8">
-            <Heading as="p" class="text-h1 text-ink">
-              Behind these numbers: a decade inside Portugal's tech ecosystem, and a simple belief that communication
-              shouldn't be run in pieces. FES exists to make PR, brand, digital and events work as one system.
-            </Heading>
+            <div>
+              <p class="stats-eyebrow float-left mr-8 text-body-sm font-medium text-accent-default">
+                Behind these numbers
+              </p>
+              <p class="text-h1 text-ink">
+                A decade inside Portugal's tech ecosystem, and a simple belief that communication shouldn't be run in
+                pieces. FES exists to make PR, brand, digital and events work as one system.
+              </p>
+            </div>
             <Button
               href="/agency/"
               variant="tint"
-              class="!text-body !text-white hover:!bg-white hover:!text-accent-default"
+              arrow={false}
+              class="!text-body !text-ink hover:!bg-white hover:!text-accent-default"
             >
               Meet the Agency
             </Button>
@@ -332,7 +354,7 @@ const testimonials = [
   >
     <div>
       <SectionLabel>Trusted by</SectionLabel>
-      <LogoMarquee class="mt-[var(--space-heading-gap)]" rules="none" />
+      <LogoMarquee grayscale class="mt-[var(--space-heading-gap)]" rules="none" />
     </div>
   </section>
 
@@ -373,7 +395,10 @@ const testimonials = [
           </div>
         </div>
         <div class="flex flex-1 flex-col justify-between gap-10 py-2">
-          <p class="text-lead font-normal text-accent-50">Ready to make some noise? Book an intro call</p>
+          <div class="flex flex-col text-h3 font-normal leading-none text-accent-50">
+            <p>Ready to make some noise?</p>
+            <p class="font-medium">Book an intro call</p>
+          </div>
           <UnderlineLink href="/contact/" class="self-start text-display text-accent-50">Let's talk</UnderlineLink>
         </div>
       </div>
@@ -382,14 +407,23 @@ const testimonials = [
            ramp, on a card whose own copy is accent-400. */
       }
       <div class="flex flex-col justify-between gap-10 rounded-[var(--radius-card)] border border-accent-200 p-[var(--space-card-p)] lg:col-span-4">
-        <p class="text-lead font-normal text-accent-400">Not sure where to start?</p>
-        <UnderlineLink href="/systems/" class="self-start text-display text-accent-400">See our Systems</UnderlineLink>
+        <p class="text-h3 font-normal text-accent-400">Not sure where to start?</p>
+        <UnderlineLink href="/systems/" class="self-start text-h3 text-accent-400">Know more about our systems</UnderlineLink>
       </div>
     </div>
   </section>
 </BaseLayout>
 
 <style>
+  /* "Behind these numbers" eyebrow, floated the same way as SectionIntro's
+     (see that component) so the quote's first line wraps around it instead
+     of a fixed text-indent — one quote line tall, minus a hair, to keep it
+     vertically centred against the quote's first line without letting
+     rounding push the second line to indent too. */
+  .stats-eyebrow {
+    line-height: calc(var(--text-h1) * var(--text-h1--line-height) - 1px);
+  }
+
   /* Light → dark inversion driven by --dark-progress (0 or 1, set by the
      script below when the second Selected Projects row starts leaving the
      top of the viewport). A short transition on every color role keeps the
@@ -471,6 +505,7 @@ const testimonials = [
 <script>
   import { gsap } from 'gsap'
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
+  import { createDragCarousel } from '../lib/dragCarousel'
 
   gsap.registerPlugin(ScrollTrigger)
 
@@ -592,29 +627,7 @@ const testimonials = [
     // second card, which both fought scroll-snap-mandatory and disagreed
     // with the markup's own active flag.
 
-    let isDown = false
-    let startX = 0
-    let startScroll = 0
-
-    function onDown(e: MouseEvent) {
-      isDown = true
-      track!.classList.add('select-none')
-      startX = e.pageX
-      startScroll = track!.scrollLeft
-    }
-    function onUp() {
-      isDown = false
-      track!.classList.remove('select-none')
-    }
-    function onMove(e: MouseEvent) {
-      if (!isDown) return
-      e.preventDefault()
-      track!.scrollLeft = startScroll - (e.pageX - startX)
-    }
-
-    track.addEventListener('mousedown', onDown)
-    window.addEventListener('mouseup', onUp)
-    window.addEventListener('mousemove', onMove)
+    const dragCleanup = createDragCarousel(track, { cardSelector: '[data-testimonial-card]' })
 
     function cardWidth() {
       const first = track!.firstElementChild as HTMLElement | null
@@ -641,9 +654,7 @@ const testimonials = [
     cards.forEach((c) => activeObserver.observe(c))
 
     return () => {
-      track.removeEventListener('mousedown', onDown)
-      window.removeEventListener('mouseup', onUp)
-      window.removeEventListener('mousemove', onMove)
+      dragCleanup?.()
       prevBtn?.removeEventListener('click', onPrev)
       nextBtn?.removeEventListener('click', onNext)
       activeObserver.disconnect()

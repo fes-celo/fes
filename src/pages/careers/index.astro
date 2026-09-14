@@ -88,31 +88,24 @@ const perks = [
   },
 ]
 
-// Shipped exactly as authored in the Figma frame (node 951:1376), including
-// its inconsistency: all three share the same tag even though only the
-// first is actually about NDC Conferences — same literal-content convention
-// as the homepage testimonials (see src/pages/index.astro).
 const alumniFeedback = [
   {
-    tag: '[Event Production + NDC Conferences]',
     quote:
-      'FES Agency was all you could wish for in a partner! Supportive, pro-active, mindful about what we needed, and what we valued as an invidual company, rather than a cookie-cutter solution. High-visibility PR has a lot to do with timing. FES helped us be on top of PR opportunities, and at the same time supporting us in our PR needs.',
-    name: 'Heather Fabela',
-    role: 'Head of Ops @ NDC Conferences',
+      'Working at FES is almost too good to be true. The team is spectacular, and Liliana is not only an excellent person but also an incredibly humane professional, an extremely attentive leader, and an inspiring woman. Well-being and team development are always a concern.',
+    name: 'Liliana Pinho',
+    role: 'Alumni (PR Manager)',
   },
   {
-    tag: '[Event Production + NDC Conferences]',
     quote:
       'FES Agency values and cares for its employees, promoting their well-being every day and providing autonomy for them to grow in all professional and personal challenges. Positive culture, team unity, professionalism, resilience, and respect are some of the many qualities of the agency and its employees. FES Agency was my home for a year and a half and, without a doubt, one of the most important milestones in my career. Thank you, FES!',
     name: 'Leonor Gomes',
     role: 'Alumni (Events and Digital Marketer)',
   },
   {
-    tag: '[Event Production + NDC Conferences]',
     quote:
-      'Working at FES is almost too good to be true. The team is spectacular, and Liliana is not only an excellent person but also an incredibly humane professional, an extremely attentive leader, and an inspiring woman. Well-being and team development are always a concern.',
-    name: 'João Peixoto',
-    role: 'Ex-Engineering Leadership @ Anchorage Digital',
+      'Working at FES was one of the most positive aspects of my professional career. Here, culture is the foundation of our creativity, people are collaborative, inspiring, and very easy to work with, and the projects are challenging and aligned with my aspirations. Even before the pandemic, the agency embraced remote work, demonstrating innovation, trust in employees, and adaptability.',
+    name: 'Ana Vilar',
+    role: 'Alumni (Designer)',
   },
 ]
 ---
@@ -244,7 +237,7 @@ const alumniFeedback = [
         alt="The FES Agency team"
         width={2048}
         height={1537}
-        class="absolute left-0 top-[-14%] h-[128%] w-full object-cover"
+        class="absolute left-[-14%] top-[-14%] h-[128%] w-[128%] object-cover"
         data-parallax-image
       />
     </div>
@@ -361,6 +354,7 @@ const alumniFeedback = [
 <script>
   import { gsap } from 'gsap'
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
+  import { createDragCarousel } from '../../lib/dragCarousel'
 
   gsap.registerPlugin(ScrollTrigger)
 
@@ -655,29 +649,7 @@ const alumniFeedback = [
       track.scrollLeft = center
     }
 
-    let isDown = false
-    let startX = 0
-    let startScroll = 0
-
-    function onDown(e: MouseEvent) {
-      isDown = true
-      track!.classList.add('select-none')
-      startX = e.pageX
-      startScroll = track!.scrollLeft
-    }
-    function onUp() {
-      isDown = false
-      track!.classList.remove('select-none')
-    }
-    function onMove(e: MouseEvent) {
-      if (!isDown) return
-      e.preventDefault()
-      track!.scrollLeft = startScroll - (e.pageX - startX)
-    }
-
-    track.addEventListener('mousedown', onDown)
-    window.addEventListener('mouseup', onUp)
-    window.addEventListener('mousemove', onMove)
+    const dragCleanup = createDragCarousel(track, { cardSelector: '[data-testimonial-card]' })
 
     function cardWidth() {
       const first = track!.firstElementChild as HTMLElement | null
@@ -704,9 +676,7 @@ const alumniFeedback = [
     cards.forEach((c) => activeObserver.observe(c))
 
     return () => {
-      track.removeEventListener('mousedown', onDown)
-      window.removeEventListener('mouseup', onUp)
-      window.removeEventListener('mousemove', onMove)
+      dragCleanup?.()
       prevBtn?.removeEventListener('click', onPrev)
       nextBtn?.removeEventListener('click', onNext)
       activeObserver.disconnect()
