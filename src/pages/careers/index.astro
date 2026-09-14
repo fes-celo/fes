@@ -218,26 +218,40 @@ const alumniFeedback = [
   </section>
 
   {
-    /* Full-bleed team photo, sized to the image's own aspect ratio (Figma
-       node 951:1312: aspect-[4096/3073], full width) rather than a fixed
+    /* Full-bleed team photo, sized to the image's own aspect ratio
+       (team-photo.jpg is 3200x2297, aspect-[3200/2297]) rather than a fixed
        viewport height — a h-screen box doesn't share that ratio at most
-       viewport sizes and was cropping people out. The image itself renders
-       128% of the section's height so it has room to drift for the
-       scroll-driven parallax (see the <script> below) without ever
-       exposing empty space above/below; the -14%/128% pairing gives a 14%
-       buffer on each edge, comfortably more than the ±10% (±3% under
-       reduced motion) the parallax actually moves it — sized up from an
-       earlier ±6%/±1.5% pass that scrolled correctly but was too subtle to
-       read as parallax against a section this tall. */
+       viewport sizes and was cropping people out. This MUST track the
+       source file's actual pixel ratio: it's what makes the section's own
+       box exactly as wide-for-its-height as the photo, so the object-cover
+       below only has to apply the uniform zoom described next, never an
+       extra mismatched-aspect crop on top of it (that compounding is what
+       clipped heads and edge-of-frame people the last time this fell out of
+       sync with the asset). The image itself renders 128% of the section's
+       size (both axes, object-cover forces the same scale factor on each)
+       so it has room to drift for the scroll-driven parallax (see the
+       <script> below) without ever exposing empty space above/below; the
+       -14%/128% pairing gives a 14% buffer on each edge, comfortably more
+       than the ±10% (±3% under reduced motion) the parallax actually moves
+       it — sized up from an earlier ±6%/±1.5% pass that scrolled correctly
+       but was too subtle to read as parallax against a section this tall.
+
+       `max-w-none` is required: Tailwind's preflight resets every `img` to
+       `max-width: 100%`, which silently clamps `w-[128%]` back down to the
+       container's own width (`h-[128%]` needs no equivalent since preflight
+       doesn't touch max-height). Without it the image stops 14% short on
+       the right edge and the section's dark background shows through the
+       gap as a bare stripe — the parallax still looked fine because the
+       height math was untouched, only the width was quietly capped. */
   }
-  <section class="relative z-10 aspect-[4096/3073] w-full overflow-hidden" data-anim="reveal">
+  <section class="relative z-10 aspect-[3200/2297] w-full overflow-hidden" data-anim="reveal">
     <div class="absolute inset-0" data-parallax-wrapper>
       <Image
         src={teamPhoto}
         alt="The FES Agency team"
         width={2048}
-        height={1537}
-        class="absolute left-[-14%] top-[-14%] h-[128%] w-[128%] object-cover"
+        height={1470}
+        class="absolute left-[-14%] top-[-14%] h-[128%] w-[128%] max-w-none object-cover"
         data-parallax-image
       />
     </div>
