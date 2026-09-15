@@ -14,7 +14,7 @@
 import type { ImageMetadata } from 'astro'
 import weWantYou from '../assets/projects/we-want-you.png'
 import weWantYouIcon from '../assets/projects/we-want-you-icon-icon.png'
-import blipTedx from '../assets/projects/blip-tedx.png'
+import blipMediaRelations from '../assets/projects/Blip-media-relations.png'
 import blipTedxIcon from '../assets/projects/Blip-icon.png'
 import tenXForward from '../assets/projects/10x-forward.png'
 import tenXForwardIcon from '../assets/projects/10x-forward-icon.svg'
@@ -56,7 +56,7 @@ export const projects: Project[] = [
     href: '/projects/blip-media-relations/',
     title: 'Blip | Media Relations',
     description: "PR support across Portugal's tech and business media.",
-    thumbnail: blipTedx,
+    thumbnail: blipMediaRelations,
     icon: blipTedxIcon,
     iconBg: '#323F48',
     tag: 'Influence & Reputation System',
