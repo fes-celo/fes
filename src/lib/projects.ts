@@ -18,8 +18,8 @@ import blipTedx from '../assets/projects/blip-tedx.png'
 import blipTedxIcon from '../assets/projects/Blip-icon.png'
 import tenXForward from '../assets/projects/10x-forward.png'
 import tenXForwardIcon from '../assets/projects/10x-forward-icon.svg'
-import coverflex from '../assets/projects/coverflex.png'
 import coverflexIcon from '../assets/projects/coverflex-icon.png'
+import shamirPortugal from '../assets/projects/Shamir-portugal.png'
 import dashlane from '../assets/projects/dashlane.png'
 import dashlaneIcon from '../assets/projects/dashlane-icon.png'
 import startupPortugalProject from '../assets/projects/startup-portugal.png'
@@ -44,7 +44,7 @@ export const projectCategories = ['All', 'Startups & Scaleups', 'Enterprise', 'P
 export const projects: Project[] = [
   {
     href: '/projects/we-want-you/',
-    title: 'We Want You',
+    title: 'Natixis | We Want you',
     description: 'An employer branding campaign designed to attract talent.',
     thumbnail: weWantYou,
     icon: weWantYouIcon,
@@ -76,7 +76,7 @@ export const projects: Project[] = [
     href: '/projects/shamir-portugal/',
     title: 'Shamir Portugal',
     description: 'PR and content to bring the brand closer to its audiences.',
-    thumbnail: coverflex,
+    thumbnail: shamirPortugal,
     icon: coverflexIcon,
     iconBg: 'var(--color-neutral-50)',
     tag: 'Influence & Reputation System',
@@ -94,7 +94,7 @@ export const projects: Project[] = [
   },
   {
     href: '/projects/sim-conference/',
-    title: 'SIM Conference',
+    title: 'SIM Conference | Social Media Boost',
     description: "Content and social media for Portugal's startup community.",
     thumbnail: startupPortugalProject,
     icon: startupPortugalProjectIcon,
