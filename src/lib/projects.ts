@@ -53,8 +53,8 @@ export const projects: Project[] = [
     category: ['Enterprise'],
   },
   {
-    href: '/projects/media-relations/',
-    title: 'Media Relations',
+    href: '/projects/blip-media-relations/',
+    title: 'Blip | Media Relations',
     description: "PR support across Portugal's tech and business media.",
     thumbnail: blipTedx,
     icon: blipTedxIcon,
@@ -63,8 +63,8 @@ export const projects: Project[] = [
     category: ['Enterprise'],
   },
   {
-    href: '/projects/10x-forward/',
-    title: '10x Forward',
+    href: '/projects/startup-braga-10x-forward/',
+    title: 'Startup Braga | 10x Forward',
     description: 'An interview series with voices from the startup world.',
     thumbnail: tenXForward,
     icon: tenXForwardIcon,
@@ -93,8 +93,8 @@ export const projects: Project[] = [
     category: ['Enterprise'],
   },
   {
-    href: '/projects/social-media-boost/',
-    title: 'Social Media Boost',
+    href: '/projects/sim-conference/',
+    title: 'SIM Conference',
     description: "Content and social media for Portugal's startup community.",
     thumbnail: startupPortugalProject,
     icon: startupPortugalProjectIcon,
