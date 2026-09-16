@@ -24,11 +24,20 @@ const toneClasses: Record<string, string> = {
   onDark: 'rounded-[var(--radius-button)] bg-white/10 text-neutral-300',
   overlay: 'rounded-full bg-white text-ink shadow-[var(--shadow-card)]',
 }
+
+// overlay (the thumbnail chip) runs smaller than onLight/onDark, with wider
+// horizontal padding than vertical.
+const sizeClasses: Record<string, string> = {
+  onLight: 'px-2 py-1.5 text-[length:var(--text-meta)]',
+  onDark: 'px-2 py-1.5 text-[length:var(--text-meta)]',
+  overlay: 'px-3 py-1.5 text-[10px]',
+}
 ---
 
 <span
   class:list={[
-    'inline-flex items-center px-2 py-1.5 text-[length:var(--text-meta)] font-normal uppercase tracking-[0.01em]',
+    'inline-flex items-center font-normal uppercase tracking-[0.01em]',
+    sizeClasses[tone],
     toneClasses[tone],
     className,
   ]}

@@ -1,0 +1,510 @@
+---
+/**
+ * "Selected projects" rotator — category pills (optional) + a project list
+ * on the left, one auto-advancing image on the right, each row's divider
+ * filling ink-dark as its project's turn comes up (Web Animations API, so
+ * pause/resume is exact rather than reconstructed from a frozen CSS
+ * transition width). Hovering/focusing a project previews it immediately
+ * and pauses the cycle; leaving resumes it from that project. Originally
+ * built for Creative Projects Blueprint → Events & Activations; shared here
+ * for reuse across Systems pages.
+ *
+ * The image panel takes each PROJECT's own real photo ratio (from its first
+ * image) rather than staying locked to one fixed crop — see `projectAspect`
+ * below and the `<script>`'s `showProject`. A project with more than one
+ * image (the `images` array) auto-rotates through its own photos — inside
+ * that same project-shaped box, so the panel itself doesn't resize between
+ * them — but only while that project is the one showing, i.e. while it's
+ * active in the outer cycle or being hovered/focused. A project with zero
+ * images falls back to PlaceholderBlock's flat tint at a default ratio.
+ *
+ * Pills only render when there's more than one category — pass a single
+ * `{ label, projects }` entry for a flat, uncategorised list (no pill bar).
+ */
+import type { ImageMetadata } from 'astro'
+import { Image } from 'astro:assets'
+import Heading from './Heading.astro'
+import PlaceholderBlock from './PlaceholderBlock.astro'
+
+export interface RotatorProject {
+  title: string
+  description?: string
+  /** One image renders a static frame; more than one auto-rotates while the project is shown. Empty renders a placeholder. */
+  images: ImageMetadata[]
+}
+
+export interface RotatorCategory {
+  label: string
+  projects: RotatorProject[]
+}
+
+interface Props {
+  categories: RotatorCategory[]
+  /** Render size cap in px for a project's widest source photo — not a forced crop, just a ceiling so oversized source files aren't requested at full resolution. */
+  maxImageWidth?: number
+  imageSizes?: string
+  /** How long each project holds before the outer cycle advances to the next, in ms. */
+  intervalMs?: number
+  /** How long each photo holds before crossfading to the next, for a project with multiple images, in ms. */
+  slideIntervalMs?: number
+  class?: string
+}
+
+const {
+  categories,
+  maxImageWidth = 1772,
+  imageSizes = '(min-width: 1024px) 45vw, 100vw',
+  intervalMs = 4500,
+  slideIntervalMs = 1400,
+  class: className,
+} = Astro.props
+
+const showPills = categories.length > 1
+
+// This section's old fixed crop, kept only as a sane fallback shape for
+// placeholder-only projects, which have no real photo ratio to read.
+const FALLBACK_ASPECT = '886 / 580'
+
+function projectAspect(project: RotatorProject) {
+  const first = project.images[0]
+  return first ? `${first.width} / ${first.height}` : FALLBACK_ASPECT
+}
+
+// The panel needs a starting shape before the client script takes over.
+const firstProject = categories[0]?.projects[0]
+const initialAspect = firstProject ? projectAspect(firstProject) : FALLBACK_ASPECT
+---
+
+<section
+  class:list={['w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]', className]}
+  data-selected-projects-section
+>
+  <div class="flex flex-col gap-14" data-projects-row>
+    <Heading as="h2" indent={false} class="text-lead text-ink">
+      Selected projects
+    </Heading>
+
+    <div
+      class="flex flex-col gap-10 lg:flex-row lg:gap-16"
+      data-selected-projects
+      data-interval-ms={intervalMs}
+      data-slide-interval-ms={slideIntervalMs}
+    >
+      <div class="flex flex-col gap-8 lg:w-1/2" data-projects-panel>
+        {
+          showPills && (
+            <div class="flex flex-wrap gap-3" data-category-pills>
+              {categories.map((category, ci) => (
+                <button
+                  type="button"
+                  class:list={[
+                    'rounded-full border px-[0.85rem] py-[0.425rem] text-[length:calc(var(--text-body-sm)*0.85)] leading-[1.2] transition-colors',
+                    ci === 0
+                      ? 'border-ink bg-ink text-white'
+                      : 'border-neutral-300 text-ink-secondary hover:border-ink hover:text-ink',
+                  ]}
+                  data-category-pill
+                  data-category-index={ci}
+                  aria-current={ci === 0 ? 'true' : 'false'}
+                >
+                  {category.label}
+                </button>
+              ))}
+            </div>
+          )
+        }
+
+        <div data-category-lists>
+          {
+            categories.map((category, ci) => (
+              <ul class:list={['flex flex-col', ci === 0 ? '' : 'hidden']} data-category-list data-category-index={ci}>
+                {category.projects.map((project, pi) => (
+                  <li class="project-row flex flex-col">
+                    <button
+                      type="button"
+                      class="block w-full py-4 text-left text-lead text-ink"
+                      data-project-item
+                      data-project-index={pi}
+                      data-description={project.description ?? ''}
+                    >
+                      {project.title}
+                    </button>
+                    {
+                      /* Divider-as-progress: same neutral-300 rule every other
+                         row gets, but while its project is the one auto-
+                         advancing/previewed, `data-progress-fill` fills it
+                         ink-dark left-to-right — see the <script> below. */
+                    }
+                    <div class="relative h-px w-full bg-neutral-300">
+                      <div class="h-full w-0 bg-ink" data-progress-fill data-project-index={pi} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-4 self-start lg:w-1/2">
+        <div
+          class="relative overflow-hidden rounded-[var(--radius-card)] bg-accent-tint"
+          data-image-panel
+          style={{ aspectRatio: initialAspect }}
+        >
+          {
+            categories.map((category, ci) => (
+              <div class:list={['absolute inset-0', ci === 0 ? '' : 'hidden']} data-image-group data-category-index={ci}>
+                {category.projects.map((project, pi) => {
+                  const first = project.images[0]
+                  // Cap the render size at the old crop's width rather than
+                  // always requesting the source's full native resolution —
+                  // still the project's own ratio, just not an oversized
+                  // file for a photo shot much bigger than this panel shows.
+                  const outWidth = first ? Math.min(first.width, maxImageWidth) : maxImageWidth
+                  const outHeight = first ? Math.round((outWidth * first.height) / first.width) : Math.round((maxImageWidth * 580) / 886)
+                  const outWidths = [0.5, 0.75, 1].map((m) => Math.round(outWidth * m))
+                  return (
+                    <div
+                      class="absolute inset-0"
+                      data-project-image
+                      data-project-index={pi}
+                      data-aspect-ratio={projectAspect(project)}
+                      style={{ opacity: pi === 0 ? 1 : 0 }}
+                    >
+                      {project.images.length > 0 ? (
+                        project.images.map((image, si) => (
+                          <Image
+                            src={image}
+                            alt=""
+                            width={outWidth}
+                            height={outHeight}
+                            widths={outWidths}
+                            sizes={imageSizes}
+                            loading={ci === 0 && pi === 0 && si === 0 ? 'eager' : 'lazy'}
+                            data-project-slide
+                            class="rotator-slide absolute inset-0 size-full object-cover"
+                            style={{ opacity: si === 0 ? 1 : 0 }}
+                          />
+                        ))
+                      ) : (
+                        <PlaceholderBlock alt="" tone="tint" class="size-full" />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ))
+          }
+        </div>
+        <p class="text-body text-ink-secondary" data-project-caption hidden></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .rotator-slide {
+    transition: opacity 400ms ease-in-out;
+  }
+
+  /* Spotlight: pointing at (or tabbing to) one row drops every OTHER row —
+     its title AND its divider, hence dimming the whole <li> rather than the
+     button alone — back, leaving the one being previewed at full strength.
+     `:has()` rather than a JS class toggle so the dimming can't fall out of
+     sync with the pointer; the row's own progress fill dims with it, which
+     is correct: while a row is hovered its cycle is paused anyway. */
+  .project-row {
+    transition: opacity 200ms ease-out;
+  }
+  [data-category-list]:has(.project-row:hover, .project-row:focus-within)
+    .project-row:not(:hover):not(:focus-within) {
+    opacity: 0.35;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rotator-slide,
+    .project-row {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Staggered reveal for the projects row.
+  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../lib/sectionMotion'
+
+  bindSection('[data-projects-row]', ({ root, mm }) => {
+    const cards = Array.from(
+      root.querySelectorAll<HTMLElement>('[data-category-pill], [data-category-list]:not(.hidden) [data-project-item]'),
+    )
+    if (cards.length === 0) return
+
+    // fromTo, never from — see the shared [data-project-card] gotcha note in
+    // src/styles/global.css: a `from` tween derives its end value by
+    // clearing the inline style and reading computed opacity back out, and
+    // ScrollTrigger.refresh() re-runs that revert-and-measure pass. Stating
+    // both endpoints keeps the reveal correct no matter what CSS lands here.
+    mm.add(MOTION_FULL, () => {
+      const tween = gsap.fromTo(
+        cards,
+        { opacity: 0, y: 24 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.08,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: root, start: 'top 85%', once: true },
+        },
+      )
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+
+    mm.add(MOTION_FALLBACK, () => {
+      const tween = gsap.fromTo(
+        cards,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.4,
+          scrollTrigger: { trigger: root, start: 'top 90%', once: true },
+        },
+      )
+      return () => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(cards, { clearProps: 'opacity,transform' })
+      }
+    })
+  })
+</script>
+
+<script>
+  // Rotator wiring: category pills (if any) swap which project list/image
+  // group is visible; the visible group's projects auto-advance, each one
+  // filling its OWN row divider ink-dark while every other row's divider
+  // stays at its plain resting neutral-300 color. Hovering (or focusing) a
+  // project previews it immediately and pauses the cycle; leaving resumes
+  // the cycle from that project. Touch/no-hover devices skip the pause
+  // entirely and just keep auto-advancing — tapping a project still jumps
+  // straight to it via the shared click handler.
+  //
+  // Whichever project is currently shown also gets its OWN inner cycle, if
+  // it has more than one image: a separate, faster interval crossfades
+  // between that project's own photos, inside the same project-shaped box
+  // (the panel's aspect-ratio is set once per project, from its first
+  // image, and doesn't move again just because a later photo in the set has
+  // a different native ratio). It starts the instant the project becomes
+  // active (auto-advance or hover) and stops — resetting back to the first
+  // photo — the instant it stops being active, so it never runs behind the
+  // scenes for a project the visitor isn't looking at.
+  const ACTIVE_PILL = ['border-ink', 'bg-ink', 'text-white']
+  const INACTIVE_PILL = ['border-neutral-300', 'text-ink-secondary', 'hover:border-ink', 'hover:text-ink']
+
+  let cleanups: Array<() => void> = []
+
+  function init() {
+    // Safari fires `astro:page-load` twice on some navigations without an
+    // intervening `astro:before-swap` — tearing down first keeps re-entry
+    // idempotent instead of double-binding listeners and running two
+    // autoplay chains at once.
+    teardown()
+
+    const roots = Array.from(document.querySelectorAll<HTMLElement>('[data-selected-projects]'))
+    if (roots.length === 0) return
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const canHover = window.matchMedia('(hover: hover)').matches
+
+    roots.forEach((root) => {
+      const intervalMs = Number(root.dataset.intervalMs) || 4500
+      const slideIntervalMs = Number(root.dataset.slideIntervalMs) || 1400
+      const pills = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-category-pill]'))
+      const items = Array.from(root.querySelectorAll<HTMLElement>('[data-project-item]'))
+      if (items.length === 0) return
+
+      // Reassigned into its own non-null const so TS doesn't re-widen it
+      // back to `| null` inside the nested `function` declarations below.
+      const panelMaybe = root.querySelector<HTMLElement>('[data-image-panel]')
+
+      let activeCategory = 0
+      let activeProject = 0
+      let anim: Animation | null = null
+      const slideTimers = new Map<HTMLElement, number>()
+
+      const activeList = () => root.querySelector<HTMLElement>('[data-category-list]:not(.hidden)')
+      const activeGroup = () => root.querySelector<HTMLElement>('[data-image-group]:not(.hidden)')
+      const caption = root.querySelector<HTMLElement>('[data-project-caption]')
+      const rowFill = (pi: number) =>
+        activeList()?.querySelector<HTMLElement>(`[data-progress-fill][data-project-index="${pi}"]`) ?? null
+
+      // Cancelling reverts the fill to its base `w-0` style — whether that
+      // animation is still running or already sitting "finished" at 100%
+      // width (WAAPI holds a finished `fill: forwards` animation's end state
+      // until something clears it) — which is exactly how a just-left row's
+      // divider drops back to empty/neutral instead of staying lit.
+      function cancelAnim() {
+        anim?.cancel()
+        anim = null
+      }
+
+      function stopSlides(container: HTMLElement) {
+        const timer = slideTimers.get(container)
+        if (timer) window.clearInterval(timer)
+        slideTimers.delete(container)
+        const slides = Array.from(container.querySelectorAll<HTMLElement>('[data-project-slide]'))
+        slides.forEach((slide, si) => {
+          slide.style.opacity = si === 0 ? '1' : '0'
+        })
+      }
+
+      function startSlides(container: HTMLElement) {
+        // Idempotent: `showProject` re-runs for the project that's already
+        // active (hovering its own row, then leaving it, or clicking it),
+        // and only the OTHER projects get stopped. Without this guard each
+        // of those re-entries would stack another interval on the same
+        // container — the timers Map only keeps the newest id, so the older
+        // ones run forever and the photos appear to speed up the more the
+        // visitor hovers the list.
+        if (slideTimers.has(container)) return
+
+        const slides = Array.from(container.querySelectorAll<HTMLElement>('[data-project-slide]'))
+        if (slides.length <= 1 || reducedMotion) return
+        let index = 0
+        const timer = window.setInterval(() => {
+          index = (index + 1) % slides.length
+          slides.forEach((slide, si) => {
+            slide.style.opacity = si === index ? '1' : '0'
+          })
+        }, slideIntervalMs)
+        slideTimers.set(container, timer)
+      }
+
+      function showProject(pi: number) {
+        const groups = Array.from(activeGroup()?.querySelectorAll<HTMLElement>('[data-project-image]') ?? [])
+        groups.forEach((group, i) => {
+          const isActive = i === pi
+          group.style.opacity = isActive ? '1' : '0'
+          if (isActive) startSlides(group)
+          else stopSlides(group)
+        })
+
+        // Each project carries its own real photo ratio (see the render
+        // loop in the template) — the panel itself takes that shape rather
+        // than staying locked to one fixed box.
+        const aspect = groups[pi]?.dataset.aspectRatio
+        if (panelMaybe && aspect) panelMaybe.style.aspectRatio = aspect
+
+        if (caption) {
+          const description = activeList()?.querySelector<HTMLElement>(`[data-project-item][data-project-index="${pi}"]`)
+            ?.dataset.description
+          caption.textContent = description ?? ''
+          caption.hidden = !description
+        }
+      }
+
+      // Re-entrant: each cycle schedules the next one via the animation's
+      // own `finish` event, so switching category/project just needs to
+      // cancel whatever's running and call this again.
+      function runCycle(pi: number) {
+        cancelAnim()
+        activeProject = pi
+        showProject(pi)
+        if (reducedMotion) return
+
+        const count = activeList()?.querySelectorAll('[data-project-item]').length ?? 0
+        const fill = rowFill(pi)
+        if (count === 0 || !fill) return
+
+        anim = fill.animate([{ width: '0%' }, { width: '100%' }], { duration: intervalMs, easing: 'linear', fill: 'forwards' })
+        anim.onfinish = () => runCycle((pi + 1) % count)
+      }
+
+      function selectCategory(ci: number) {
+        if (ci === activeCategory) return
+
+        pills[activeCategory]?.setAttribute('aria-current', 'false')
+        pills[activeCategory]?.classList.remove(...ACTIVE_PILL)
+        pills[activeCategory]?.classList.add(...INACTIVE_PILL)
+        pills[ci]?.setAttribute('aria-current', 'true')
+        pills[ci]?.classList.remove(...INACTIVE_PILL)
+        pills[ci]?.classList.add(...ACTIVE_PILL)
+
+        root.querySelector(`[data-category-list][data-category-index="${activeCategory}"]`)?.classList.add('hidden')
+        root.querySelector(`[data-category-list][data-category-index="${ci}"]`)?.classList.remove('hidden')
+        root.querySelector(`[data-image-group][data-category-index="${activeCategory}"]`)?.classList.add('hidden')
+        root.querySelector(`[data-image-group][data-category-index="${ci}"]`)?.classList.remove('hidden')
+
+        activeCategory = ci
+        runCycle(0)
+      }
+
+      function onPillClick(e: Event) {
+        const ci = Number((e.currentTarget as HTMLElement).dataset.categoryIndex)
+        selectCategory(ci)
+      }
+
+      function onItemClick(e: Event) {
+        const pi = Number((e.currentTarget as HTMLElement).dataset.projectIndex)
+        runCycle(pi)
+      }
+
+      function onItemEnter(e: Event) {
+        const pi = Number((e.currentTarget as HTMLElement).dataset.projectIndex)
+        cancelAnim()
+        activeProject = pi
+        showProject(pi)
+      }
+
+      function onItemLeave() {
+        runCycle(activeProject)
+      }
+
+      pills.forEach((pill) => {
+        pill.addEventListener('click', onPillClick)
+        cleanups.push(() => pill.removeEventListener('click', onPillClick))
+      })
+
+      // Hidden categories' items can't be hovered/focused/clicked (display:
+      // none takes them out of hit-testing), so binding all of them up-front
+      // — not just the active category's — needs no rebinding on switch.
+      items.forEach((item) => {
+        item.addEventListener('click', onItemClick)
+        cleanups.push(() => item.removeEventListener('click', onItemClick))
+
+        if (canHover) {
+          item.addEventListener('mouseenter', onItemEnter)
+          item.addEventListener('mouseleave', onItemLeave)
+          item.addEventListener('focusin', onItemEnter)
+          item.addEventListener('focusout', onItemLeave)
+          cleanups.push(() => {
+            item.removeEventListener('mouseenter', onItemEnter)
+            item.removeEventListener('mouseleave', onItemLeave)
+            item.removeEventListener('focusin', onItemEnter)
+            item.removeEventListener('focusout', onItemLeave)
+          })
+        }
+      })
+
+      runCycle(0)
+      cleanups.push(() => {
+        cancelAnim()
+        slideTimers.forEach((timer) => window.clearInterval(timer))
+        slideTimers.clear()
+      })
+    })
+  }
+
+  function teardown() {
+    cleanups.forEach((fn) => fn())
+    cleanups = []
+  }
+
+  document.addEventListener('astro:page-load', init)
+  document.addEventListener('astro:before-swap', teardown)
+</script>

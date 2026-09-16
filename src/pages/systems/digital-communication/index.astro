@@ -42,7 +42,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro'
 import { navItems } from '../../../lib/nav'
 import Heading from '../../../components/Heading.astro'
 import SectionIntro from '../../../components/SectionIntro.astro'
-import ProjectCard from '../../../components/ProjectCard.astro'
+import SelectedProjectsRotator from '../../../components/SelectedProjectsRotator.astro'
 import SystemExpertiseRotator from '../../../components/SystemExpertiseRotator.astro'
 import SystemProblemCards from '../../../components/SystemProblemCards.astro'
 import PhasesScroll from '../../../components/PhasesScroll.astro'
@@ -162,58 +162,60 @@ const addons = [
 // Page-local, same reasoning as Influence & Reputation's own list: the
 // source doc's 8 projects span 3 categories with no shared taxonomy entry
 // for most of them. Only three (We Want You, Blip, Startup Portugal) have a
-// real thumbnail today; the rest render ProjectCard's own no-image tint.
-// `href` is kept as a record of the intended destination but isn't passed to
-// ProjectCard below — none of these have a dedicated case-study page live
-// yet, so the cards render as non-interactive blocks, not links.
+// real thumbnail today; the rest render SelectedProjectsRotator's own
+// placeholder tint. `href` is kept as a record of the intended destination
+// but isn't passed to the rotator below — none of these have a dedicated
+// case-study page live yet, so the panel isn't a link.
 const selectedProjects = [
   {
     href: '/projects/data-makers-fest/',
-    title: 'Data Makers Fest',
+    title: 'Data Makers Fest | Reddit Ads',
     description:
       'A Reddit Ads campaign across Portugal, Spain and the Netherlands, generating 10,168 clicks at a €0.23 CPC and 11 attributed purchases.',
-    thumbnail: undefined,
+    images: [],
   },
   {
     href: '/projects/we-want-you/',
-    title: 'Natixis',
+    title: 'Natixis | We Want You',
     description: 'A multichannel recruitment campaign generating 1,809 started applications at a cost per application of €1.66.',
-    thumbnail: weWantYouThumb,
+    images: [weWantYouThumb],
   },
   {
     href: '/projects/blip-tedx/',
-    title: 'Blip',
+    title: 'Blip | Tech Recruitment',
     description:
       'An integrated tech recruitment campaign for senior profiles, generating 181 applications at a best cost per application of €14.25.',
-    thumbnail: blipThumb,
+    images: [blipThumb],
   },
   {
     href: '/projects/uphold/',
-    title: 'Uphold',
+    title: 'Uphold | Talent Campaign',
     description:
       'Social media management for Uphold Talent, positioning it as attractive to recruitment professionals and supporting effective promotion of opportunities.',
-    thumbnail: undefined,
+    images: [],
   },
   {
     href: '/projects/subvisual/',
-    title: 'Subvisual',
+    title: 'Subvisual | Alchemy Conf',
     description:
       'Social media management, including Bluesky and Farcaster, and promotion of Alchemy Conf, generating over 3,000 sessions to the event page.',
-    thumbnail: undefined,
+    images: [],
   },
   {
     href: '/projects/startup-portugal/',
-    title: 'Startup Portugal',
+    title: 'Startup Portugal | Social Media',
     description: 'Integrated social media and paid media management to strengthen the visibility of its initiatives.',
-    thumbnail: startupPortugalThumb,
+    images: [startupPortugalThumb],
   },
   {
     href: '/projects/darede/',
-    title: 'Darede',
+    title: 'Darede | Iberian Growth',
     description: 'Brand positioning in Portugal and Spain, with community growth in both markets.',
-    thumbnail: undefined,
+    images: [],
   },
 ]
+
+const selectedProjectCategories = [{ label: 'Selected projects', projects: selectedProjects }]
 ---
 
 <BaseLayout
@@ -352,55 +354,7 @@ const selectedProjects = [
       </SectionIntro>
     </section>
 
-    <section class="w-full px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-selected-projects-section>
-      <div class="flex flex-col gap-9">
-        <div class="flex items-start justify-between gap-6 border-t border-line pt-4">
-          <Heading as="h2" indent={false} class="text-lead text-ink">
-            Selected projects
-          </Heading>
-          <div class="flex shrink-0 gap-2">
-            <button
-              type="button"
-              data-projects-prev
-              aria-label="Previous project"
-              class="flex size-10 items-center justify-center rounded-[var(--radius-control)] border border-line transition-colors hover:bg-surface-hover"
-            >
-              <span class="reveal-arrow size-4 rotate-180 bg-ink" aria-hidden="true"></span>
-            </button>
-            <button
-              type="button"
-              data-projects-next
-              aria-label="Next project"
-              class="flex size-10 items-center justify-center rounded-[var(--radius-control)] border border-line transition-colors hover:bg-surface-hover"
-            >
-              <span class="reveal-arrow size-4 bg-ink" aria-hidden="true"></span>
-            </button>
-          </div>
-        </div>
-        <ul
-          class="projects-strip -mx-[var(--space-gutter)] flex gap-7 overflow-x-auto px-[var(--space-gutter)] lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0"
-          data-projects-row
-        >
-          {
-            selectedProjects.map((project) => (
-              <li class="w-[80vw] shrink-0 sm:w-[60vw] lg:w-auto" data-project-card>
-                <ProjectCard
-                  title={project.title}
-                  description={project.description}
-                  variant="featured"
-                  size="sm"
-                  image={project.thumbnail}
-                  imageAspect="aspect-[430/294]"
-                  imageWidth={430}
-                  imageHeight={294}
-                  imageSizes="(min-width: 1024px) 22vw, 80vw"
-                />
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-    </section>
+    <SelectedProjectsRotator categories={selectedProjectCategories} />
   </div>
 
   {/* ---------- 9. Contact ---------- */}
@@ -436,24 +390,6 @@ const selectedProjects = [
     background-color: var(--color-surface);
   }
 
-  .projects-strip {
-    scrollbar-width: none;
-  }
-  .projects-strip::-webkit-scrollbar {
-    display: none;
-  }
-
-  .reveal-arrow {
-    mask-image: url('/icons/icon-arrow-white.svg');
-    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
-    mask-repeat: no-repeat;
-    -webkit-mask-repeat: no-repeat;
-    mask-position: center;
-    -webkit-mask-position: center;
-    mask-size: contain;
-    -webkit-mask-size: contain;
-  }
-
   /* Dark → light reveal, driven by --light-progress (0 or 1, set by the
      script below via ScrollTrigger) — same mechanism as Influence &
      Reputation's dark variant. Wraps Impact AND Selected Projects together
@@ -484,99 +420,6 @@ const selectedProjects = [
     }
   }
 </style>
-
-<script>
-  // Staggered reveal for the projects row.
-  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../lib/sectionMotion'
-
-  bindSection('[data-projects-row]', ({ root, mm }) => {
-    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
-    if (cards.length === 0) return
-
-    // fromTo, never from, for the opacity half of this reveal. A `from` tween
-    // derives its END value by clearing the inline style and reading the
-    // card's computed opacity straight back out of the DOM — and
-    // ScrollTrigger.refresh() re-runs that revert-and-measure pass. If
-    // anything in CSS transitions opacity on these cards, that read returns
-    // the mid-transition value (i.e. the 0 the tween itself just wrote), the
-    // reveal records 0 as its target, and the row animates 0 → 0: laid out,
-    // moving, permanently invisible. That exact bug shipped once already —
-    // see the [data-project-card] note in src/styles/global.css. Stating both
-    // endpoints keeps the reveal correct no matter what CSS lands on them.
-    mm.add(MOTION_FULL, () => {
-      const tween = gsap.fromTo(
-        cards,
-        { opacity: 0, y: 24 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          stagger: 0.08,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: root, start: 'top 85%', once: true },
-        },
-      )
-      return () => {
-        tween.scrollTrigger?.kill()
-        tween.kill()
-        gsap.set(cards, { clearProps: 'opacity,transform' })
-      }
-    })
-
-    mm.add(MOTION_FALLBACK, () => {
-      const tween = gsap.fromTo(
-        cards,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          duration: 0.4,
-          scrollTrigger: { trigger: root, start: 'top 90%', once: true },
-        },
-      )
-      return () => {
-        tween.scrollTrigger?.kill()
-        tween.kill()
-        gsap.set(cards, { clearProps: 'opacity,transform' })
-      }
-    })
-  })
-</script>
-
-<script>
-  // Selected Projects arrows — scroll the mobile/tablet strip by one card.
-  let cardStepCleanup: (() => void) | null = null
-
-  function setupProjectsNav() {
-    const strip = document.querySelector<HTMLElement>('[data-projects-row]')
-    const prevBtn = document.querySelector<HTMLButtonElement>('[data-projects-prev]')
-    const nextBtn = document.querySelector<HTMLButtonElement>('[data-projects-next]')
-    if (!strip || !prevBtn || !nextBtn) return
-
-    function cardStep() {
-      const first = strip!.firstElementChild as HTMLElement | null
-      const gap = parseFloat(getComputedStyle(strip!).columnGap || '0')
-      return first ? first.getBoundingClientRect().width + gap : strip!.clientWidth
-    }
-
-    const onPrev = () => strip!.scrollBy({ left: -cardStep(), behavior: 'smooth' })
-    const onNext = () => strip!.scrollBy({ left: cardStep(), behavior: 'smooth' })
-    prevBtn.addEventListener('click', onPrev)
-    nextBtn.addEventListener('click', onNext)
-
-    cardStepCleanup = () => {
-      prevBtn.removeEventListener('click', onPrev)
-      nextBtn.removeEventListener('click', onNext)
-    }
-  }
-
-  function teardownProjectsNav() {
-    cardStepCleanup?.()
-    cardStepCleanup = null
-  }
-
-  document.addEventListener('astro:page-load', setupProjectsNav)
-  document.addEventListener('astro:before-swap', teardownProjectsNav)
-</script>
 
 <script>
   // Dark → light reveal on Impact + Selected Projects — identical mechanics

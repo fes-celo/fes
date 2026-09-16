@@ -20,8 +20,6 @@ import tenXForward from '../assets/projects/10x-forward.png'
 import tenXForwardIcon from '../assets/projects/10x-forward-icon.svg'
 import coverflexIcon from '../assets/projects/coverflex-icon.png'
 import shamirPortugal from '../assets/projects/Shamir-portugal.png'
-import dashlane from '../assets/projects/dashlane.png'
-import dashlaneIcon from '../assets/projects/dashlane-icon.png'
 import startupPortugalProject from '../assets/projects/startup-portugal.png'
 import startupPortugalProjectIcon from '../assets/projects/Startup Portugal-icon.png'
 
@@ -29,9 +27,11 @@ export interface Project {
   href: string
   title: string
   description: string
-  icon: ImageMetadata
+  /** Omitted for a project with no icon asset yet — ProjectCard drops the icon chip entirely. */
+  icon?: ImageMetadata
   iconBg?: string
-  thumbnail: ImageMetadata
+  /** Omitted for a project with no cover photo yet — ProjectCard renders its labelled placeholder instead. */
+  thumbnail?: ImageMetadata
   tag?: string
   category: string[]
 }
@@ -43,23 +43,31 @@ export const projectCategories = ['All', 'Startups & Scaleups', 'Enterprise', 'P
 
 export const projects: Project[] = [
   {
+    href: '/projects/shamir-portugal/',
+    title: 'Shamir Portugal | Strategic PR',
+    description: 'PR and content to bring the brand closer to its audiences.',
+    thumbnail: shamirPortugal,
+    icon: coverflexIcon,
+    iconBg: 'var(--color-neutral-50)',
+    tag: 'Influence & Reputation System',
+    category: ['Enterprise'],
+  },
+  {
+    href: '/projects/start-campus/',
+    title: 'Start Campus | Start Inside Out',
+    description: 'A video series showing the people behind Start Campus.',
+    // No cover photo or icon asset yet — ProjectCard renders its labelled placeholder.
+    tag: 'Podcast & Video-Series',
+    category: ['Enterprise'],
+  },
+  {
     href: '/projects/we-want-you/',
-    title: 'Natixis | We Want you',
+    title: 'Natixis In Portugal | We Want You',
     description: 'An employer branding campaign designed to attract talent.',
     thumbnail: weWantYou,
     icon: weWantYouIcon,
     iconBg: '#450E61',
     tag: 'Branding',
-    category: ['Enterprise'],
-  },
-  {
-    href: '/projects/blip-media-relations/',
-    title: 'Blip | Media Relations',
-    description: "PR support across Portugal's tech and business media.",
-    thumbnail: blipMediaRelations,
-    icon: blipTedxIcon,
-    iconBg: '#323F48',
-    tag: 'Influence & Reputation System',
     category: ['Enterprise'],
   },
   {
@@ -73,28 +81,18 @@ export const projects: Project[] = [
     category: ['Startups & Scaleups'],
   },
   {
-    href: '/projects/shamir-portugal/',
-    title: 'Shamir Portugal',
-    description: 'PR and content to bring the brand closer to its audiences.',
-    thumbnail: shamirPortugal,
-    icon: coverflexIcon,
-    iconBg: 'var(--color-neutral-50)',
+    href: '/projects/blip-media-relations/',
+    title: 'Blip | Media Relations',
+    description: "PR support across Portugal's tech and business media.",
+    thumbnail: blipMediaRelations,
+    icon: blipTedxIcon,
+    iconBg: '#323F48',
     tag: 'Influence & Reputation System',
     category: ['Enterprise'],
   },
   {
-    href: '/projects/dashlane/',
-    title: 'Dashlane',
-    description: 'A concept creation, dedicated website and campaigns.',
-    thumbnail: dashlane,
-    icon: dashlaneIcon,
-    iconBg: '#09363F',
-    tag: 'Web design',
-    category: ['Enterprise'],
-  },
-  {
     href: '/projects/sim-conference/',
-    title: 'SIM Conference | Social Media Boost',
+    title: 'Startup Portugal | Social Media Boost',
     description: "Content and social media for Portugal's startup community.",
     thumbnail: startupPortugalProject,
     icon: startupPortugalProjectIcon,

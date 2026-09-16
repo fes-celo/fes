@@ -17,7 +17,12 @@ interface Props {
   rightHeading: string
   rightHref: string
   rightLabel: string
-  rightImage: ImageMetadata
+  /** Required for the default 'image' variant; unused (and skippable) for 'outline'. */
+  rightImage?: ImageMetadata
+  /** 'outline' swaps the photo card for the borderless-card treatment from
+   * the homepage's "Know more about our systems" link (border-accent-200,
+   * no image) — for a right-hand CTA that isn't a portfolio/work preview. */
+  rightVariant?: 'image' | 'outline'
   class?: string
 }
 
@@ -29,6 +34,7 @@ const {
   rightHref,
   rightLabel,
   rightImage,
+  rightVariant = 'image',
   class: className,
 } = Astro.props
 ---
@@ -43,23 +49,38 @@ const {
       <p class="max-w-sm text-h3 text-accent-50">{leftHeading}</p>
       <UnderlineLink as="span" class="text-display text-accent-50">{leftLabel}</UnderlineLink>
     </a>
-    <a
-      href={rightHref}
-      class="group relative flex min-h-[360px] flex-col items-start justify-between gap-10 overflow-hidden rounded-[var(--radius-card)] p-[var(--space-card-p)] lg:min-h-[480px]"
-      data-underline-trigger
-    >
-      <Image
-        src={rightImage}
-        alt=""
-        width={2000}
-        height={1618}
-        widths={[640, 1000, 2000]}
-        sizes="(min-width: 1024px) 50vw, 100vw"
-        class="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-      />
-      <div class="absolute inset-0 bg-black/20"></div>
-      <p class="relative max-w-sm text-h3 text-accent-50">{rightHeading}</p>
-      <UnderlineLink as="span" class="relative text-display text-accent-50">{rightLabel}</UnderlineLink>
-    </a>
+    {
+      rightVariant === 'outline' ? (
+        <a
+          href={rightHref}
+          class="group flex min-h-[360px] flex-col justify-between gap-10 rounded-[var(--radius-card)] border border-accent-200 p-[var(--space-card-p)] lg:min-h-[480px]"
+          data-underline-trigger
+        >
+          <p class="max-w-sm text-h3 font-normal text-accent-400">{rightHeading}</p>
+          <UnderlineLink as="span" wrap class="self-start text-h2 text-accent-400">
+            {rightLabel}
+          </UnderlineLink>
+        </a>
+      ) : (
+        <a
+          href={rightHref}
+          class="group relative flex min-h-[360px] flex-col items-start justify-between gap-10 overflow-hidden rounded-[var(--radius-card)] p-[var(--space-card-p)] lg:min-h-[480px]"
+          data-underline-trigger
+        >
+          <Image
+            src={rightImage!}
+            alt=""
+            width={2000}
+            height={1618}
+            widths={[640, 1000, 2000]}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            class="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          />
+          <div class="absolute inset-0 bg-black/20"></div>
+          <p class="relative max-w-sm text-h3 text-accent-50">{rightHeading}</p>
+          <UnderlineLink as="span" class="relative text-display text-accent-50">{rightLabel}</UnderlineLink>
+        </a>
+      )
+    }
   </div>
 </section>

@@ -15,20 +15,39 @@
 interface Props {
   href?: string
   as?: 'a' | 'span'
+  /**
+   * For CTA text that can wrap onto multiple lines — draws the underline as
+   * a duplicated text-decoration overlay wiped in via clip-path, instead of
+   * the single scaleX line below. That line is one box spanning the CTA's
+   * widest line, so on wrapped text it draws under the short second line at
+   * the long first line's width — floating well past the actual word. Same
+   * technique (and the same reasoning) as SystemCard.astro's title
+   * underline; see that component's docstring for the full case against a
+   * background-wipe alternative too.
+   */
+  wrap?: boolean
   class?: string
 }
 
-const { href, as = 'a', class: className = '' }: Props = Astro.props
+const { href, as = 'a', wrap = false, class: className = '' }: Props = Astro.props
 const Tag = as
 ---
 
 <Tag
   {...as === 'a' ? { href } : {}}
   class={`cta-underline ${className}`}
-  data-underline
+  {...wrap ? { 'data-underline-wrap': true } : { 'data-underline': true }}
 >
   <slot />
-  <span class="cta-underline__line" data-underline-line aria-hidden="true"></span>
+  {
+    wrap ? (
+      <span class="cta-underline__rule" aria-hidden="true">
+        <slot />
+      </span>
+    ) : (
+      <span class="cta-underline__line" data-underline-line aria-hidden="true" />
+    )
+  }
 </Tag>
 
 <style>
@@ -49,6 +68,36 @@ const Tag = as
     transform: scaleX(0);
     transform-origin: left center;
     pointer-events: none;
+  }
+
+  /* wrap variant: a duplicate of the CTA text stacked exactly over the real
+     one, glyphs knocked out and a real `text-decoration` underline drawn
+     instead — it inherits the same box and font, so it wraps identically,
+     giving every line its own underline at its own width. clip-path wipes
+     the whole block from the right so a multi-line CTA reveals as one
+     left-to-right sweep rather than each line racing to its own width. */
+  .cta-underline__rule {
+    position: absolute;
+    inset: 0;
+    -webkit-text-fill-color: transparent;
+    text-decoration-line: underline;
+    text-decoration-thickness: max(2px, 0.045em);
+    text-underline-offset: 0.12em;
+    text-decoration-skip-ink: auto;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 0.45s ease-out;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .cta-underline__rule.is-visible {
+    clip-path: inset(0 0 0 0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cta-underline__rule {
+      transition: none;
+    }
   }
 </style>
 
@@ -102,6 +151,34 @@ const Tag = as
 
       cleanups.push(() => {
         gsap.killTweensOf(line)
+        trigger.removeEventListener('mouseenter', show)
+        trigger.removeEventListener('mouseleave', hide)
+        trigger.removeEventListener('focusin', show)
+        trigger.removeEventListener('focusout', hide)
+      })
+    })
+
+    document.querySelectorAll<HTMLElement>('[data-underline-wrap]').forEach((el) => {
+      const rule = el.querySelector<HTMLElement>('.cta-underline__rule')
+      if (!rule) return
+
+      // Blink resolves a `currentColor` decoration through the glyph-hiding
+      // -webkit-text-fill-color above, so the underline needs an explicit
+      // color of its own — read once from the real, visible text (see
+      // SystemCard.astro's docstring for the same quirk).
+      rule.style.textDecorationColor = getComputedStyle(el).color
+
+      const trigger = el.closest<HTMLElement>('[data-underline-trigger]') ?? el
+
+      const show = () => rule.classList.add('is-visible')
+      const hide = () => rule.classList.remove('is-visible')
+
+      trigger.addEventListener('mouseenter', show)
+      trigger.addEventListener('mouseleave', hide)
+      trigger.addEventListener('focusin', show)
+      trigger.addEventListener('focusout', hide)
+
+      cleanups.push(() => {
         trigger.removeEventListener('mouseenter', show)
         trigger.removeEventListener('mouseleave', hide)
         trigger.removeEventListener('focusin', show)

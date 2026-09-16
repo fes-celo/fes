@@ -2,10 +2,12 @@
 /**
  * Systems → Influence & Reputation (Figma node 975:494).
  * Dark variant, now the shipped page — the light version (Figma node
- * 927:1254) has been retired. Kept its three additions over the plain
- * light layout (see the three inline comments below marking them: the
- * Addons CTA + auto-rotating carousel, the Selected Projects arrows, and
- * the dark→light reveal on Impact + Selected Projects).
+ * 927:1254) has been retired. Kept two of its three additions over the
+ * plain light layout (see the inline comments below marking them: the
+ * Addons CTA + auto-rotating carousel, and the dark→light reveal on
+ * Impact + Selected Projects) — the third, Selected Projects' prev/next
+ * arrows, went away when that section moved to SelectedProjectsRotator's
+ * pill/hover/autoplay navigation instead.
  *
  * COLOR STRATEGY: everything from Hero through Addons is wrapped in
  * `.dark-zone`, a single scoped rule that redefines the site's semantic
@@ -13,9 +15,9 @@
  * Custom properties inherit through the DOM regardless of Astro's style
  * scoping (scoping only limits which elements the *selector* matches, not
  * how the properties it sets cascade), so every shared component below —
- * Heading, SectionIntro, ProjectCard, SystemProblemCards, PhasesScroll,
- * SystemExpertiseRotator — renders dark automatically through the same
- * `text-ink`/`bg-surface`/`bg-line` classes those components always use,
+ * Heading, SectionIntro, SelectedProjectsRotator, SystemProblemCards,
+ * PhasesScroll, SystemExpertiseRotator — renders dark automatically
+ * through the same `text-ink`/`bg-surface`/`bg-line` classes those components always use,
  * with no per-component dark prop needed. (SystemExpertiseRotator and the
  * two pinned sections' progress bars were the only hardcoded-not-token
  * colors among them; fixed at the component level, see git history.)
@@ -39,7 +41,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro'
 import { navItems } from '../../../lib/nav'
 import Heading from '../../../components/Heading.astro'
 import SectionIntro from '../../../components/SectionIntro.astro'
-import ProjectCard from '../../../components/ProjectCard.astro'
+import SelectedProjectsRotator from '../../../components/SelectedProjectsRotator.astro'
 import SystemExpertiseRotator from '../../../components/SystemExpertiseRotator.astro'
 import SystemProblemCards from '../../../components/SystemProblemCards.astro'
 import PhasesScroll from '../../../components/PhasesScroll.astro'
@@ -162,71 +164,73 @@ const addons = [
 // entry, thumbnail or category in the shared taxonomy (src/lib/projects.ts)
 // or a real case-study page yet — same reasoning as the original four (see
 // git history): adding them there would put untagged projects into the
-// /projects/ filter. ProjectCard's own no-image state renders the tinted
-// block until real thumbnails and case-study pages exist.
+// /projects/ filter. SelectedProjectsRotator's own no-image state renders
+// the tinted placeholder until real thumbnails and case-study pages exist.
 // TODO(marcelo): real thumbnails + case-study pages for Anchorage Digital,
 // Bridge In, New Work and the AI & History study.
 // `href` is kept as a record of the intended destination but isn't passed to
-// ProjectCard below — none of these have a dedicated case-study page live
-// yet, so the cards render as non-interactive blocks, not links.
+// the rotator below — none of these have a dedicated case-study page live
+// yet, so the panel isn't a link.
 const selectedProjects = [
   {
+    href: '/projects/shamir/',
+    title: 'Shamir | Strategic PR Portugal',
+    description:
+      "Placeholder — communication and press relations strengthening Shamir's reputation and visibility in the Portuguese market.",
+    images: [],
+  },
+  {
     href: '/projects/dashlane/',
-    title: 'Dashlane',
+    title: 'Dashlane | Portugal Market',
     description:
       "Communication strategy and press relations to strengthen Dashlane's profile in Portugal, positioning the brand and its leadership as references in cybersecurity and digital protection.",
-    thumbnail: dashlaneThumb,
+    images: [dashlaneThumb],
   },
   {
     href: '/projects/anchorage-digital/',
-    title: 'Anchorage Digital',
+    title: 'Anchorage Digital | Portugal',
     description:
       "Communication and public relations to give Anchorage Digital visibility in Portugal, covering the company's key milestones and the evolution of the digital assets sector.",
-    thumbnail: undefined,
+    images: [],
   },
   {
     href: '/projects/bridge-in/',
-    title: 'Bridge In',
+    title: 'Bridge In | European Growth',
     description:
       "Positioning Bridge In and its leadership with the media, supporting the company's growth in Portugal and its expansion across Europe.",
-    thumbnail: undefined,
+    images: [],
   },
   {
     href: '/projects/blip-tedx/',
-    title: 'Blip',
+    title: 'Blip | Tech Leadership',
     description:
       "Communication and press relations to consolidate Blip's presence in the Portuguese media and strengthen the tech company's reputation.",
-    thumbnail: blipThumb,
+    images: [blipThumb],
   },
   {
     href: '/projects/coverflex/',
-    title: 'Coverflex',
+    title: 'Coverflex | Future of Work',
     description:
       "Press relations to strengthen Coverflex's profile, communicating key growth milestones and initiatives tied to the future of work.",
-    thumbnail: coverflexThumb,
+    images: [coverflexThumb],
   },
   {
     href: '/projects/new-work/',
-    title: 'New Work',
+    title: 'New Work | Portugal Market',
     description:
       "Communication support for New Work in Portugal, giving visibility to the company's activity and consolidating its presence in the domestic market.",
-    thumbnail: undefined,
+    images: [],
   },
   {
     href: '/projects/ai-history-study/',
-    title: 'AI Impact on History Study',
+    title: 'UC & Notre Dame | AI Study PR Campaign',
     description:
       'Communication strategy for the Portuguese launch of an international study — by the University of Notre Dame and the University of Coimbra — on the impact of artificial intelligence, engaging national media and stakeholders.',
-    thumbnail: undefined,
-  },
-  {
-    href: '/projects/shamir/',
-    title: 'Shamir',
-    description:
-      'Placeholder — communication and press relations strengthening Shamir\'s reputation and visibility in the Portuguese market.',
-    thumbnail: undefined,
+    images: [],
   },
 ]
+
+const selectedProjectCategories = [{ label: 'Selected projects', projects: selectedProjects }]
 ---
 
 <BaseLayout
@@ -362,12 +366,7 @@ const selectedProjects = [
        zone (Impact's tail + Selected Projects) repaint light together.
        Same `--light-progress` mechanism as the homepage's invert-zone,
        just the other direction and with `start: 'top top'` instead of
-       'top center' — see the <style>/<script> blocks below.
-
-       Selected Projects also gets prev/next arrows, shown at every
-       breakpoint (matching the Figma frame) — they scroll the mobile/
-       tablet strip; on desktop, where the grid doesn't overflow, a click
-       is just a harmless no-op. ---------- */
+       'top center' — see the <style>/<script> blocks below. ---------- */
   }
   <div class="reveal-zone" data-reveal-zone>
     <section class="w-full px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
@@ -387,55 +386,7 @@ const selectedProjects = [
       </SectionIntro>
     </section>
 
-    <section class="w-full px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-selected-projects-section>
-      <div class="flex flex-col gap-9">
-        <div class="flex items-start justify-between gap-6 border-t border-line pt-4">
-          <Heading as="h2" indent={false} class="text-lead text-ink">
-            Selected projects
-          </Heading>
-          <div class="flex shrink-0 gap-2">
-            <button
-              type="button"
-              data-projects-prev
-              aria-label="Previous project"
-              class="flex size-10 items-center justify-center rounded-[var(--radius-control)] border border-line transition-colors hover:bg-surface-hover"
-            >
-              <span class="reveal-arrow size-4 rotate-180 bg-ink" aria-hidden="true"></span>
-            </button>
-            <button
-              type="button"
-              data-projects-next
-              aria-label="Next project"
-              class="flex size-10 items-center justify-center rounded-[var(--radius-control)] border border-line transition-colors hover:bg-surface-hover"
-            >
-              <span class="reveal-arrow size-4 bg-ink" aria-hidden="true"></span>
-            </button>
-          </div>
-        </div>
-        <ul
-          class="projects-strip -mx-[var(--space-gutter)] flex gap-7 overflow-x-auto px-[var(--space-gutter)] lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0"
-          data-projects-row
-        >
-          {
-            selectedProjects.map((project) => (
-              <li class="w-[80vw] shrink-0 sm:w-[60vw] lg:w-auto" data-project-card>
-                <ProjectCard
-                  title={project.title}
-                  description={project.description}
-                  variant="featured"
-                  size="sm"
-                  image={project.thumbnail}
-                  imageAspect="aspect-[430/294]"
-                  imageWidth={430}
-                  imageHeight={294}
-                  imageSizes="(min-width: 1024px) 22vw, 80vw"
-                />
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-    </section>
+    <SelectedProjectsRotator categories={selectedProjectCategories} />
   </div>
 
   {/* ---------- 9. Contact ---------- */}
@@ -475,24 +426,6 @@ const selectedProjects = [
     background-color: var(--color-surface);
   }
 
-  .projects-strip {
-    scrollbar-width: none;
-  }
-  .projects-strip::-webkit-scrollbar {
-    display: none;
-  }
-
-  .reveal-arrow {
-    mask-image: url('/icons/icon-arrow-white.svg');
-    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
-    mask-repeat: no-repeat;
-    -webkit-mask-repeat: no-repeat;
-    mask-position: center;
-    -webkit-mask-position: center;
-    mask-size: contain;
-    -webkit-mask-size: contain;
-  }
-
   /* Dark → light reveal, driven by --light-progress (0 or 1, set by the
      script below via ScrollTrigger). Both endpoints of every color-mix are
      fully opaque, high-contrast palettes — the 0 default is a safe, fully
@@ -514,9 +447,9 @@ const selectedProjects = [
     background-color: var(--color-surface);
     transition: background-color 200ms ease-out;
   }
-  /* :global() — ProjectCard's title/description/placeholder-tint live in a
-     component with its own scope hash, same reasoning as the homepage
-     invert-zone's identical rule. */
+  /* :global() — SelectedProjectsRotator's title/description/placeholder-
+     tint live in a component with its own scope hash, same reasoning as the
+     homepage invert-zone's identical rule. */
   .reveal-zone :global(*) {
     transition:
       color 200ms ease-out,
@@ -530,102 +463,6 @@ const selectedProjects = [
     }
   }
 </style>
-
-<script>
-  // Staggered reveal for the projects row.
-  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../lib/sectionMotion'
-
-  bindSection('[data-projects-row]', ({ root, mm }) => {
-    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
-    if (cards.length === 0) return
-
-    // fromTo, never from, for the opacity half of this reveal. A `from` tween
-    // derives its END value by clearing the inline style and reading the
-    // card's computed opacity straight back out of the DOM — and
-    // ScrollTrigger.refresh() re-runs that revert-and-measure pass. If
-    // anything in CSS transitions opacity on these cards, that read returns
-    // the mid-transition value (i.e. the 0 the tween itself just wrote), the
-    // reveal records 0 as its target, and the row animates 0 → 0: laid out,
-    // moving, permanently invisible. That exact bug shipped once already —
-    // see the [data-project-card] note in src/styles/global.css. Stating both
-    // endpoints keeps the reveal correct no matter what CSS lands on them.
-    mm.add(MOTION_FULL, () => {
-      const tween = gsap.fromTo(
-        cards,
-        { opacity: 0, y: 24 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          stagger: 0.08,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: root, start: 'top 85%', once: true },
-        },
-      )
-      return () => {
-        tween.scrollTrigger?.kill()
-        tween.kill()
-        gsap.set(cards, { clearProps: 'opacity,transform' })
-      }
-    })
-
-    mm.add(MOTION_FALLBACK, () => {
-      const tween = gsap.fromTo(
-        cards,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          duration: 0.4,
-          scrollTrigger: { trigger: root, start: 'top 90%', once: true },
-        },
-      )
-      return () => {
-        tween.scrollTrigger?.kill()
-        tween.kill()
-        gsap.set(cards, { clearProps: 'opacity,transform' })
-      }
-    })
-  })
-</script>
-
-<script>
-  // Selected Projects arrows — scroll the mobile/tablet strip by one card
-  // (matches homepage's testimonial prev/next: src/pages/index.astro).
-  // Hidden at lg via the button wrapper's own `lg:hidden`, since the grid
-  // there doesn't overflow.
-  let cardStepCleanup: (() => void) | null = null
-
-  function setupProjectsNav() {
-    const strip = document.querySelector<HTMLElement>('[data-projects-row]')
-    const prevBtn = document.querySelector<HTMLButtonElement>('[data-projects-prev]')
-    const nextBtn = document.querySelector<HTMLButtonElement>('[data-projects-next]')
-    if (!strip || !prevBtn || !nextBtn) return
-
-    function cardStep() {
-      const first = strip!.firstElementChild as HTMLElement | null
-      const gap = parseFloat(getComputedStyle(strip!).columnGap || '0')
-      return first ? first.getBoundingClientRect().width + gap : strip!.clientWidth
-    }
-
-    const onPrev = () => strip!.scrollBy({ left: -cardStep(), behavior: 'smooth' })
-    const onNext = () => strip!.scrollBy({ left: cardStep(), behavior: 'smooth' })
-    prevBtn.addEventListener('click', onPrev)
-    nextBtn.addEventListener('click', onNext)
-
-    cardStepCleanup = () => {
-      prevBtn.removeEventListener('click', onPrev)
-      nextBtn.removeEventListener('click', onNext)
-    }
-  }
-
-  function teardownProjectsNav() {
-    cardStepCleanup?.()
-    cardStepCleanup = null
-  }
-
-  document.addEventListener('astro:page-load', setupProjectsNav)
-  document.addEventListener('astro:before-swap', teardownProjectsNav)
-</script>
 
 <script>
   // Dark → light reveal on Impact + Selected Projects. Not gated through

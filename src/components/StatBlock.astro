@@ -68,8 +68,8 @@ const { value, label, variant = 'card', active = false, class: className } = Ast
     transform: scaleX(0);
   }
   .stat-minimal[data-active='true'] .stat-minimal__fill {
-    /* 2800ms to match index.astro's stats-cycle timer (4000ms cut 30%). */
-    animation: stat-fill 2800ms linear forwards;
+    /* 1800ms to match index.astro's stats-cycle timer. */
+    animation: stat-fill 1800ms linear forwards;
   }
   @keyframes stat-fill {
     from {

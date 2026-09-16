@@ -39,7 +39,7 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro'
 import { navItems } from '../../../../lib/nav'
 import Heading from '../../../../components/Heading.astro'
 import SectionIntro from '../../../../components/SectionIntro.astro'
-import ProjectCardSlider from '../../../../components/ProjectCardSlider.astro'
+import SelectedProjectsRotator from '../../../../components/SelectedProjectsRotator.astro'
 import SystemExpertiseRotator from '../../../../components/SystemExpertiseRotator.astro'
 import SystemProblemCards from '../../../../components/SystemProblemCards.astro'
 import PhasesScroll from '../../../../components/PhasesScroll.astro'
@@ -174,36 +174,40 @@ const addons = [
 ]
 
 // Client-supplied copy, 2026 revision — not client-approved yet. Each entry's
-// `folder` is its slider's subfolder under selected-projects/ (see above).
+// `folder` is its rotator's subfolder under selected-projects/ (see above).
 // `href` is kept as a record of the intended destination but isn't passed to
-// ProjectCardSlider below — none of these have a dedicated case-study page
-// live yet, so the cards render as non-interactive blocks, not links.
+// SelectedProjectsRotator below — none of these have a dedicated case-study
+// page live yet, so the panel isn't a link. A folder with more than one
+// photo auto-rotates through them while its project is active — see that
+// component's own docstring.
 const selectedProjects = [
   {
     href: '/projects/orla/',
-    title: 'Orla',
-    description: 'Uma identidade desenhada na fronteira entre sistemas.',
+    title: 'Orla | Brand Identity',
+    description: 'An identity designed at the intersection of systems.',
     images: projectSliderImages('Orla'),
   },
   {
     href: '/projects/we-want-you/',
     title: 'Natixis | We Want You',
-    description: 'Recrutamento reinventado como uma app de swipe para a tua carreira.',
+    description: 'Recruitment reinvented as a swipe-based app for your career.',
     images: projectSliderImages('We Want you'),
   },
   {
     href: '/projects/10x-forward/',
     title: 'Startup Braga | 10X Forward',
-    description: 'Dez anos comprimidos num único número a ganhar movimento.',
+    description: 'Ten years condensed into a single number built to gain momentum.',
     images: projectSliderImages('10Xforward'),
   },
   {
     href: '/projects/sim-conference/',
     title: 'Startup Portugal | SIM Conference',
-    description: 'A malha de pontos que liga startups também ligou toda a campanha.',
+    description: 'The network of dots connecting startups also connected the entire campaign.',
     images: projectSliderImages('SIM'),
   },
 ]
+
+const selectedProjectCategories = [{ label: 'Selected projects', projects: selectedProjects }]
 ---
 
 <BaseLayout
@@ -332,29 +336,7 @@ const selectedProjects = [
   </section>
 
   {/* ---------- 8. Selected projects ---------- */}
-  <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-selected-projects-section>
-    <div class="flex flex-col gap-9">
-      <Heading as="h2" indent={false} class="text-lead text-ink">
-        Selected projects
-      </Heading>
-      <ul class="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-4" data-projects-row>
-        {
-          selectedProjects.map((project) => (
-            <li data-project-card>
-              <ProjectCardSlider
-                title={project.title}
-                description={project.description}
-                images={project.images}
-                size="lg"
-                imageAspect="aspect-[886/580]"
-                imageSizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-              />
-            </li>
-          ))
-        }
-      </ul>
-    </div>
-  </section>
+  <SelectedProjectsRotator categories={selectedProjectCategories} slideIntervalMs={2000} />
 
   {/* ---------- 9. Contact ---------- */}
   <DualCta
@@ -367,60 +349,3 @@ const selectedProjects = [
     rightImage={ourWorkCta}
   />
 </BaseLayout>
-
-<script>
-  // Staggered reveal for the projects row.
-  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../../lib/sectionMotion'
-
-  bindSection('[data-projects-row]', ({ root, mm }) => {
-    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
-    if (cards.length === 0) return
-
-    // fromTo, never from, for the opacity half of this reveal. A `from` tween
-    // derives its END value by clearing the inline style and reading the
-    // card's computed opacity straight back out of the DOM — and
-    // ScrollTrigger.refresh() re-runs that revert-and-measure pass. If
-    // anything in CSS transitions opacity on these cards, that read returns
-    // the mid-transition value (i.e. the 0 the tween itself just wrote), the
-    // reveal records 0 as its target, and the row animates 0 → 0: laid out,
-    // moving, permanently invisible. That exact bug shipped once already —
-    // see the [data-project-card] note in src/styles/global.css. Stating both
-    // endpoints keeps the reveal correct no matter what CSS lands on them.
-    mm.add(MOTION_FULL, () => {
-      const tween = gsap.fromTo(
-        cards,
-        { opacity: 0, y: 24 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          stagger: 0.08,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: root, start: 'top 85%', once: true },
-        },
-      )
-      return () => {
-        tween.scrollTrigger?.kill()
-        tween.kill()
-        gsap.set(cards, { clearProps: 'opacity,transform' })
-      }
-    })
-
-    mm.add(MOTION_FALLBACK, () => {
-      const tween = gsap.fromTo(
-        cards,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          duration: 0.4,
-          scrollTrigger: { trigger: root, start: 'top 90%', once: true },
-        },
-      )
-      return () => {
-        tween.scrollTrigger?.kill()
-        tween.kill()
-        gsap.set(cards, { clearProps: 'opacity,transform' })
-      }
-    })
-  })
-</script>

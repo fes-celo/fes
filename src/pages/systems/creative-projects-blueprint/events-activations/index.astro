@@ -29,9 +29,8 @@ import ScrollCta from '../../../../components/ScrollCta.astro'
 import BuiltForRotator from '../../../../components/BuiltForRotator.astro'
 import SystemAddonsMarquee from '../../../../components/SystemAddonsMarquee.astro'
 import DualCta from '../../../../components/DualCta.astro'
-import PlaceholderBlock from '../../../../components/PlaceholderBlock.astro'
+import SelectedProjectsRotator from '../../../../components/SelectedProjectsRotator.astro'
 
-import ourWorkCta from '../../../../assets/systems/our-work-cta.jpg'
 import heroBg from '../../../../assets/systems/creative-projects-blueprint/events-activations/hero-bg.jpg'
 import builtForBg from '../../../../assets/systems/built-for-bg.webp'
 
@@ -205,25 +204,23 @@ const eventCategories = [
       { title: 'C-DAYS', file: 'C-DAYS' },
       {
         title: '18th Council of Europe — Conference of Ministers Responsible for Sport',
-        file: '18th Council of Europe - Conference of Ministers Responsible for Sport Large',
+        file: '18th Council of Europe - Conference of Ministers Responsible for Sport',
       },
       { title: 'Data Makers Fest', file: 'Data Makers Fest' },
-      { title: 'NDC Conferences', file: 'NDC Conferences' },
+      { title: 'NDC Conferences', file: 'NDC' },
       { title: 'KCD', file: 'KCD' },
     ],
   },
   {
     label: 'Corporate Events',
-    projects: [
-      { title: 'ERS Conference — 20th Anniversary Celebration', file: 'ERS Conference - 20th Anniversary Celebration' },
-    ],
+    projects: [{ title: 'ERS Conference — 20th Anniversary Celebration', file: 'ERS Conference' }],
   },
   {
     label: 'Dinners, Galas & Celebrations',
     projects: [
       { title: 'PWIT Awards', file: 'PWIT Awards' },
-      { title: 'Dashlane — Office Inauguration', file: 'Dashlane - Office Inauguration' },
-      { title: 'New Work — Office Inauguration', file: 'New Work - Office Inauguration' },
+      { title: 'Dashlane — Office Inauguration', file: 'Dashlane' },
+      { title: 'New Work — Office Inauguration', file: 'New Work' },
     ],
   },
   {
@@ -231,24 +228,36 @@ const eventCategories = [
     projects: [
       { title: 'BIT Hackathon by MC', file: 'BIT Hackathon by MC' },
       { title: 'Sogrape Impact Hack', file: 'Sogrape Impact Hack' },
-      { title: 'Hack For Good Gulbenkian', file: 'Hack For Good Gulbenkian Large' },
+      { title: 'Hack For Good Gulbenkian', file: 'Hack For Good Gulbenkian' },
       { title: 'ICPC Porto World Finals', file: 'ICPC Porto World Finals' },
       { title: 'NEXO Summit', file: 'NEXO Summit' },
-      { title: 'IFM — Infraspeak', file: 'IFM - Infraspeak' },
-      { title: 'Porto Tech — Câmara Municipal do Porto', file: 'Porto Tech - Camara Municipal do Porto' },
-      { title: 'Start & Scale Week — Câmara Municipal do Porto', file: 'Start & Scale Week - Camara Municipal do Porto' },
+      { title: 'IFM — Infraspeak', file: 'IFM' },
+      { title: 'Porto Tech — Câmara Municipal do Porto', file: 'Porto Tech' },
+      { title: 'Start & Scale Week — Câmara Municipal do Porto', file: 'Start & Scale Week' },
     ],
   },
   {
     label: 'Brand Activations',
     projects: [
-      { title: 'TEDx — Blip', file: 'TedX - Blip' },
-      { title: 'Web Summit Activation — Dashlane', file: 'Ativação Web Summit - Dashlane' },
-      { title: 'Web Summit Activation — ScaleUp Porto', file: 'Ativação Web Summit - ScaleUp Porto' },
-      { title: 'Web Summit 2025 — Community Event', file: 'Web Summit 2025 - Community Event' },
+      { title: 'TEDx — Blip', file: 'Blip_TedX' },
+      { title: 'Web Summit Activation — Dashlane', file: 'Dashlane_Websummit' },
+      { title: 'Web Summit Activation — ScaleUp Porto', file: 'ScaleUp Porto' },
+      { title: 'Scale Up Porto', file: 'Scaleup' },
+      { title: 'Web Summit 2025 — Community Event', file: 'Natixis Moves You' },
     ],
   },
 ]
+
+// Reshaped for SelectedProjectsRotator, which takes an `images` array per
+// project (0 renders its placeholder, 1 a static frame) rather than this
+// page's own file-lookup shape.
+const selectedProjectCategories = eventCategories.map((category) => ({
+  label: category.label,
+  projects: category.projects.map((project) => {
+    const image = findSelectedProjectImage(project.file)
+    return { title: project.title, images: image ? [image] : [] }
+  }),
+}))
 ---
 
 <BaseLayout
@@ -374,49 +383,7 @@ const eventCategories = [
   </section>
 
   {/* ---------- 8. Selected projects ---------- */}
-  <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-selected-projects-section>
-    <div class="flex flex-col gap-14" data-projects-row>
-      <Heading as="h2" indent={false} class="text-lead text-ink">
-        Selected projects
-      </Heading>
-      {
-        eventCategories.map((category) => {
-          const categoryProjects = category.projects.map((project) => ({
-            ...project,
-            image: findSelectedProjectImage(project.file),
-          }))
-
-          return (
-            <div class="flex flex-col gap-6">
-              <p class="text-body-sm font-medium uppercase tracking-wide text-ink-secondary">{category.label}</p>
-              <ul class="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
-                {categoryProjects.map((project) => (
-                  <li class="flex flex-col gap-4" data-project-card>
-                    <div class="relative aspect-[430/294] overflow-hidden rounded-[var(--radius-card)] bg-accent-tint">
-                      {project.image ? (
-                        <Image
-                          src={project.image}
-                          alt=""
-                          width={860}
-                          height={588}
-                          widths={[430, 645, 860]}
-                          sizes="(min-width: 1024px) 22vw, 45vw"
-                          class="size-full object-cover"
-                        />
-                      ) : (
-                        <PlaceholderBlock alt="" tone="tint" class="size-full" />
-                      )}
-                    </div>
-                    <p class="text-body-sm font-medium text-ink">{project.title}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )
-        })
-      }
-    </div>
-  </section>
+  <SelectedProjectsRotator categories={selectedProjectCategories} />
 
   {/* ---------- 9. Contact ---------- */}
   <DualCta
@@ -424,65 +391,8 @@ const eventCategories = [
     leftHref="/contact/"
     leftLabel="Get in touch"
     rightHeading="Want to see more of our work?"
-    rightHref="/fes-agency-portfolio.pdf"
-    rightLabel="See our portfolio"
-    rightImage={ourWorkCta}
+    rightHref="https://drive.google.com/file/d/17LpSFfD04wwv1nHCLklP3WyVXEQsDeB6/view"
+    rightLabel="See our detailed portfolio"
+    rightVariant="outline"
   />
 </BaseLayout>
-
-<script>
-  // Staggered reveal for the projects row.
-  import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../../lib/sectionMotion'
-
-  bindSection('[data-projects-row]', ({ root, mm }) => {
-    const cards = Array.from(root.querySelectorAll<HTMLElement>('[data-project-card]'))
-    if (cards.length === 0) return
-
-    // fromTo, never from, for the opacity half of this reveal. A `from` tween
-    // derives its END value by clearing the inline style and reading the
-    // card's computed opacity straight back out of the DOM — and
-    // ScrollTrigger.refresh() re-runs that revert-and-measure pass. If
-    // anything in CSS transitions opacity on these cards, that read returns
-    // the mid-transition value (i.e. the 0 the tween itself just wrote), the
-    // reveal records 0 as its target, and the row animates 0 → 0: laid out,
-    // moving, permanently invisible. That exact bug shipped once already —
-    // see the [data-project-card] note in src/styles/global.css. Stating both
-    // endpoints keeps the reveal correct no matter what CSS lands on them.
-    mm.add(MOTION_FULL, () => {
-      const tween = gsap.fromTo(
-        cards,
-        { opacity: 0, y: 24 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          stagger: 0.08,
-          ease: 'power2.out',
-          scrollTrigger: { trigger: root, start: 'top 85%', once: true },
-        },
-      )
-      return () => {
-        tween.scrollTrigger?.kill()
-        tween.kill()
-        gsap.set(cards, { clearProps: 'opacity,transform' })
-      }
-    })
-
-    mm.add(MOTION_FALLBACK, () => {
-      const tween = gsap.fromTo(
-        cards,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          duration: 0.4,
-          scrollTrigger: { trigger: root, start: 'top 90%', once: true },
-        },
-      )
-      return () => {
-        tween.scrollTrigger?.kill()
-        tween.kill()
-        gsap.set(cards, { clearProps: 'opacity,transform' })
-      }
-    })
-  })
-</script>

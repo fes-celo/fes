@@ -21,8 +21,6 @@ import tenXForward from '../assets/projects/10x-forward.png'
 import tenXForwardIcon from '../assets/projects/10x-forward-icon.svg'
 import shamirIcon from '../assets/projects/Shamir-icon.png'
 import shamirPortugal from '../assets/projects/Shamir-portugal.png'
-import dashlane from '../assets/projects/dashlane.png'
-import dashlaneIcon from '../assets/projects/dashlane-icon.png'
 import startupPortugalProject from '../assets/projects/startup-portugal.png'
 import startupPortugalProjectIcon from '../assets/projects/Startup Portugal-icon.png'
 
@@ -34,26 +32,39 @@ import lilianaCastro from '../assets/people/FES_Liliana-cutout.png'
 // that's the real content today, not placeholder text. No tags — the
 // Selected Projects frame doesn't have per-card tags (only the What We Do
 // system cards do).
+//
+// Start Campus has no case-study page, cover photo or icon yet — image/icon
+// stay undefined so ProjectCard renders its labelled placeholder instead of
+// a broken asset, same as the still-missing projects on the Digital
+// Communication and Influence & Reputation systems pages.
 const featuredRow1 = [
   {
     href: '/projects/shamir-portugal/',
-    title: 'Shamir Portugal',
+    title: 'Shamir Portugal | Strategic PR',
     description: 'PR and content to bring the brand closer to its audiences.',
     image: shamirPortugal,
     icon: shamirIcon,
     iconBg: 'var(--color-neutral-50)',
   },
   {
+    href: '/projects/start-campus/',
+    title: 'Start Campus | Start Inside Out',
+    description: 'A video series showing the people behind Start Campus.',
+    image: undefined,
+    icon: undefined,
+    iconBg: undefined,
+  },
+]
+
+const featuredRow2 = [
+  {
     href: '/projects/we-want-you/',
-    title: 'Natixis | We Want you',
+    title: 'Natixis In Portugal | We Want You',
     description: 'An employer branding campaign designed to attract talent.',
     image: weWantYou,
     icon: weWantYouIcon,
     iconBg: '#450E61',
   },
-]
-
-const featuredRow2 = [
   {
     href: '/projects/startup-braga-10x-forward/',
     title: 'Startup Braga | 10x Forward',
@@ -71,16 +82,8 @@ const featuredRow2 = [
     iconBg: '#323F48',
   },
   {
-    href: '/projects/dashlane/',
-    title: 'Dashlane',
-    description: 'A concept creation, dedicated website and campaigns.',
-    image: dashlane,
-    icon: dashlaneIcon,
-    iconBg: '#09363F',
-  },
-  {
     href: '/projects/sim-conference/',
-    title: 'SIM Conference | Social Media Boost',
+    title: 'Startup Portugal | Social Media Boost',
     description: "Content and social media for Portugal's startup community.",
     image: startupPortugalProject,
     icon: startupPortugalProjectIcon,
@@ -367,8 +370,9 @@ const testimonials = [
   }
   <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
     <div class="grid grid-cols-1 gap-7 lg:grid-cols-12 lg:items-stretch">
-      <div
-        class="flex flex-col gap-8 rounded-[var(--radius-card)] bg-accent-700 p-[var(--space-card-p)] lg:col-span-8 lg:flex-row lg:items-stretch"
+      <a
+        href="/contact/"
+        class="group flex flex-col gap-8 rounded-[var(--radius-card)] bg-accent-700 p-[var(--space-card-p)] lg:col-span-8 lg:flex-row lg:items-stretch"
         data-underline-trigger
       >
         <div class="w-full shrink-0 rounded-[var(--radius-control)] bg-accent-50 p-3 lg:max-w-[220px]">
@@ -400,17 +404,21 @@ const testimonials = [
             <p>Ready to make some noise?</p>
             <p class="font-medium">Book an intro call</p>
           </div>
-          <UnderlineLink href="/contact/" class="self-start text-display text-accent-50">Let's talk</UnderlineLink>
+          <UnderlineLink as="span" class="self-start text-display text-accent-50">Let's talk</UnderlineLink>
         </div>
-      </div>
+      </a>
       {
         /* accent-200, not azure-200 — azure was the page's only use of that
            ramp, on a card whose own copy is accent-400. */
       }
-      <div class="flex flex-col justify-between gap-10 rounded-[var(--radius-card)] border border-accent-200 p-[var(--space-card-p)] lg:col-span-4">
+      <a
+        href="/systems/"
+        class="group flex flex-col justify-between gap-10 rounded-[var(--radius-card)] border border-accent-200 p-[var(--space-card-p)] lg:col-span-4"
+        data-underline-trigger
+      >
         <p class="text-h3 font-normal text-accent-400">Not sure where to start?</p>
-        <UnderlineLink href="/systems/" class="self-start text-h3 text-accent-400">Know more about our systems</UnderlineLink>
-      </div>
+        <UnderlineLink as="span" wrap class="self-start text-h2 text-accent-400">Know more about our systems</UnderlineLink>
+      </a>
     </div>
   </section>
 </BaseLayout>
@@ -578,16 +586,16 @@ const testimonials = [
     // active/inactive hierarchy completely — the section rendered as six
     // equally-bright stats with no hover, so none of the active/inactive
     // colour work was visible to anyone with "Reduce motion" enabled.
-    // 2800ms — 4000ms cut 30% per user request. Must stay in lockstep with
-    // StatBlock's own `stat-fill` keyframes duration (see that file): the
-    // progress bar is meant to finish filling exactly when the timer
-    // advances to the next stat.
-    let timer = prefersReducedMotion ? 0 : window.setInterval(tick, 2800)
+    // 1800ms per user request. Must stay in lockstep with StatBlock's own
+    // `stat-fill` keyframes duration (see that file): the progress bar is
+    // meant to finish filling exactly when the timer advances to the next
+    // stat.
+    let timer = prefersReducedMotion ? 0 : window.setInterval(tick, 1800)
 
     function restartTimer() {
       if (prefersReducedMotion) return
       window.clearInterval(timer)
-      timer = window.setInterval(tick, 2800)
+      timer = window.setInterval(tick, 1800)
     }
 
     const listeners = items.map((el, i) => {

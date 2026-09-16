@@ -465,8 +465,10 @@
   "Selected projects" hover highlight — shared across every system/blueprint
   page's Selected projects section, each of which already tags its row with
   data-projects-row and its cards with data-project-card (branding,
-  events-activations, podcast-video-series, digital-communication,
-  influence-reputation). Hovering one card dims the rest to reinforce it.
+  podcast-video-series, digital-communication, influence-reputation).
+  Hovering one card dims the rest to reinforce it. events-activations has
+  its own two-column pills-and-rotator take on Selected projects instead
+  (see that page's own <script>), so it no longer tags cards this way.
 
   Desktop-only (hover: hover): on touch, :hover sticks after a tap with
   nothing to un-hover it, which would leave the other cards dimmed.
