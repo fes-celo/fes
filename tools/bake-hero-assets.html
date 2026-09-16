@@ -1,0 +1,200 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Bake hero assets</title>
+<!--
+  Regenerates the three baked assets the homepage hero depends on. Run this
+  whenever public/hero/hero-heatmap-shape.webp changes — all three are derived
+  from it and have to move together.
+
+  How to run:
+    1. npm run dev
+    2. open http://localhost:<port>/../tools/bake-hero-assets.html — or simply
+       drop this file into public/ temporarily and hit /bake-hero-assets.html,
+       since it needs to be same-origin with /hero/ and with node_modules.
+    3. click Bake; three files download. Move them into public/hero/.
+
+  Why this exists as a browser page rather than a node script:
+  toProcessedHeatmap() is canvas/DOM code, and the stills need a live WebGL
+  render of the shader itself. Reimplementing either in node would be a second
+  source of truth for something that has to match the runtime exactly.
+-->
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; margin: 2rem; max-width: 46rem; }
+  button { font: inherit; padding: 0.5rem 1rem; }
+  pre { background: #f4f4f5; padding: 1rem; overflow-x: auto; }
+</style>
+
+<h1>Bake hero assets</h1>
+<p>Writes <code>hero-heatmap-processed.webp</code>, <code>hero-still.webp</code> and
+<code>hero-still-mobile.webp</code>. Move all three into <code>public/hero/</code>.</p>
+<button id="go">Bake</button>
+<pre id="log"></pre>
+
+<script type="module">
+  import {
+    ShaderMount,
+    heatmapFragmentShader,
+    toProcessedHeatmap,
+    getShaderColorFromString,
+    ShaderFitOptions,
+  } from '/node_modules/@paper-design/shaders/dist/index.js'
+
+  // Keep in sync with src/components/Hero.astro.
+  const SHAPE = '/hero/hero-heatmap-shape.webp'
+  const MOBILE_OFFSET_X = -0.2
+  const STILL_SIZE = 1400
+  const STILL_QUALITY = 0.88
+  // q0.95 measured at 0.13% mean channel error against the runtime-processed
+  // PNG, for a tenth of the bytes (683KB PNG -> 62KB WebP).
+  const TEXTURE_QUALITY = 0.95
+
+  const log = (m) => (document.getElementById('log').textContent += m + '\n')
+
+  const UNIFORMS = (image, offsetX) => ({
+    u_image: image,
+    u_colorBack: [0, 0, 0, 0],
+    u_colors: [
+      getShaderColorFromString('#0E004D'),
+      getShaderColorFromString('#4A40F2'),
+      getShaderColorFromString('#2E0EB2'),
+      getShaderColorFromString('#0E004D'),
+    ],
+    u_colorsCount: 4,
+    u_angle: 90,
+    u_noise: 0,
+    u_innerGlow: 0.22,
+    u_outerGlow: 0.29,
+    u_contour: 0.309,
+    u_fit: ShaderFitOptions.cover,
+    u_rotation: 0,
+    u_originX: 0.5,
+    u_originY: 0.5,
+    u_offsetX: offsetX,
+    u_offsetY: 0,
+    u_scale: 1,
+    u_worldWidth: 0,
+    u_worldHeight: 0,
+  })
+
+  // ShaderMount drives itself off requestAnimationFrame, which never fires in
+  // a background/hidden tab. Driving render() by hand keeps the bake headless
+  // and deterministic: speed 0 + frame 0 pins u_time to exactly 0.
+  function renderFrameZero(image, size, offsetX) {
+    const host = document.createElement('div')
+    host.style.cssText = `position:fixed;top:0;left:0;width:${size}px;height:${size}px;z-index:-9999;opacity:0`
+    document.body.appendChild(host)
+
+    const mount = new ShaderMount(
+      host,
+      heatmapFragmentShader,
+      UNIFORMS(image, offsetX),
+      { preserveDrawingBuffer: true },
+      0,
+      0,
+      1,
+    )
+    mount.devicePixelsSupported = false
+    mount.parentWidth = size
+    mount.parentHeight = size
+    mount.minPixelRatio = 1
+    mount.handleResize()
+    mount.render(0)
+
+    // handleResize() sizes the backing store to minPixelRatio x the element,
+    // so the canvas comes back at 2x on a retina display. Scale it down to the
+    // requested size explicitly — drawing it 1:1 would composite only the
+    // top-left quarter of the frame, which is silent and looks plausible.
+    // The 2x downsample is a free quality win on the way past.
+    const out = document.createElement('canvas')
+    out.width = size
+    out.height = size
+    const ctx = out.getContext('2d')
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(mount.canvasElement, 0, 0, size, size)
+    mount.dispose()
+    host.remove()
+    return out
+  }
+
+  // The shader's colorBack is transparent, so the runtime composites it over
+  // the section's CSS gradient. The still has to bake that same gradient in:
+  // keeping the alpha instead would be correct but costs ~415KB against 32KB,
+  // because WebP stores the alpha plane losslessly.
+  // Mirrors the `background` on <section> in Hero.astro — keep in sync.
+  function bake(image, size, offsetX) {
+    const out = document.createElement('canvas')
+    out.width = size
+    out.height = size
+    const ctx = out.getContext('2d')
+
+    const linear = ctx.createLinearGradient(0, 0, size, 0)
+    linear.addColorStop(0, '#4A40F2')
+    linear.addColorStop(1, '#0E004D')
+    ctx.fillStyle = linear
+    ctx.fillRect(0, 0, size, size)
+
+    // CSS `radial-gradient(<rx> <ry> at <cx> <cy>, rgb 0%, transparent <stop>)`.
+    // Canvas only draws circular gradients, so squash the space to get the
+    // ellipse. `transparent` is rgba(colour, 0), not rgba(0,0,0,0), or the
+    // ramp darkens as it fades.
+    const ellipse = (cx, cy, rx, ry, rgb, stop) => {
+      ctx.save()
+      ctx.translate(cx * size, cy * size)
+      ctx.scale(1, ry / rx)
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, rx * size)
+      gradient.addColorStop(0, `rgba(${rgb},1)`)
+      gradient.addColorStop(stop, `rgba(${rgb},0)`)
+      gradient.addColorStop(1, `rgba(${rgb},0)`)
+      ctx.fillStyle = gradient
+      ctx.fillRect(-size * 2, -size * 2, size * 4, size * 4)
+      ctx.restore()
+    }
+    ellipse(0.28, 0.38, 0.55, 0.6, '74,64,242', 0.62)
+    ellipse(0.78, 0.62, 0.5, 0.55, '46,14,178', 0.68)
+
+    ctx.drawImage(renderFrameZero(image, size, offsetX), 0, 0)
+    return out
+  }
+
+  function download(blob, name) {
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = name
+    a.click()
+    log(`${name} — ${Math.round(blob.size / 1024)}KB`)
+  }
+
+  const toWebp = (canvas, quality) =>
+    new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', quality))
+
+  document.getElementById('go').addEventListener('click', async () => {
+    document.getElementById('log').textContent = ''
+
+    const started = performance.now()
+    const { blob } = await toProcessedHeatmap(SHAPE)
+    log(`toProcessedHeatmap: ${Math.round(performance.now() - started)}ms (this is the cost being baked away)`)
+
+    const bitmap = await createImageBitmap(blob)
+    const flat = document.createElement('canvas')
+    flat.width = bitmap.width
+    flat.height = bitmap.height
+    flat.getContext('2d').drawImage(bitmap, 0, 0)
+    download(await toWebp(flat, TEXTURE_QUALITY), 'hero-heatmap-processed.webp')
+
+    // The stills render from the re-encoded texture, not the raw one, so what
+    // ships is what was measured.
+    const texture = new Image()
+    await new Promise((resolve, reject) => {
+      texture.onload = resolve
+      texture.onerror = reject
+      texture.src = flat.toDataURL('image/webp', TEXTURE_QUALITY)
+    })
+
+    download(await toWebp(bake(texture, STILL_SIZE, 0), STILL_QUALITY), 'hero-still.webp')
+    download(
+      await toWebp(bake(texture, STILL_SIZE, MOBILE_OFFSET_X), STILL_QUALITY),
+      'hero-still-mobile.webp',
+    )
+    log('done — move all three into public/hero/')
+  })
+</script>

@@ -7,12 +7,45 @@
  * hideHeader on BaseLayout.
  *
  * Background is the paper-design Heatmap shader (@paper-design/shaders),
- * live only on this page — other pages use stills exported from the same
- * Paper project instead of paying the WebGL cost everywhere. The shape
- * (public/hero/hero-heatmap-shape.webp) and the uniform values below are
- * copied from the Paper editor. Speed is intentionally low (0.15) since
- * ShaderMount halts its rAF loop entirely at speed 0, and pauses whenever
- * the section is offscreen or the tab is hidden either way.
+ * mounted only here — no other page carries a shader hero, so nothing else
+ * pays the WebGL cost. The uniform values below are copied from the Paper
+ * editor. Speed is intentionally low since ShaderMount halts its rAF
+ * loop entirely at speed 0, and pauses whenever the section is offscreen or
+ * the tab is hidden either way.
+ *
+ * Three assets in public/hero/, all baked by tools/bake-hero-assets.html —
+ * regenerate all three together whenever hero-heatmap-shape.webp changes:
+ *
+ * - hero-heatmap-shape.webp     the authored 1:1 source, build-time input only
+ * - hero-heatmap-processed.webp the shape run through toProcessedHeatmap()
+ * - hero-still{,-mobile}.webp   frame 0 of the finished shader, gradient baked in
+ *
+ * toProcessedHeatmap() packs three blur passes of the shape into one RGB
+ * texture, and it used to run in the browser on every page load: ~810ms of
+ * blocking main-thread work on an idle desktop, over 3s on a page that is
+ * still loading, and multiples of that on a phone. The result depends only
+ * on the source file, so it is baked once instead — the runtime now just
+ * loads an image (~40ms). See tools/bake-hero-assets.html for the numbers.
+ *
+ * The stills close the remaining gap. They are frame 0 of the shader with
+ * this section's own CSS gradient composited underneath, so the very first
+ * paint is already the full effect rather than a bare gradient; the canvas
+ * cross-fades over the still once WebGL is up, and both ends of that fade
+ * are the same image. They are square because the shader uses `cover` fit
+ * about a centred origin, which `background-size: cover` reproduces exactly
+ * at any aspect ratio — the shader half of the still matches a live render to
+ * ~0.6% mean channel error anywhere from 390x844 to 2560x1080.
+ *
+ * The gradient half doesn't match quite that well, and can't: the still bakes
+ * it square-and-cropped, while the live one is sized in percentages of the
+ * section box, so the lobes sit slightly differently. That puts the whole
+ * still 1.5% (desktop) to 4% (phone) off the live composite — a low-frequency
+ * shift in a background that is mostly behind the shader anyway, crossed in
+ * 200ms. Squaring the live gradient too would make it exact; it would also
+ * change how the page looks today, which is why it isn't done here.
+ *
+ * The mobile still bakes in MOBILE_OFFSET_X, so its media query below has to
+ * stay in sync with MOBILE_QUERY in the script.
  */
 import { navItems } from '../lib/nav'
 import Heading from './Heading.astro'
@@ -79,15 +112,27 @@ import Heading from './Heading.astro'
   style={`height: var(--hero-vh, 100lvh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
 >
   {
-    /* Approximates the heatmap shader's two colour lobes in pure CSS so the
-       first paint (before any JS/WebGL) already reads as intentional rather
-       than a flat two-stop gradient — see #hero-shader below, which fades in
-       over this once the shader mounts instead of popping in abruptly. */
+    /* The section's own CSS gradient (above) stays the bottom layer: the
+       shader's colorBack is transparent, so it composites over this rather
+       than replacing it. #hero-still sits between the two — see the docblock.
+
+       Preloaded because a CSS background-image isn't visible to the preload
+       scanner: it isn't requested until the element has been laid out, which
+       is exactly the delay the still exists to remove. The two `media` attrs
+       partition the viewport so only one of them is ever fetched. */
   }
+  <link rel="preload" as="image" href="/hero/hero-still.webp" media="(min-width: 1024px)" />
+  <link rel="preload" as="image" href="/hero/hero-still-mobile.webp" media="(max-width: 1023px)" />
+  <div
+    id="hero-still"
+    aria-hidden="true"
+    class="pointer-events-none absolute inset-0 size-full bg-cover bg-center transition-opacity duration-200 ease-out"
+  >
+  </div>
   <div
     id="hero-shader"
     aria-hidden="true"
-    class="pointer-events-none absolute inset-0 size-full opacity-0 transition-opacity duration-700 ease-out"
+    class="pointer-events-none absolute inset-0 size-full opacity-0 transition-opacity duration-200 ease-out"
   >
   </div>
   {
@@ -166,23 +211,37 @@ import Heading from './Heading.astro'
   </div>
 </section>
 
+<style>
+  /* Breakpoint has to match MOBILE_QUERY in the script: the mobile still has
+     MOBILE_OFFSET_X baked into it, so the two must switch at the same width
+     or the cross-fade jumps sideways. */
+  #hero-still {
+    background-image: url('/hero/hero-still.webp');
+  }
+
+  @media (max-width: 1023px) {
+    #hero-still {
+      background-image: url('/hero/hero-still-mobile.webp');
+    }
+  }
+</style>
+
 <script>
   import {
     ShaderMount,
     heatmapFragmentShader,
-    toProcessedHeatmap,
     getShaderColorFromString,
     ShaderFitOptions,
   } from '@paper-design/shaders'
 
-  // The shape asset wants to be authored 1:1. toProcessedHeatmap()
-  // letterboxes it into a 1000px box, surrounds that with 375px of blur
-  // margin on every side, and the fragment shader then un-pads by a *fixed*
-  // 1000/1750 on both axes — which is only exact for a square source. The
-  // original 16:9 export padded to 1750x1312, where the shape fills just
-  // 562/1312 vertically against the 1000/1750 the shader assumes, so ~13%
-  // of bare padding showed at each end: the band that appeared once the
-  // window grew taller than 16:9.
+  // The shape asset wants to be authored 1:1. toProcessedHeatmap() (run at
+  // bake time now, not here) letterboxes it into a 1000px box, surrounds that
+  // with 375px of blur margin on every side, and the fragment shader then
+  // un-pads by a *fixed* 1000/1750 on both axes — which is only exact for a
+  // square source. The original 16:9 export padded to 1750x1312, where the
+  // shape fills just 562/1312 vertically against the 1000/1750 the shader
+  // assumes, so ~13% of bare padding showed at each end: the band that
+  // appeared once the window grew taller than 16:9.
   //
   // With a square asset the two agree, fillScale() below is a flat 1, and
   // cover fit crops the top and bottom of a tall window while keeping the
@@ -190,8 +249,13 @@ import Heading from './Heading.astro'
   // texture rather than hardcoded so that a non-square export degrades to a
   // zoom-to-fill instead of silently bringing the band back — that costs a
   // tighter crop on the other axis, which is the reason to keep it square.
+  // The check still earns its place now that the texture is pre-baked: it's
+  // the bake step that could be handed a non-square shape.
   const PROCESS_BOX = 1000 // toProcessedHeatmap's longest-side box
   const PROCESS_PADDING = 375 // blur margin it adds on every side
+
+  // Pre-baked by tools/bake-hero-assets.html — see the docblock at the top.
+  const PROCESSED_TEXTURE = '/hero/hero-heatmap-processed.webp'
 
   function fillScale(image: HTMLImageElement, container: HTMLElement) {
     const textureWidth = image.naturalWidth
@@ -224,30 +288,24 @@ import Heading from './Heading.astro'
     }
   }
 
-  // Processed once per full page load and reused for every later mount:
-  // toProcessedHeatmap fetches and re-encodes the shape, which would be a
-  // visible delay before the shader appears each time you return here.
+  // Held across client-side navigations so returning to the homepage reuses
+  // the decoded texture instead of waiting on the disk cache again.
   let shapePromise: Promise<HTMLImageElement> | null = null
 
   function loadShape() {
-    shapePromise ??= (async () => {
-      const { blob } = await toProcessedHeatmap('/hero/hero-heatmap-shape.webp')
+    shapePromise ??= new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image()
       // The `load` event, not image.decode(): browsers defer decoding for a
       // document that isn't visible, and the decode() promise then simply
       // never settles — open the homepage in a background tab and the shader
       // would stay unmounted even after you switched to it. `load` is enough
       // for a WebGL texture upload, and it fires either way.
-      const ready = new Promise<void>((resolve, reject) => {
-        image.addEventListener('load', () => resolve(), { once: true })
-        image.addEventListener('error', () => reject(new Error('Hero shader shape failed to load')), {
-          once: true,
-        })
+      image.addEventListener('load', () => resolve(image), { once: true })
+      image.addEventListener('error', () => reject(new Error('Hero shader texture failed to load')), {
+        once: true,
       })
-      image.src = URL.createObjectURL(blob)
-      await ready
-      return image
-    })().catch((error) => {
+      image.src = PROCESSED_TEXTURE
+    }).catch((error) => {
       // Don't cache a rejection: a one-off failure would otherwise keep the
       // shader off for the rest of the session, since every later mount
       // awaits this same promise.
@@ -255,6 +313,21 @@ import Heading from './Heading.astro'
       throw error
     })
     return shapePromise
+  }
+
+  // The still and the canvas are the same image, so the fade only has to
+  // cover decode/compile jitter — long enough not to pop, short enough that
+  // the section is never visibly mid-transition. Both directions are used:
+  // a lost WebGL context winds the pair back before retrying, so the section
+  // falls back to the still rather than to the bare gradient underneath it.
+  function showShader(container: HTMLElement) {
+    container.classList.remove('opacity-0')
+    document.getElementById('hero-still')?.classList.add('opacity-0')
+  }
+
+  function showStill(container: HTMLElement | null) {
+    container?.classList.add('opacity-0')
+    document.getElementById('hero-still')?.classList.remove('opacity-0')
   }
 
   let mount: ShaderMount | null = null
@@ -339,13 +412,17 @@ import Heading from './Heading.astro'
     }
     mount.canvasElement.addEventListener('webglcontextlost', onContextLost)
 
-    // Reveals the canvas over the CSS approximation below it instead of
-    // popping in the instant the shape image + WebGL context are ready.
-    container.classList.remove('opacity-0')
+    // Cross-fades the canvas in as the still fades out. The canvas is fully
+    // transparent for the first frame of the fade, which covers the gap
+    // before ShaderMount's own rAF gets its first paint up.
+    showShader(container)
   }
 
   function teardown() {
     generation += 1
+    // Only observable on the context-loss retry, where the section stays on
+    // screen — after a navigation the element is replaced wholesale anyway.
+    showStill(mount?.parentElement ?? document.getElementById('hero-shader'))
     if (mobileQuery && onQueryChange) mobileQuery.removeEventListener('change', onQueryChange)
     resizeObserver?.disconnect()
     if (mount && onContextLost) mount.canvasElement.removeEventListener('webglcontextlost', onContextLost)
