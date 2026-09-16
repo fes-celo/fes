@@ -352,7 +352,10 @@ const selectedProjects = [
     --color-accent-tint: var(--color-neutral-900);
     /* SystemExpertiseRotator's rest/fill pair — same "barely there at rest,
        fully arrived once filled" logic as the light default, mirrored for a
-       near-black surface. */
+       near-black surface. accent-700 (the light default's fill — see
+       global.css) is a light-surface color: ~9:1 against white, but only
+       ~2:1 against this near-black, well under WCAG minimums — so this
+       branch keeps a neutral instead of following that value down. */
     --rotator-rest: var(--color-neutral-800);
     --rotator-fill: var(--color-neutral-100);
     background-color: var(--color-surface);

@@ -457,32 +457,25 @@ const testimonials = [
     --color-accent-tint: color-mix(in srgb, var(--color-neutral-900) calc(var(--dark-progress) * 100%), var(--color-accent-50));
 
     background-color: var(--color-surface);
-    --stat-value-active: color-mix(in srgb, var(--color-neutral-200) calc(var(--dark-progress) * 100%), var(--color-neutral-950));
-    /* Light endpoints are neutral-500, NOT the neutral-200 mirror of the
-       dark scheme's neutral-700/neutral-400. Mirroring the ramp positionally
-       looks symmetrical in the token file but resolves to #D1D3D5 on white —
-       1.4:1, i.e. five of the six numbers and every label rendered
-       invisible. The section normally flips dark before it's on screen so
-       this stayed hidden, but it's the state the page serves with JS off, on
-       a failed GSAP load, or on any deep-link that lands mid-page.
-       neutral-500 is 4.66:1 on white and still reads clearly subordinate to
-       the near-black active value. */
-    --stat-value-inactive: color-mix(
-      in srgb,
-      var(--color-neutral-700) calc(var(--dark-progress) * 100%),
-      var(--color-neutral-500)
-    );
-    --stat-label: color-mix(in srgb, var(--color-neutral-400) calc(var(--dark-progress) * 100%), var(--color-neutral-500));
-    /* Timeline track (the "unplayed" portion, per StatBlock.astro's minimal
-       variant) — a fixed muted gray in each scheme, not tied to any one
-       stat's own active/inactive state: neutral-700 in dark (dark-progress
-       1), neutral-300 in light (dark-progress 0) — a 1px rule at
-       neutral-200 all but vanished against white alongside the same fix
-       applied to the values and labels above. The "played" portion isn't a
-       separate token — it reuses --stat-value-active directly above, so it
-       always matches the highlighted number exactly in both schemes, per
-       user request. */
-    --stat-line-track: color-mix(in srgb, var(--color-neutral-700) calc(var(--dark-progress) * 100%), var(--color-neutral-300));
+    /* Single "ink" color drives the value, the line and the label alike —
+       active state is full-strength ink, inactive is the SAME color at
+       reduced opacity rather than a different gray step, per user request
+       that the number/line/description share one color and the inactive
+       state simply recede. This is near-black on white in light mode and
+       near-white on black in dark mode (previously --stat-value-active;
+       neutral-500, the old inactive-state fallback for JS-off/no-GSAP
+       states, measured too low-contrast on white at the reduced opacity
+       below, so full-strength ink is now the only light-mode anchor). */
+    --stat-ink: color-mix(in srgb, var(--color-neutral-200) calc(var(--dark-progress) * 100%), var(--color-neutral-950));
+    /* 35% of --stat-ink — the inactive value, the inactive label, and the
+       timeline track (the track stays this tone regardless of its own
+       stat's active state, see StatBlock.astro, since the track under the
+       active stat is fully overpainted by the fill as it animates in).
+       Per user request, chosen over the 45% first shipped for AA-large
+       contrast (~3.4:1) — this lands at ~2.2:1, which is a deliberately
+       stronger recede than WCAG's 3:1 floor for large text allows, so the
+       inactive numbers won't pass an automated contrast check. */
+    --stat-ink-muted: color-mix(in srgb, var(--stat-ink) 35%, transparent);
     transition: background-color 200ms ease-out;
   }
   /* :global() because the elements that have to cross-fade — project card
@@ -585,12 +578,16 @@ const testimonials = [
     // active/inactive hierarchy completely — the section rendered as six
     // equally-bright stats with no hover, so none of the active/inactive
     // colour work was visible to anyone with "Reduce motion" enabled.
-    let timer = prefersReducedMotion ? 0 : window.setInterval(tick, 4000)
+    // 2800ms — 4000ms cut 30% per user request. Must stay in lockstep with
+    // StatBlock's own `stat-fill` keyframes duration (see that file): the
+    // progress bar is meant to finish filling exactly when the timer
+    // advances to the next stat.
+    let timer = prefersReducedMotion ? 0 : window.setInterval(tick, 2800)
 
     function restartTimer() {
       if (prefersReducedMotion) return
       window.clearInterval(timer)
-      timer = window.setInterval(tick, 4000)
+      timer = window.setInterval(tick, 2800)
     }
 
     const listeners = items.map((el, i) => {

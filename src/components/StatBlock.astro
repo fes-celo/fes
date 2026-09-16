@@ -5,8 +5,13 @@
  *
  * variant="minimal": pulled from the homepage "We drive results" frame
  * (node 770:341) — borderless, a bottom rule doubling as an auto-rotate
- * progress track (see index.astro's stats-cycle script), value dims/brightens
- * for the inactive/active state instead of a card background.
+ * progress track (see index.astro's stats-cycle script). Value and label
+ * dim/brighten together for the inactive/active state instead of a card
+ * background — both resolve to the same --stat-ink custom property (see
+ * index.astro), just at full strength when active and at --stat-ink-muted
+ * (35% opacity of the same color) when not, per user request that the
+ * number, the line and the description all share one color rather than
+ * separate gray steps.
  *
  * The track/fill line is two stacked `absolute inset-x-0 bottom-0 h-px`
  * layers, not a `border-b` (track) plus an absolutely-positioned overlay
@@ -14,13 +19,11 @@
  * track element's padding box while the border painted outside it, landing
  * the fill's line one border-width above the track's, i.e. exactly the
  * "blue line sits a pixel above" bug. Two layers using the same
- * positioning are guaranteed to land on the same pixel. Per user request,
- * the unplayed (track) portion no longer follows this item's own
- * active/inactive rotation state — it's a fixed muted tone (still
- * responsive to the section's light/dark invert though, see
- * --stat-line-track in index.astro) — and the played (fill) portion reuses
- * --stat-value-active directly rather than a separate accent color, so it
- * always matches the highlighted number's own color in both schemes.
+ * positioning are guaranteed to land on the same pixel. The unplayed
+ * (track) portion doesn't follow this item's own active/inactive rotation
+ * state — it's always --stat-ink-muted — and the played (fill) portion
+ * reuses --stat-ink directly, so it always matches the highlighted
+ * number's and label's own color in both schemes.
  */
 interface Props {
   value: string
@@ -41,14 +44,16 @@ const { value, label, variant = 'card', active = false, class: className } = Ast
     >
       <div class="stat-minimal__track relative w-full pb-4">
         <dd
-          class="text-h1 tracking-tight transition-colors duration-300 [color:var(--stat-value-inactive,var(--color-neutral-700))] group-data-[active=true]/stat:[color:var(--stat-value-active,var(--color-neutral-200))]"
+          class="text-h1 tracking-tight transition-colors duration-300 [color:var(--stat-ink-muted,var(--color-neutral-700))] group-data-[active=true]/stat:[color:var(--stat-ink,var(--color-neutral-200))]"
         >
           {value}
         </dd>
-        <span class="stat-minimal__line absolute inset-x-0 bottom-0 h-px [background-color:var(--stat-line-track,var(--color-neutral-700))]" />
-        <span class="stat-minimal__fill absolute inset-x-0 bottom-0 h-px origin-left [background-color:var(--stat-value-active,var(--color-neutral-200))]" />
+        <span class="stat-minimal__line absolute inset-x-0 bottom-0 h-px [background-color:var(--stat-ink-muted,var(--color-neutral-700))]" />
+        <span class="stat-minimal__fill absolute inset-x-0 bottom-0 h-px origin-left [background-color:var(--stat-ink,var(--color-neutral-200))]" />
       </div>
-      <dt class="pt-4 text-body-sm leading-[1.2] [color:var(--stat-label,var(--color-neutral-400))]">{label}</dt>
+      <dt class="pt-4 text-body-sm leading-[1.2] transition-colors duration-300 [color:var(--stat-ink-muted,var(--color-neutral-400))] group-data-[active=true]/stat:[color:var(--stat-ink,var(--color-neutral-200))]">
+        {label}
+      </dt>
     </div>
   ) : (
     <div class:list={['flex flex-col gap-6 rounded-[var(--radius-card)] bg-surface p-[var(--space-card-p)] shadow-[var(--shadow-card)]', className]}>
@@ -63,7 +68,8 @@ const { value, label, variant = 'card', active = false, class: className } = Ast
     transform: scaleX(0);
   }
   .stat-minimal[data-active='true'] .stat-minimal__fill {
-    animation: stat-fill 4000ms linear forwards;
+    /* 2800ms to match index.astro's stats-cycle timer (4000ms cut 30%). */
+    animation: stat-fill 2800ms linear forwards;
   }
   @keyframes stat-fill {
     from {

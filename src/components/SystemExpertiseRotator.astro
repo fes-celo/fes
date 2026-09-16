@@ -71,8 +71,8 @@ const { words, class: className } = Astro.props as Props
             <>
               {' '}
               <span class="rotator-arrow" data-arrow aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 4v14M6 13l6 6 6-6" />
+                <svg viewBox="0 0 52.47 57.86" fill="currentColor">
+                  <path d="M0,31.46l4.91-4.9,17.9,18.22V0h6.86v44.79l17.9-18.22,4.9,4.9-26.23,26.4L0,31.46Z" />
                 </svg>
               </span>{' '}
             </>
@@ -123,9 +123,10 @@ const { words, class: className } = Astro.props as Props
     height: 0.42em;
     color: var(--rotator-fill);
     /*
-      A chevron's own visual weight sits in its point, at the bottom of its
-      box — centering the box in the flex gap still reads bottom-heavy.
-      Nudging it up very slightly balances the ink, not just the boxes.
+      This arrow's ink converges to a single point at the very bottom of its
+      box (a solid shaft-and-head mark, not a symmetric chevron) — centering
+      the box in the flex gap still reads bottom-heavy. Nudging it up very
+      slightly balances the ink, not just the boxes.
     */
     margin-block: 0.03em -0.05em;
   }
@@ -134,7 +135,6 @@ const { words, class: className } = Astro.props as Props
     display: block;
     width: 100%;
     height: 100%;
-    stroke-width: 2.2;
   }
 
   /*

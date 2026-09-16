@@ -234,10 +234,22 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
   import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../lib/sectionMotion'
   import { createDragCarousel } from '../lib/dragCarousel'
 
-  // Same tuning family as src/lib/motion.ts's REVEAL (0.8s/power2.out/0.08
-  // stagger, `start: 'top 85%'`) — this is that same entrance, just sliding
-  // in on x instead of y since the row is horizontal.
-  const ENTRANCE = { x: -80, duration: 0.8, stagger: 0.08, ease: 'power2.out', start: 'top 85%' }
+  // Cards slide in from the right (positive x), heavier ease-out (power3)
+  // for a snappier settle. Trigger is the CARD ROW itself, not `root` — the
+  // section also contains the heading well above the row, so a trigger on
+  // `root` fired as soon as the heading approached the viewport and the
+  // ~1s animation was already finished by the time the cards themselves
+  // scrolled into view, reading as barely-there. Starting later ('top 92%'
+  // on the row) plus a bigger travel distance and longer duration keeps the
+  // motion visibly in progress while the cards are actually on screen.
+  const ENTRANCE = {
+    x: 160,
+    duration: 1,
+    delay: 0.1,
+    stagger: 0.1,
+    ease: 'power3.out',
+    start: 'top 92%',
+  }
 
   bindSection('[data-problem-cards]', ({ root, mm }) => {
     const viewport = root.querySelector<HTMLElement>('[data-viewport]')
@@ -269,9 +281,10 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
         opacity: 0,
         x: ENTRANCE.x,
         duration: ENTRANCE.duration,
+        delay: ENTRANCE.delay,
         stagger: ENTRANCE.stagger,
         ease: ENTRANCE.ease,
-        scrollTrigger: { trigger: root, start: ENTRANCE.start, once: true },
+        scrollTrigger: { trigger: viewport, start: ENTRANCE.start, once: true },
       })
 
       return () => {

@@ -290,16 +290,23 @@ const selectedProjects = [
           selectedProjects.map((project) => (
             <li class="w-[80vw] shrink-0 sm:w-[60vw] lg:w-auto" data-project-card>
               <div class="flex flex-col gap-6">
-                <div class="relative aspect-[430/294] overflow-hidden rounded-[var(--radius-card)] bg-accent-tint">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${project.youtubeId}`}
-                    title={project.title}
+                <button
+                  type="button"
+                  aria-label={`Play ${project.title}`}
+                  class="group relative flex aspect-[430/294] w-full items-center justify-center overflow-hidden rounded-[var(--radius-card)] bg-accent-tint"
+                  data-youtube-facade
+                  data-youtube-id={project.youtubeId}
+                >
+                  <img
+                    src={`https://i.ytimg.com/vi/${project.youtubeId}/hqdefault.jpg`}
+                    alt=""
                     loading="lazy"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowfullscreen
-                    class="absolute inset-0 size-full"
+                    class="absolute inset-0 size-full object-cover"
                   />
-                </div>
+                  <span class="relative flex size-[100px] shrink-0 items-center justify-center rounded-full bg-neutral-100 text-body text-neutral-950 transition-transform duration-200 group-hover:scale-105">
+                    Play
+                  </span>
+                </button>
                 <div class="flex flex-col gap-1">
                   <h3 class="text-body font-medium text-ink">{project.title}</h3>
                   <p class="text-body-sm font-normal text-ink-muted">{project.description}</p>
@@ -336,6 +343,27 @@ const selectedProjects = [
 </style>
 
 <script>
+  // Click-to-load YouTube facade: swaps the thumbnail + custom play button
+  // for an iframe on click, so the red YouTube play button/branding never
+  // shows and only the neutral-100 "Play" circle is visible up front.
+  document.querySelectorAll<HTMLButtonElement>('[data-youtube-facade]').forEach((facade) => {
+    facade.addEventListener(
+      'click',
+      () => {
+        const youtubeId = facade.dataset.youtubeId
+        const title = facade.getAttribute('aria-label')?.replace(/^Play /, '') ?? ''
+        const iframe = document.createElement('iframe')
+        iframe.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&controls=0&rel=0&modestbranding=1`
+        iframe.title = title
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+        iframe.allowFullscreen = true
+        iframe.className = 'aspect-[430/294] w-full overflow-hidden rounded-[var(--radius-card)]'
+        facade.replaceWith(iframe)
+      },
+      { once: true },
+    )
+  })
+
   // Staggered reveal for the projects row.
   import { bindSection, gsap, MOTION_FULL, MOTION_FALLBACK } from '../../../../lib/sectionMotion'
 

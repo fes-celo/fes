@@ -178,7 +178,7 @@
     parent reaches it correctly.
   */
   --rotator-rest: var(--color-neutral-100);
-  --rotator-fill: var(--color-neutral-700);
+  --rotator-fill: var(--color-accent-700);
 
   /* ---------- 3. Type ---------- */
 
