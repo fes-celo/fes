@@ -22,6 +22,8 @@ import coverflexIcon from '../assets/projects/coverflex-icon.png'
 import shamirPortugal from '../assets/projects/Shamir-portugal.png'
 import startupPortugalProject from '../assets/projects/startup-portugal.png'
 import startupPortugalProjectIcon from '../assets/projects/Startup Portugal-icon.png'
+import startInsideOut from '../assets/projects/Start Inside Out.png'
+import startCampusIcon from '../assets/projects/Start Campus-icon.png'
 
 export interface Project {
   href: string
@@ -56,7 +58,9 @@ export const projects: Project[] = [
     href: '/projects/start-campus/',
     title: 'Start Campus | Start Inside Out',
     description: 'A video series showing the people behind Start Campus.',
-    // No cover photo or icon asset yet — ProjectCard renders its labelled placeholder.
+    thumbnail: startInsideOut,
+    icon: startCampusIcon,
+    iconBg: 'var(--color-neutral-50)',
     tag: 'Podcast & Video-Series',
     category: ['Enterprise'],
   },

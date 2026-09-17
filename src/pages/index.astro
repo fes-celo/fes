@@ -23,6 +23,8 @@ import shamirIcon from '../assets/projects/Shamir-icon.png'
 import shamirPortugal from '../assets/projects/Shamir-portugal.png'
 import startupPortugalProject from '../assets/projects/startup-portugal.png'
 import startupPortugalProjectIcon from '../assets/projects/Startup Portugal-icon.png'
+import startInsideOut from '../assets/projects/Start Inside Out.png'
+import startCampusIcon from '../assets/projects/Start Campus-icon.png'
 
 import lilianaCastro from '../assets/people/FES_Liliana-cutout.png'
 
@@ -33,10 +35,8 @@ import lilianaCastro from '../assets/people/FES_Liliana-cutout.png'
 // Selected Projects frame doesn't have per-card tags (only the What We Do
 // system cards do).
 //
-// Start Campus has no case-study page, cover photo or icon yet — image/icon
-// stay undefined so ProjectCard renders its labelled placeholder instead of
-// a broken asset, same as the still-missing projects on the Digital
-// Communication and Influence & Reputation systems pages.
+// Start Campus has no case-study page yet, but does have cover photo and
+// icon assets now.
 const featuredRow1 = [
   {
     href: '/projects/shamir-portugal/',
@@ -61,9 +61,9 @@ const featuredRow2 = [
     href: '/projects/start-campus/',
     title: 'Start Campus | Start Inside Out',
     description: 'A video series showing the people behind Start Campus.',
-    image: undefined,
-    icon: undefined,
-    iconBg: undefined,
+    image: startInsideOut,
+    icon: startCampusIcon,
+    iconBg: 'var(--color-neutral-50)',
   },
   {
     href: '/projects/startup-braga-10x-forward/',
