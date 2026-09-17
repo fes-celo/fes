@@ -11,8 +11,6 @@
  * 'x'` inside that helper, which is what keeps a touch user's vertical
  * page scroll working when their finger starts on a card.
  */
-import SectionLabel from './SectionLabel.astro'
-
 export interface Addon {
   title: string
   description: string
@@ -36,7 +34,24 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 ---
 
 <section class:list={['addons flex w-full flex-col gap-[var(--space-heading-gap)]', className]}>
-  <SectionLabel class="mx-[var(--space-gutter)]">{heading}</SectionLabel>
+  <div class="mx-[var(--space-gutter)] flex flex-col gap-4">
+    {
+      /* SectionLabel's usual static `border-t border-current/20` rule,
+         replaced here with the equivalent bg-line/bg-ink pair so the same
+         line can double as the drag progress bar — synced to the loop's own
+         GSAP timeline instead of a scrollLeft ratio, since this strip moves
+         via horizontalLoop, not native scroll (see the <script> below).
+         This strip never autoplays, so the bar only ever reflects the drag
+         itself — normalized against `repeat` so one full fill is one pass
+         through the unique set, not all `repeat` copies. Not SectionLabel
+         itself: that component is a static, reusable eyebrow primitive (see
+         its own docstring) and has no notion of an animated fill. */
+    }
+    <div class="addons__progress relative h-px w-full bg-line" aria-hidden="true">
+      <div class="addons__progress-fill absolute inset-0 bg-ink" data-addons-progress-fill></div>
+    </div>
+    <h2 class="text-lead text-ink-muted">{heading}</h2>
+  </div>
 
   {
     /* Hard-clipped, not faded, and asymmetric on purpose: the LEFT edge
@@ -49,6 +64,7 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
     <div
       class="addons__track flex w-max cursor-grab select-none active:cursor-grabbing"
       data-addons-track
+      data-repeat={repeat}
     >
       {
         cells.map(({ addon, isDuplicate }) => (
@@ -93,6 +109,17 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
       max-width: none;
     }
   }
+
+  /*
+    NOT Tailwind's `scale-x-0`: Tailwind v4 implements scale utilities with
+    the INDEPENDENT `scale` property, which composes multiplicatively with
+    whatever is written to `transform` — it would zero the fill out no
+    matter what the script sets. Same note as the Agency team-progress fill.
+  */
+  .addons__progress-fill {
+    transform: scaleX(0);
+    transform-origin: left center;
+  }
 </style>
 
 <script>
@@ -107,6 +134,32 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 
   let loops: HorizontalLoop[] = []
   let cleanups: Array<() => void> = []
+
+  // Plain transform write on the loop's own timeline `onUpdate`, same
+  // rationale as the Agency team-progress bar's scroll-event write: nothing
+  // else needs a rendering library for one property per frame. `progress()`
+  // is 0→1 across ALL `repeat` copies of the strip, so it's scaled back down
+  // by `repeat` (and wrapped) to read as one fill per pass through the
+  // unique set — otherwise the bar would crawl three times slower than the
+  // cards actually advance. This strip never autoplays, so the only thing
+  // that ever moves it is the drag this same effect feeds off.
+  function setupAddonsProgress(track: HTMLElement, loop: HorizontalLoop) {
+    const fill = track.closest('.addons')?.querySelector<HTMLElement>('[data-addons-progress-fill]')
+    if (!fill) return null
+
+    const repeat = Math.max(1, Number(track.dataset.repeat) || 1)
+    const update = () => {
+      const ratio = (loop.timeline.progress() * repeat) % 1
+      fill.style.transform = `scaleX(${ratio.toFixed(4)})`
+    }
+    loop.timeline.eventCallback('onUpdate', update)
+    update()
+
+    return () => {
+      loop.timeline.eventCallback('onUpdate', null)
+      fill.style.transform = ''
+    }
+  }
 
   /**
    * horizontalLoop pulls in Draggable + InertiaPlugin (~40KB), and this
@@ -160,6 +213,9 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
       })
       if (!loop) return
       loops.push(loop)
+
+      const progressCleanup = setupAddonsProgress(track, loop)
+      if (progressCleanup) cleanups.push(progressCleanup)
 
       // Same press-scale feedback as the testimonial/team drag carousels
       // (see src/lib/dragCarousel.ts's pressCards + PRESS_SCALE), applied

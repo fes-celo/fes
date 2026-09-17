@@ -39,7 +39,7 @@ import Heading from '../../components/Heading.astro'
 import SectionIntro from '../../components/SectionIntro.astro'
 import TestimonialCard from '../../components/TestimonialCard.astro'
 import { navItems } from '../../lib/nav'
-import teamPhoto from '../../assets/careers/team-photo.jpg'
+import teamPhoto from '../../assets/careers/team-photo.webp'
 import ourWorkCta from '../../assets/systems/our-work-cta.jpg'
 import UnderlineLink from '../../components/UnderlineLink.astro'
 
@@ -238,40 +238,32 @@ const alumniFeedback = [
   </section>
 
   {
-    /* Full-bleed team photo, sized to the image's own aspect ratio
-       (team-photo.jpg is 3200x2297, aspect-[3200/2297]) rather than a fixed
-       viewport height — a h-screen box doesn't share that ratio at most
-       viewport sizes and was cropping people out. This MUST track the
-       source file's actual pixel ratio: it's what makes the section's own
-       box exactly as wide-for-its-height as the photo, so the object-cover
-       below only has to apply the uniform zoom described next, never an
-       extra mismatched-aspect crop on top of it (that compounding is what
-       clipped heads and edge-of-frame people the last time this fell out of
-       sync with the asset). The image itself renders 128% of the section's
-       size (both axes, object-cover forces the same scale factor on each)
-       so it has room to drift for the scroll-driven parallax (see the
-       <script> below) without ever exposing empty space above/below; the
-       -14%/128% pairing gives a 14% buffer on each edge, comfortably more
-       than the ±10% (±3% under reduced motion) the parallax actually moves
-       it — sized up from an earlier ±6%/±1.5% pass that scrolled correctly
-       but was too subtle to read as parallax against a section this tall.
+    /* Full-bleed team photo. The parallax below only ever moves the image
+       vertically (yPercent), so only the vertical axis needs overscan
+       buffer — the section is deliberately shorter than the (square,
+       2560x2560) photo, aspect-[7/5], so the image can render at its full
+       native width (w-full, zero horizontal crop, left/right edges show
+       exactly what's in the source file) while still overhanging top and
+       bottom for the parallax to drift into.
 
-       `max-w-none` is required: Tailwind's preflight resets every `img` to
-       `max-width: 100%`, which silently clamps `w-[128%]` back down to the
-       container's own width (`h-[128%]` needs no equivalent since preflight
-       doesn't touch max-height). Without it the image stops 14% short on
-       the right edge and the section's dark background shows through the
-       gap as a bare stripe — the parallax still looked fine because the
-       height math was untouched, only the width was quietly capped. */
+       h-[140%]/top-[-20%] on a 7:5 section works out to an image box that's
+       exactly as wide as it is tall (140% of a 5-unit-tall section = 7
+       units = the section's own width) — i.e. still perfectly square, still
+       matching the photo's own aspect, so object-cover applies zero
+       additional crop on top of this, only the intentional overhang. That
+       overhang is a 14.29% buffer on each of the top/bottom edges,
+       comfortably more than the ±10% (±3% under reduced motion) the
+       parallax actually moves it (see setupParallax below) — the same
+       points-of-margin the original square-section version had. */
   }
-  <section class="relative z-10 aspect-[3200/2297] w-full overflow-hidden" data-anim="reveal">
+  <section class="relative z-10 aspect-[7/5] w-full overflow-hidden" data-anim="reveal">
     <div class="absolute inset-0" data-parallax-wrapper>
       <Image
         src={teamPhoto}
         alt="The FES Agency team"
         width={2048}
-        height={1470}
-        class="absolute left-[-14%] top-[-14%] h-[128%] w-[128%] max-w-none object-cover"
+        height={2048}
+        class="absolute left-0 top-[-20%] h-[140%] w-full object-cover"
         data-parallax-image
       />
     </div>
@@ -372,21 +364,37 @@ const alumniFeedback = [
         type="button"
         data-alumni-prev
         aria-label="Previous feedback"
-        class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-neutral-900 text-neutral-900 transition-colors hover:bg-neutral-100"
+        class="group flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-neutral-900 transition-colors hover:bg-neutral-900"
       >
-        <img src="/icons/icon-arrow-dark.svg" class="size-4 rotate-180" alt="" width="16" height="16" />
+        <span class="alumni-arrow size-4 rotate-180 bg-neutral-900 transition-colors group-hover:bg-white" aria-hidden="true" />
       </button>
       <button
         type="button"
         data-alumni-next
         aria-label="Next feedback"
-        class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-neutral-900 text-neutral-900 transition-colors hover:bg-neutral-100"
+        class="group flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-neutral-900 transition-colors hover:bg-neutral-900"
       >
-        <img src="/icons/icon-arrow-dark.svg" class="size-4" alt="" width="16" height="16" />
+        <span class="alumni-arrow size-4 bg-neutral-900 transition-colors group-hover:bg-white" aria-hidden="true" />
       </button>
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  /* Same icon-arrow-dark.svg the rest of the site uses, but as a CSS mask
+     instead of an <img> so the fill color (and therefore its hover state)
+     can transition. */
+  .alumni-arrow {
+    mask-image: url('/icons/icon-arrow-dark.svg');
+    -webkit-mask-image: url('/icons/icon-arrow-dark.svg');
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-position: center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+  }
+</style>
 
 <script>
   import { gsap } from 'gsap'

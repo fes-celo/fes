@@ -15,8 +15,8 @@
  *     keep the dark gradient scrim, which existed to darken a future photo
  *     for text legibility, it ships as a plain `bg-white` surface with no
  *     overlay.
- *   - Addons renders SystemAddonsMarquee (drag-only, no CTA) instead of
- *     SystemAddonsCarousel (CTA + autoplay) — same swap as this page's own
+ *   - Addons renders SystemAddonsMarquee (drag-only) instead of
+ *     SystemAddonsCarousel (adds autoplay) — same swap as this page's own
  *     dark variant uses in reverse.
  *   - Selected Projects drops the prev/next arrow buttons the dark variant
  *     added — the light template doesn't have them either.
@@ -260,20 +260,55 @@ const selectedProjectCategories = [{ label: 'Selected projects', projects: selec
       </div>
     </nav>
 
-    <p class="relative z-10 mt-16 max-w-[48ch] text-lead text-ink" data-anim="reveal">
-      A brand is the set of decisions a company no longer has to keep making.
-    </p>
-
-    <div class="relative z-10 flex flex-col gap-9 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
-      <div class="flex flex-col gap-9">
-        <Heading as="h1" indent={false} class="text-display text-balance text-ink" data-anim="split-text">
-          Turn brand decisions into a system
-        </Heading>
-        <p class="text-body text-ink" data-anim="reveal">Creative Projects Blueprint · Branding</p>
-      </div>
-      <p class="shrink-0 text-body text-ink lg:text-right" data-anim="reveal">Duration: 8–10 weeks</p>
+    <div class="hero-copy relative z-10 mt-16 grid gap-x-4 gap-y-6 lg:flex-1 lg:gap-x-16 lg:gap-y-9">
+      <Heading as="h1" indent={false} class="hero-copy__title text-display text-balance text-ink" data-anim="split-text">
+        Turn brand decisions into a system
+      </Heading>
+      <p class="hero-copy__desc max-w-[48ch] text-lead text-ink" data-anim="reveal">
+        A brand is the set of decisions a company no longer has to keep making.
+      </p>
+      <p class="hero-copy__name text-body-sm text-ink lg:text-body" data-anim="reveal">Creative Projects Blueprint · Branding</p>
+      <p class="hero-copy__duration text-right text-body-sm text-ink lg:text-body" data-anim="reveal">Duration: 8–10 weeks</p>
     </div>
   </section>
+
+  <style>
+    /* Mobile: title, then description, then a two-column name/duration row.
+       Desktop keeps the original layout — description floating mid-hero,
+       title pinned to the bottom with the name/duration row beneath it —
+       via two flexible spacer rows standing in for the old justify-between. */
+    .hero-copy {
+      justify-content: space-between;
+      grid-template-areas:
+        'title title'
+        'desc desc'
+        'name duration';
+    }
+    .hero-copy__title {
+      grid-area: title;
+    }
+    .hero-copy__desc {
+      grid-area: desc;
+    }
+    .hero-copy__name {
+      grid-area: name;
+    }
+    .hero-copy__duration {
+      grid-area: duration;
+    }
+
+    @media (min-width: 1024px) {
+      .hero-copy {
+        grid-template-rows: 1fr auto 1fr auto auto;
+        grid-template-areas:
+          '. .'
+          'desc desc'
+          '. .'
+          'title .'
+          'name duration';
+      }
+    }
+  </style>
 
   {/* ---------- 2. Expertise ---------- */}
   <SystemExpertiseRotator words={expertiseWords} />

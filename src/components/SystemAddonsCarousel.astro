@@ -2,10 +2,9 @@
 /**
  * Dark-page Addons strip (Figma node 975:618, the Influence & Reputation
  * dark variant). Same draggable infinite-loop mechanics as
- * SystemAddonsMarquee (src/lib/horizontalLoop.ts), plus two things that
- * page doesn't have: a "Talk to us" CTA next to the heading, and autoplay —
- * the loop eases forward by exactly one card on a timer instead of only
- * responding to drag. A separate component rather than a prop on
+ * SystemAddonsMarquee (src/lib/horizontalLoop.ts), plus autoplay, which
+ * that page doesn't have — the loop eases forward by exactly one card on a
+ * timer instead of only responding to drag. A separate component rather than a prop on
  * SystemAddonsMarquee: the light page's marquee is deliberately the one
  * hands-only section on the site (see that component's own docstring), and
  * folding autoplay into it as an opt-in would blur that intent for every
@@ -23,21 +22,12 @@ export interface Addon {
 interface Props {
   heading?: string
   addons: Addon[]
-  ctaLabel?: string
-  ctaHref?: string
   /** Sets of cards rendered. Raise if the strip looks sparse on wide screens. */
   repeat?: number
   class?: string
 }
 
-const {
-  heading = 'Add-ons',
-  addons,
-  ctaLabel = 'Talk to us',
-  ctaHref = '/contact/',
-  repeat = 3,
-  class: className,
-} = Astro.props as Props
+const { heading = 'Add-ons', addons, repeat = 3, class: className } = Astro.props as Props
 
 // Flattened so every card is a direct sibling — horizontalLoop measures and
 // wraps the cells individually, and that's also what the drag/autoplay snap to.
@@ -47,18 +37,24 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 ---
 
 <section class:list={['addons-carousel flex w-full flex-col gap-[var(--space-heading-gap)]', className]}>
-  <div class="mx-[var(--space-gutter)] flex items-center justify-between gap-6 border-t border-current/20 pt-4 text-ink-muted-inverse">
-    <h2 class="text-lead">{heading}</h2>
-    <a
-      href={ctaHref}
-      class="group flex shrink-0 items-center gap-2 text-body-sm text-neutral-300 transition-colors hover:text-white"
-    >
-      <span
-        class="chip-arrow size-3 shrink-0 bg-neutral-300 transition-colors group-hover:bg-white"
-        aria-hidden="true"
-      ></span>
-      {ctaLabel}
-    </a>
+  <div class="mx-[var(--space-gutter)] flex flex-col gap-4">
+    {
+      /* The rule that used to be a plain `border-t border-current/20` (same
+         static-eyebrow-rule pattern as SectionLabel) now doubles as the
+         drag/autoplay progress bar — bg-line track, scaleX fill from the
+         left — synced to the loop's own GSAP timeline instead of a
+         scrollLeft ratio, since this strip moves via horizontalLoop rather
+         than native scroll (see the <script> below). Reflects both autoplay
+         ticks and manual drag; normalized against `repeat` so one full fill
+         is one pass through the unique set, not all `repeat` copies. */
+    }
+    <div class="addons-carousel__progress relative h-px w-full bg-line" aria-hidden="true">
+      <div class="addons-carousel__progress-fill absolute inset-0 bg-ink" data-addons-progress-fill></div>
+    </div>
+
+    <div class="text-ink-muted-inverse">
+      <h2 class="text-lead">{heading}</h2>
+    </div>
   </div>
 
   {
@@ -67,7 +63,11 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
        viewport edge. */
   }
   <div class="addons-carousel__marquee relative ml-[var(--space-gutter)] overflow-hidden">
-    <div class="addons-carousel__track flex w-max cursor-grab select-none active:cursor-grabbing" data-addons-track>
+    <div
+      class="addons-carousel__track flex w-max cursor-grab select-none active:cursor-grabbing"
+      data-addons-track
+      data-repeat={repeat}
+    >
       {
         cells.map(({ addon, isDuplicate }) => (
           <article class="addons-carousel__card flex flex-col justify-between gap-10" aria-hidden={isDuplicate ? 'true' : undefined}>
@@ -81,16 +81,15 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 </section>
 
 <style>
-  .chip-arrow {
-    mask-image: url('/icons/icon-arrow-white.svg');
-    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
-    mask-repeat: no-repeat;
-    -webkit-mask-repeat: no-repeat;
-    mask-position: center;
-    -webkit-mask-position: center;
-    mask-size: contain;
-    -webkit-mask-size: contain;
-    transform: rotate(-45deg);
+  /*
+    NOT Tailwind's `scale-x-0`: Tailwind v4 implements scale utilities with
+    the INDEPENDENT `scale` property, which composes multiplicatively with
+    whatever is written to `transform` — it would zero the fill out no
+    matter what the script sets. Same note as the Agency team-progress fill.
+  */
+  .addons-carousel__progress-fill {
+    transform: scaleX(0);
+    transform-origin: left center;
   }
 
   .addons-carousel__card {
@@ -123,6 +122,32 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 
   let loops: HorizontalLoop[] = []
   let cleanups: Array<() => void> = []
+
+  // Plain transform write on the loop's own timeline `onUpdate`, same
+  // rationale as the Agency team-progress bar's scroll-event write: nothing
+  // else needs a rendering library for one property per frame. `progress()`
+  // is 0→1 across ALL `repeat` copies of the strip, so it's scaled back down
+  // by `repeat` (and wrapped) to read as one fill per pass through the
+  // unique set — otherwise the bar would crawl three times slower than the
+  // cards actually advance. Wired before the `reducedMotion` autoplay
+  // bail-out below so it still tracks manual drag when autoplay is off.
+  function setupAddonsProgress(track: HTMLElement, loop: HorizontalLoop) {
+    const fill = track.closest('.addons-carousel')?.querySelector<HTMLElement>('[data-addons-progress-fill]')
+    if (!fill) return null
+
+    const repeat = Math.max(1, Number(track.dataset.repeat) || 1)
+    const update = () => {
+      const ratio = (loop.timeline.progress() * repeat) % 1
+      fill.style.transform = `scaleX(${ratio.toFixed(4)})`
+    }
+    loop.timeline.eventCallback('onUpdate', update)
+    update()
+
+    return () => {
+      loop.timeline.eventCallback('onUpdate', null)
+      fill.style.transform = ''
+    }
+  }
 
   async function init() {
     const tracks = Array.from(document.querySelectorAll<HTMLElement>('[data-addons-track]'))
@@ -159,6 +184,9 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
       })
       if (!loop) return
       loops.push(loop)
+
+      const progressCleanup = setupAddonsProgress(track, loop)
+      if (progressCleanup) cleanups.push(progressCleanup)
 
       // Same press-scale feedback as the testimonial/team drag carousels
       // (see src/lib/dragCarousel.ts's pressCards + PRESS_SCALE) — the cards

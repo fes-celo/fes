@@ -21,6 +21,10 @@ import SectionIntro from '../../components/SectionIntro.astro'
 import { navItems } from '../../lib/nav'
 import heroLight from '../../assets/hero/hero-light.jpg'
 
+import behaviourSystems from '../../assets/behaviours/Systems, not scattered services.png'
+import behaviourAnticipation from '../../assets/behaviours/Anticipation over reaction.png'
+import behaviourJudgment from '../../assets/behaviours/A decade of judgment.webp'
+
 import liliana from '../../assets/people/FES_Liliana.png'
 import helder from '../../assets/people/FES_Helder.png'
 import abigail from '../../assets/people/FES_Abigail.png'
@@ -51,14 +55,17 @@ const behaviours = [
   {
     title: 'Systems, not scattered services',
     body: 'We design a system where each service knows what others do, built that way from day one.',
+    image: behaviourSystems,
   },
   {
     title: 'Anticipation over reaction',
     body: 'We recognize what a company needs before it names it.',
+    image: behaviourAnticipation,
   },
   {
     title: 'A decade of judgment',
     body: "We've seen enough of the Portuguese tech ecosystem to recognize patterns",
+    image: behaviourJudgment,
   },
 ]
 
@@ -140,7 +147,7 @@ const pillars = [
     </div>
   </section>
 
-  <section class="relative z-10 bg-surface pt-[var(--space-section-y)]" data-anim="reveal">
+  <section class="relative z-10 bg-surface pt-[var(--space-gutter)]" data-anim="reveal">
     {
       /* Drag progress bar for the team strip — the same rule-as-progress-bar
          pattern as SystemProblemCards' "Sound familiar?" row: a neutral-200
@@ -200,13 +207,30 @@ const pillars = [
 
   <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
     <div class="flex flex-col gap-8">
-      <SectionLabel>How we work / Behaviours</SectionLabel>
+      <SectionLabel>How we work</SectionLabel>
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {
           behaviours.map((item) => (
-            <div class="flex min-h-[17.5rem] flex-col justify-between rounded-[var(--radius-control)] bg-accent-50 p-[var(--space-card-p)] lg:min-h-[25rem]">
-              <h3 class="text-h3 font-medium text-ink">{item.title}</h3>
-              <p class="pt-6 text-body text-neutral-400 lg:pt-0">{item.body}</p>
+            <div class="relative flex min-h-[17.5rem] flex-col justify-between overflow-hidden rounded-[var(--radius-control)] bg-neutral-900 p-[var(--space-card-p)] lg:min-h-[25rem]">
+              <Image
+                src={item.image}
+                alt=""
+                width={1600}
+                height={1200}
+                widths={[400, 640, 880, 1200, 1600]}
+                sizes="(min-width: 1024px) 33vw, 100vw"
+                class="absolute inset-0 size-full object-cover"
+              />
+              {
+                /* Eased vignette instead of a flat linear from/via/to: alpha
+                   falls off quadratically (ease-out) from each edge toward a
+                   fully transparent middle band, which reads as a soft glow
+                   rather than the visible seam a linear 3-stop gradient
+                   leaves where the `via` stop sits. */
+              }
+              <div class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.58)_0%,rgba(0,0,0,0.54)_9%,rgba(0,0,0,0.43)_18%,rgba(0,0,0,0.26)_28%,rgba(0,0,0,0)_38%,rgba(0,0,0,0)_58%,rgba(0,0,0,0.34)_69%,rgba(0,0,0,0.59)_80%,rgba(0,0,0,0.73)_90%,rgba(0,0,0,0.78)_100%)]" />
+              <h3 class="relative z-10 text-h3 font-medium text-ink-inverse">{item.title}</h3>
+              <p class="relative z-10 pt-6 text-body text-white/85 lg:pt-0">{item.body}</p>
             </div>
           ))
         }

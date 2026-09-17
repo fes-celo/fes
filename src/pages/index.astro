@@ -348,17 +348,17 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
         type="button"
         data-testimonial-prev
         aria-label="Previous testimonial"
-        class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-accent-300 text-accent-300 transition-colors hover:bg-white/5 focus-visible:outline-accent-300"
+        class="group flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-accent-300 transition-colors hover:bg-accent-300 focus-visible:outline-accent-300"
       >
-        <img src="/icons/icon-arrow-white.svg" class="size-4 rotate-180" alt="" width="16" height="16" />
+        <span class="testimonial-arrow size-4 rotate-180 bg-accent-300 transition-colors group-hover:bg-accent-950" aria-hidden="true" />
       </button>
       <button
         type="button"
         data-testimonial-next
         aria-label="Next testimonial"
-        class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-accent-300 text-accent-300 transition-colors hover:bg-white/5 focus-visible:outline-accent-300"
+        class="group flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-accent-300 transition-colors hover:bg-accent-300 focus-visible:outline-accent-300"
       >
-        <img src="/icons/icon-arrow-white.svg" class="size-4" alt="" width="16" height="16" />
+        <span class="testimonial-arrow size-4 bg-accent-300 transition-colors group-hover:bg-accent-950" aria-hidden="true" />
       </button>
     </div>
   </section>
@@ -448,6 +448,20 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
      rounding push the second line to indent too. */
   .stats-eyebrow {
     line-height: calc(var(--text-h1) * var(--text-h1--line-height) - 1px);
+  }
+
+  /* Same icon-arrow-white.svg the rest of the site uses, but as a CSS mask
+     instead of an <img> so the fill color (and therefore its hover state)
+     can transition — see Button.astro's note for why this is the arrow. */
+  .testimonial-arrow {
+    mask-image: url('/icons/icon-arrow-white.svg');
+    -webkit-mask-image: url('/icons/icon-arrow-white.svg');
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-position: center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
   }
 
   /* Light → dark inversion driven by --dark-progress (0 or 1, set by the

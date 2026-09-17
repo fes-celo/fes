@@ -9,14 +9,20 @@
  * built for Creative Projects Blueprint → Events & Activations; shared here
  * for reuse across Systems pages.
  *
- * The image panel takes each PROJECT's own real photo ratio (from its first
- * image) rather than staying locked to one fixed crop — see `projectAspect`
- * below and the `<script>`'s `showProject`. A project with more than one
- * image (the `images` array) auto-rotates through its own photos — inside
- * that same project-shaped box, so the panel itself doesn't resize between
- * them — but only while that project is the one showing, i.e. while it's
- * active in the outer cycle or being hovered/focused. A project with zero
- * images falls back to PlaceholderBlock's flat tint at a default ratio.
+ * By default the image panel takes each PROJECT's own real photo ratio (from
+ * its first image) rather than staying locked to one fixed crop — see
+ * `projectAspect` below and the `<script>`'s `showProject`. Passing
+ * `fixedAspect` overrides that: every project (and the placeholder) renders
+ * in that one ratio instead, object-cover cropping each photo to fit, so the
+ * panel's height never changes as the rotator auto-advances — the per-photo
+ * ratio otherwise reflows the whole row (and everything below the section)
+ * on every cycle, which reads as layout jitter on pages with several
+ * differently-shaped project photos. A project with more than one image (the
+ * `images` array) auto-rotates through its own photos — inside that same
+ * project-shaped box, so the panel itself doesn't resize between them —
+ * but only while that project is the one showing, i.e. while it's active in
+ * the outer cycle or being hovered/focused. A project with zero images falls
+ * back to PlaceholderBlock's flat tint at whichever ratio is in effect.
  *
  * Pills only render when there's more than one category — pass a single
  * `{ label, projects }` entry for a flat, uncategorised list (no pill bar).
@@ -47,6 +53,8 @@ interface Props {
   intervalMs?: number
   /** How long each photo holds before crossfading to the next, for a project with multiple images, in ms. */
   slideIntervalMs?: number
+  /** `"W / H"`, e.g. `"886 / 580"`. When set, every project renders in this one ratio (object-cover crops each photo to fit) instead of each project's own photo ratio — use it wherever the source photos vary enough in shape that per-project ratio causes visible layout jitter as the rotator auto-advances. */
+  fixedAspect?: string
   class?: string
 }
 
@@ -56,23 +64,31 @@ const {
   imageSizes = '(min-width: 1024px) 45vw, 100vw',
   intervalMs = 4500,
   slideIntervalMs = 1400,
+  fixedAspect,
   class: className,
 } = Astro.props
 
 const showPills = categories.length > 1
 
-// This section's old fixed crop, kept only as a sane fallback shape for
-// placeholder-only projects, which have no real photo ratio to read.
+// This section's old fixed crop, kept as the fallback shape for
+// placeholder-only projects (which have no real photo ratio to read) and
+// reused as the default `fixedAspect` value by callers that want it.
 const FALLBACK_ASPECT = '886 / 580'
 
 function projectAspect(project: RotatorProject) {
+  if (fixedAspect) return fixedAspect
   const first = project.images[0]
   return first ? `${first.width} / ${first.height}` : FALLBACK_ASPECT
 }
 
+function aspectRatio(aspect: string) {
+  const [w, h] = aspect.split('/').map((n) => parseFloat(n))
+  return w / h
+}
+
 // The panel needs a starting shape before the client script takes over.
 const firstProject = categories[0]?.projects[0]
-const initialAspect = firstProject ? projectAspect(firstProject) : FALLBACK_ASPECT
+const initialAspect = fixedAspect ?? (firstProject ? projectAspect(firstProject) : FALLBACK_ASPECT)
 ---
 
 <section
@@ -130,12 +146,18 @@ const initialAspect = firstProject ? projectAspect(firstProject) : FALLBACK_ASPE
                       {project.title}
                     </button>
                     {
-                      /* Divider-as-progress: same neutral-300 rule every other
-                         row gets, but while its project is the one auto-
+                      /* Divider-as-progress: same `bg-line` rule every other
+                         row gets (the site's standard subtle-rule token —
+                         same one SectionLabel draws above e.g. "How we
+                         work"), but while its project is the one auto-
                          advancing/previewed, `data-progress-fill` fills it
-                         ink-dark left-to-right — see the <script> below. */
+                         ink-dark left-to-right — see the <script> below.
+                         `bg-line` also means this adapts correctly inside
+                         `.dark-zone`/`.reveal-zone` on the pages that wrap
+                         this component in one, unlike the flat neutral-300
+                         this replaced. */
                     }
-                    <div class="relative h-px w-full bg-neutral-300">
+                    <div class="relative h-px w-full bg-line">
                       <div class="h-full w-0 bg-ink" data-progress-fill data-project-index={pi} />
                     </div>
                   </li>
@@ -159,10 +181,15 @@ const initialAspect = firstProject ? projectAspect(firstProject) : FALLBACK_ASPE
                   const first = project.images[0]
                   // Cap the render size at the old crop's width rather than
                   // always requesting the source's full native resolution —
-                  // still the project's own ratio, just not an oversized
-                  // file for a photo shot much bigger than this panel shows.
+                  // still the project's own ratio (or `fixedAspect`, if set),
+                  // just not an oversized file for a photo shot much bigger
+                  // than this panel shows.
                   const outWidth = first ? Math.min(first.width, maxImageWidth) : maxImageWidth
-                  const outHeight = first ? Math.round((outWidth * first.height) / first.width) : Math.round((maxImageWidth * 580) / 886)
+                  const outHeight = fixedAspect
+                    ? Math.round(outWidth / aspectRatio(fixedAspect))
+                    : first
+                      ? Math.round((outWidth * first.height) / first.width)
+                      : Math.round((maxImageWidth * 580) / 886)
                   const outWidths = [0.5, 0.75, 1].map((m) => Math.round(outWidth * m))
                   return (
                     <div
