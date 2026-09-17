@@ -204,8 +204,20 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
               </a>
             </p>
             <p class="mt-1 text-body-sm">Portuguese number with regular cost</p>
-            <p class="mt-4 text-body-sm text-neutral-600">
-              Communication Partner of Startup Braga and Porto Tech Hub
+            <p class="mt-4 text-body-sm text-neutral-600" data-partner-line>
+              <span class="transition-opacity" data-partner-text>Communication Partner of </span><a
+                href="https://www.startupbraga.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-neutral-900 transition-opacity"
+                data-partner-link
+              >Startup Braga</a><span class="transition-opacity" data-partner-text> and </span><a
+                href="https://portotechhub.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-neutral-900 transition-opacity"
+                data-partner-link
+              >Porto Tech Hub</a>
             </p>
           </address>
 
@@ -306,6 +318,18 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
          behind there" instead of a wipe. */
       footer[data-reveal='on'] [data-footer-inner] {
         transform: translateY(calc((1 - var(--footer-reveal)) * -6%));
+      }
+
+      /* Partner line: hovering (or focusing) either link dims the rest of
+         the sentence — the other words AND the other link — to 40%, leaving
+         the one being pointed at at full strength. `:has()` rather than a
+         JS class toggle, matching the same spotlight pattern used by the
+         selected-projects rotator. */
+      [data-partner-line]:has([data-partner-link]:hover, [data-partner-link]:focus-visible)
+        [data-partner-text],
+      [data-partner-line]:has([data-partner-link]:hover, [data-partner-link]:focus-visible)
+        [data-partner-link]:not(:hover):not(:focus-visible) {
+        opacity: 0.4;
       }
     </style>
 
