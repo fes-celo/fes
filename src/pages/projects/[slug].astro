@@ -52,6 +52,7 @@ const headlineStat = caseStudy.metrics?.[0]
 <BaseLayout
   title={`${caseStudy.clientName} — ${caseStudy.title}`}
   description={caseStudy.tagline}
+  noindex={caseStudy.draft}
   bordered
 >
   {/* ---------- 1. Hero ---------- */}

@@ -39,9 +39,22 @@ const { showSelector, hideSelector } = Astro.props as Props
     <span class="min-w-0 px-3.5 py-3 text-body text-accent-950 sm:whitespace-nowrap">
       15 minutes. Your challenge, our take.
     </span>
+    {
+      /* Straight to the booking page, not /contact/: the chip promises "15
+         minutes", and a form that lands in an inbox can't deliver that —
+         it needs a reply before anything is booked. The contact form is
+         still the route for everything that isn't a call.
+
+         target="_blank" because this leaves the site for a third-party
+         scheduler: the visitor is mid-scroll through the work, and losing
+         that position to pick a slot is a worse trade than a second tab.
+         rel matches the convention in cookies-policy.astro. */
+    }
     <a
-      href="/contact/"
-      class="shrink-0 whitespace-nowrap rounded-[4px] bg-accent-800 px-3.5 py-3 text-body-sm font-medium text-accent-200 transition-colors hover:bg-accent-700"
+      href="https://calendar.app.google/GJ5i2k73FgB9p1iE9"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="shrink-0 whitespace-nowrap rounded-[var(--radius-card)] bg-accent-800 px-3.5 py-3 text-body-sm font-medium text-accent-200 transition-colors hover:bg-accent-700"
     >
       Book a call
     </a>
@@ -51,12 +64,31 @@ const { showSelector, hideSelector } = Astro.props as Props
 <style>
   /* Base opacity-0 (Tailwind, above) already keeps it invisible; pointer-
      events still needs a hard off/on switch so the hidden chip can't eat
-     clicks meant for whatever sits underneath it. */
+     clicks meant for whatever sits underneath it.
+
+     `visibility` is the keyboard half of the same problem, and opacity
+     alone doesn't solve it: an element at opacity 0 is still in the tab
+     order and still in the accessibility tree. Tabbing the homepage landed
+     on "Book a call" while the chip was retracted — the focus ring drew
+     over empty page, and Enter navigated away with no visible cause. Only
+     `visibility: hidden` (or `display: none`, which would break the tween)
+     removes both.
+
+     It sits on the class rather than in the GSAP tween because visibility
+     isn't interpolable: the hide tween animates opacity to 0 over 300ms and
+     only then drops .is-visible in its onComplete, so the element stays
+     focusable exactly as long as it stays visible, and the two can't
+     disagree. transition-behavior lets the show direction flip it to
+     visible on frame 1 instead of after the fade. */
   [data-scroll-cta] {
     pointer-events: none;
+    visibility: hidden;
+    transition: visibility 0s;
+    transition-behavior: allow-discrete;
   }
   [data-scroll-cta].is-visible {
     pointer-events: auto;
+    visibility: visible;
   }
 </style>
 

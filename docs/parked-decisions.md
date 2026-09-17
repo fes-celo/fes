@@ -180,15 +180,24 @@ to `aria: 'none'`, which is safe for a `type: 'lines'` split because the
 fragments are whole word sequences that read correctly in document order.
 Took this page's Lighthouse accessibility from 91 → 100 on desktop.
 
-### 12. OPEN — footer locale switcher fails colour contrast
+### 12. FIXED — footer locale switcher failed colour contrast
 
-`BaseLayout.astro`'s footer renders the inactive locale as
+`BaseLayout.astro`'s footer rendered the inactive locale as
 `<span class="opacity-40">/</span><span class="opacity-40">pt</span>`, which
-measures **2.37:1** against white — below the 4.5:1 required for 16px text.
-Axe flags it on every page. Not fixed here: it affects all nine pages and the
-40% opacity is a deliberate "inactive locale" design signal, so the fix is a
-design call (darker base colour, or a real disabled treatment) rather than a
-mechanical one.
+measured **2.37:1** against white — below the 4.5:1 required for 16px text.
+Axe flagged it on every page. It was left open here because the 40% opacity
+is a deliberate "inactive locale" design signal, making the fix a design call
+rather than a mechanical one.
+
+The design call taken: **drop the inactive half entirely** rather than
+recolour it. The footer now renders the current locale alone (`EN`). A
+disabled-looking label pointing at a PT translation that doesn't exist is a
+promise the site doesn't keep, and the contrast problem only existed because
+of it — recolouring would have made an unreachable locale *more* prominent.
+
+**Reopen when PT lands:** restore it as a real switcher — two links, the
+inactive one at a colour that passes 4.5:1 (neutral-500 or darker), not an
+opacity on neutral-900.
 
 ### 13. Mobile Lighthouse performance is tight sitewide
 
@@ -213,3 +222,29 @@ paint delays the headline directly. Dropped initial JS from 190KB to 150KB.
 **Worth doing next:** the same treatment for the other below-the-fold section
 scripts, and a look at the render-blocking CSS bundle (three self-hosted
 Inter weights are imported in `global.css` purely as an Aeonik fallback).
+
+---
+
+## Homepage
+
+### 14. Testimonial `tag` is wired but unset
+
+**Decided:** `src/pages/index.astro` passes `tag={t.tag}` to every
+`TestimonialCard`, and no testimonial carries one. The array is explicitly
+typed `{ quote; name; role; tag?: string }[]` so the prop type-checks; the
+card renders the eyebrow only `{tag && ...}`, so the section is complete
+without it.
+
+**Why:** the testimonials were specced with a tag identifying the *service*
+and the *area* each client falls under (the same taxonomy the Systems pages
+use). That copy hasn't been assigned per client yet. Removing the prop and
+re-adding it later means re-threading it through `TestimonialCard`, the
+homepage and any other consumer; leaving it wired costs one optional field.
+
+**How this surfaced:** as an `astro check` error — `Property 'tag' does not
+exist on type '{ quote: string; name: string; role: string; }'`, because the
+array was inferred rather than annotated. The annotation is the fix; the
+untagged data is the decision.
+
+**Reopen if:** the tags are assigned (fill them in), or the design drops the
+eyebrow from the testimonial card entirely (then remove the prop).

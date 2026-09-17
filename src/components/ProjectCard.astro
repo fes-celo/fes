@@ -53,6 +53,14 @@ interface Props {
    * not decoration: omitted entirely when a project has no tag.
    */
   tag?: string
+  /**
+   * Heading level for the card title. Defaults to `h3`, which is right
+   * wherever the card sits under a section <h2>. /projects/ has no section
+   * heading between its (sr-only) <h1> and the grid, so ProjectsGrid passes
+   * `h2` there to avoid an h1 -> h3 jump. Level only — the visual size
+   * comes from featuredTitleClasses/titleSizeClasses either way.
+   */
+  titleAs?: 'h2' | 'h3'
   class?: string
 }
 
@@ -72,6 +80,7 @@ const {
   iconBg = 'var(--color-neutral-100)',
   size = 'lg',
   tag,
+  titleAs = 'h3',
   class: className,
 } = Astro.props
 
@@ -148,6 +157,7 @@ const chipIconClasses: Record<string, string> = {
 // variant="featured" without an href (no dedicated case-study page yet) →
 // a plain block, not a link.
 const FeaturedTag = href ? 'a' : 'div'
+const TitleTag = titleAs
 ---
 
 {
@@ -198,7 +208,7 @@ const FeaturedTag = href ? 'a' : 'div'
       <div class="flex items-start gap-4">
         {icon && (
           <span
-            class="flex size-[54px] shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-control)]"
+            class="flex size-[3.375rem] shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-control)]"
             style={`background-color:${iconBg}`}
           >
             {
@@ -216,7 +226,7 @@ const FeaturedTag = href ? 'a' : 'div'
           </span>
         )}
         <div class="flex min-w-0 flex-col gap-1">
-          <h3 class:list={[featuredTitleClasses[size], 'truncate text-ink']}>{title}</h3>
+          <TitleTag class:list={[featuredTitleClasses[size], 'truncate text-ink']}>{title}</TitleTag>
           {description && <p class:list={[featuredDescriptionClasses[size], 'text-ink-muted']}>{description}</p>}
         </div>
       </div>
@@ -237,7 +247,7 @@ const FeaturedTag = href ? 'a' : 'div'
       ]}
     >
       <div class="flex flex-col gap-4">
-        <h3 class:list={[titleSizeClasses[variant] ?? 'text-h3']}>{title}</h3>
+        <TitleTag class:list={[titleSizeClasses[variant] ?? 'text-h3']}>{title}</TitleTag>
         <p class:list={[descriptionSizeClasses[variant] ?? 'text-body-sm opacity-80']}>{description}</p>
       </div>
 

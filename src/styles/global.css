@@ -11,10 +11,21 @@
 
 /* Inter — self-hosted fallback so text stays close to brand if Aeonik fails
    to load or is still swapping in. Weights matched to the Aeonik set below
-   (400/500/700). */
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/700.css";
+   (400/500/700).
+
+   `latin-<weight>.css`, not `<weight>.css`: the unsuffixed entry point pulls
+   EVERY subset fontsource ships — cyrillic, cyrillic-ext, greek, greek-ext,
+   vietnamese, latin-ext — so three weights emitted 21 woff2 files into the
+   build and 21 @font-face blocks into this bundle (12% of it) for a site
+   that is English-only. Nothing here renders Cyrillic, Greek or Vietnamese,
+   and this is a FALLBACK face at that: the files were never even fetched,
+   they just shipped. Three latin-only faces cover it.
+
+   Reopen if a PT locale lands that needs more than latin (it won't — PT is
+   latin-1) or if the site picks up a language outside latin/latin-ext. */
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-700.css";
 
 @font-face {
   font-family: "Aeonik";
@@ -430,6 +441,145 @@
   --radius-button: 0.375rem;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.06);
   --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.10);
+}
+
+/*
+  ---------- 5. Viewport zoom above the 13" reference ----------
+
+  Above 1440px the page stops re-flowing and starts ZOOMING. The 1440 render
+  — a 13" MacBook in fullscreen, the width this design is actually judged at
+  — is reproduced larger rather than stretched around frozen type.
+
+  WHY. Measured at 2560 (the 4K at "More Space"), the fluid scale above had
+  drifted into two speeds: spacing had effectively reached full zoom while
+  type sat at ~60% of it.
+
+      token                @1440   @2560   zoom target   met
+      --space-section-y    120px   213px   213px         100%
+      --space-nav-gap       45px    80px    80px         100%
+      --space-gutter        31px    52px    56px          93%
+      --text-display        74px   106px   132px          80%
+      --text-body           17px    19px    31px          61%
+      --text-nav            20px    20px    36px          56%
+      --space-heading-gap   64px    64px   114px          56%
+
+  Sections were spaced for a 2560 design and filled with type from a ~1500
+  one. THAT is what reads as "too much whitespace" — the white is not
+  excessive in absolute terms, it is excessive relative to the type that has
+  to justify it. Note --space-section-y already scored 100%: it is a pure
+  proportional 8.3333vw line whose cap was derived at 2560, so it was
+  already zooming correctly and needed no change.
+
+  HOW. One lever, the root font size. Everything downstream is already rem:
+  Tailwind v4's spacing scale compiles to `calc(var(--spacing) * n)` with
+  --spacing at .25rem, the type tokens are restated below in rem, em-based
+  letter-spacing rides along, and --measure-prose's `ch` scales with the
+  font it measures. Three things worth knowing about the formula:
+
+  - 1.1111vw is 16px at exactly 1440, so 1rem == viewport/90 from the
+    reference width upward. Below 1440 this block does not apply at all and
+    mobile/tablet render byte-for-byte as before.
+
+  - min(…, 2.2222vh) is a height guard. It only bites past a ~2:1 aspect
+    ratio, so no 16:9 display ever feels it, but a window dragged wide and
+    short does not blow the layout up.
+
+    2.2222vh is 16/720, and Hero.astro's floor is 45rem, which is 720/16.
+    They are exact reciprocals, and that is not a coincidence to tidy away:
+    whenever this guard binds, root == H/45, so the hero's 45rem floor
+    resolves to exactly H — the viewport height. When the guard does NOT
+    bind, root is W/90 and the floor is W/2, which can only exceed H past a
+    2:1 aspect, i.e. precisely where the guard takes over again. The result
+    is that the hero's minimum height can never exceed the viewport, at any
+    window shape, without the two values needing to know about each other.
+    Verified at 1920x900, 3000x800 and 2560x1440. Change one and you have to
+    change the other.
+
+  - the clamp's FLOOR is 1rem, and `rem` in the root's own font-size resolves
+    against that property's INITIAL value — the user's browser default. That
+    floor is what keeps this accessible: a larger default font size is still
+    honoured, and browser zoom still works (zooming in shrinks the CSS
+    viewport, which shrinks the vw term, until the floor takes over). A bare
+    vw root font-size throws both of those away.
+
+  Tailwind's breakpoints are unaffected. They compile to `@media (width >=
+  64rem)`, and rem inside a media query resolves against the initial 16px,
+  never against the computed root size — so `lg:` still fires at 1024.
+
+  --zoom-max is THE number to tune, and the only one.
+
+  1.7778rem (28.44px) would be 1:1 zoom — 2560/1440 — reproducing the 13"
+  exactly in GEOMETRIC terms. It reads too large in practice, and the reason
+  is that geometric parity is the wrong target. Work it in angular terms
+  instead: a CSS px on a 27" 4K at 2560 is 0.234mm against the 13"'s 0.199mm,
+  so the monitor's pixels are already 1.17× physically bigger, while the
+  viewing distance only grows about 1.4× (roughly 50cm to 70cm). Equal
+  apparent size therefore needs 1.4 / 1.17 ≈ 1.2× of zoom, not 1.78×.
+
+  1.4rem is where this sits. It is angular parity plus a deliberate ~17%,
+  because a large screen wants slightly more presence than strict parity, and
+  — the deciding constraint — it is the value that leaves --text-display at
+  104px on the 4K against the 106px it rendered before any of this existed.
+  The hero headline was never the complaint, so it should not move. At 1.4
+  the reading steps still grow hard (body 18.8 → 24.3px, +29%) and the
+  vertical rhythm tightens (section-y 213 → 168px, −21%), which is precisely
+  the divergence tabulated above, closed from both ends.
+
+  Measured on the 4K at 2560, --text-display against its pre-zoom 106.2px:
+
+      teto    root     display          body            section-y
+      1.7778  28.4px   132px  (124%)    30.9px (164%)   213px (100%)
+      1.6     25.6px   119px  (112%)    27.8px (148%)   192px  (90%)
+      1.5     24.0px   112px  (105%)    26.1px (139%)   180px  (85%)
+      1.4     22.4px   104px   (98%)    24.3px (129%)   168px  (79%)
+      1.3     20.8px    97px   (91%)    22.6px (120%)   156px  (73%)
+      1.2     19.2px    89px   (84%)    20.9px (111%)   144px  (68%)
+
+  Note what lowering this trades away: the cap binds at 1440 × its value, so
+  at 1.4 the page stops zooming at 2016px and the remaining 27% of a 2560
+  screen is absorbed by the full-bleed layout stretching rather than by zoom.
+  That is the cost of every value below 1.7778, and it is the point at which
+  a max-width on the page would start to earn its keep.
+
+  The values below are not a redesign. Each is simply what that token already
+  computes to at 1440, expressed in rem. The clamps above still own every
+  width up to 1440; past it, they would fight the zoom (their vw terms track
+  the viewport while their rem terms track the zoom, which stays coherent
+  only while --zoom-max is not binding), so the scale is restated as rem-only
+  and the root font size does all the scaling.
+*/
+@media (width >= 90rem) {
+  :root {
+    --zoom-max: 1.4rem;
+    font-size: clamp(1rem, min(1.1111vw, 2.2222vh), var(--zoom-max));
+
+    /* Type — each token's 1440 value, in rem */
+    --text-display: 4.6456rem;   /* 74.33px */
+    --text-h1: 3.0728rem;        /* 49.16px */
+    --text-h2: 2.1614rem;        /* 34.58px */
+    --text-h3: 1.5473rem;        /* 24.76px */
+    --text-h4: 1.1584rem;        /* 18.53px */
+    --text-lead: 1.2305rem;      /* 19.69px */
+    --text-body: 1.0862rem;      /* 17.38px */
+    --text-body-sm: 0.918rem;    /* 14.69px */
+    --text-separator: 1.8446rem; /* 29.51px */
+    --text-meta: 0.8029rem;      /* 12.85px */
+    --text-eyebrow: 0.7716rem;   /* 12.34px */
+
+    /* --text-nav (1.25rem) and --space-heading-gap (4rem) are already fixed
+       rem, so they zoom with everything else and are not restated. The nav's
+       "deliberately not fluid" note above still holds in the sense it meant:
+       it reads the same at every width, now in angular rather than CSS px. */
+
+    /* Spacing — same derivation */
+    --space-gutter: 1.9563rem;         /* 31.30px */
+    --space-nav-gap: 2.8125rem;        /* 45.00px */
+    --nav-logo-h: 2.75rem;             /* 44.00px */
+    --space-section-y: 7.5rem;         /* 120.00px — --space-section-y-lg
+                                          follows via its own calc() */
+    --space-card-p: 2.1895rem;         /* 35.03px */
+    --space-heading-indent: 11.25rem;  /* 180.00px */
+  }
 }
 
 /*

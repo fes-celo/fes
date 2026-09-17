@@ -1,0 +1,46 @@
+# Cache policy for the unhashed assets in public/.
+#
+# The Cloudflare adapter appends its own `/_astro/*` immutable rule to this
+# file at build time (see the "[@astrojs/cloudflare] Injected immutable
+# Cache-Control" line in the build log) — everything under /_astro/ is
+# content-hashed by Astro, so a year + immutable is free there.
+#
+# Nothing below is hashed: these are public/ paths served under the exact
+# name they were authored with. That rules out `immutable` for anything that
+# can be re-exported in place, because a client that cached it has no way to
+# learn it changed. Without any rule at all the platform serves them
+# `max-age=0, must-revalidate`, so every navigation pays a conditional
+# request per font, icon and photo — which is the actual cost being fixed
+# here, not the transfer.
+#
+# Two tiers:
+#   - fonts: a year, immutable. A font file is replaced by shipping a new
+#     name, never by overwriting this one (the @font-face src in global.css
+#     has to change either way).
+#   - everything else: a week, plus a month of stale-while-revalidate, so a
+#     re-baked hero still reaches people within days without any navigation
+#     ever blocking on revalidation.
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/hero/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/icons/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/images/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/fes-logo-white.svg
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/fes-logo-dark.svg
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/og-default.jpg
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
+
+/favicon.ico
+  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000

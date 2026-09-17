@@ -26,7 +26,7 @@ interface Props {
   class?: string
 }
 
-const { heading = 'Addons', addons, repeat = 3, class: className } = Astro.props as Props
+const { heading = 'Add-ons', addons, repeat = 3, class: className } = Astro.props as Props
 
 // Flattened so every card is a direct sibling — horizontalLoop measures and
 // wraps the cells individually, and that's also what the drag snaps to.

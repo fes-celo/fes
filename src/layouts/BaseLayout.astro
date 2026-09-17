@@ -104,7 +104,7 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
               aria-label="Open menu"
               aria-expanded="false"
               aria-controls="mobile-menu"
-              class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+              class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
               data-nav-toggle
             >
               Menu
@@ -139,7 +139,7 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
            them. */
       }
       <div
-        class="flex flex-col gap-16 px-[var(--space-gutter)] py-[var(--space-section-y)] lg:gap-[120px]"
+        class="flex flex-col gap-16 px-[var(--space-gutter)] py-[var(--space-section-y)] lg:gap-[7.5rem]"
         data-footer-inner
       >
         <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
@@ -169,13 +169,37 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
             <p>Av. Vasco da Gama, 774</p>
             <p>4430-247 Vila Nova de Gaia</p>
             <p>Portugal</p>
+            {
+              /* inline-block + py-1 on these two only. At the footer's 17px
+                 body size a bare inline link is a 19px-tall target, which
+                 WCAG 2.5.8 accepts when there's spacing around it — and
+                 every other link in this footer has 13px between it and its
+                 neighbour, so 19 + 13 clears the 24px the rule asks for.
+                 These two are adjacent block <p>s with NOTHING between
+                 them: two 19px targets touching, where a tap on the seam is
+                 a coin flip between opening a mail client and placing a
+                 phone call. Growing the boxes to 27px satisfies the rule on
+                 size alone, which doesn't depend on whatever ends up
+                 rendered next to them later.
+
+                 py-1, not a margin on the second <p>: padding grows the hit
+                 area itself. Margin would only separate two targets that
+                 are still too small, and would push the "regular cost" note
+                 away from the number it explains. */
+            }
             <p class="mt-4">
-              <a href="mailto:hello@fesagency.pt" class="text-accent-600 transition-opacity hover:opacity-40">
+              <a
+                href="mailto:hello@fesagency.pt"
+                class="inline-block py-1 text-accent-600 transition-opacity hover:opacity-40"
+              >
                 hello@fesagency.pt
               </a>
             </p>
             <p>
-              <a href="tel:+351913663577" class="text-accent-600 transition-opacity hover:opacity-40">
+              <a
+                href="tel:+351913663577"
+                class="inline-block py-1 text-accent-600 transition-opacity hover:opacity-40"
+              >
                 00351 913 663 577
               </a>
             </p>
@@ -211,14 +235,19 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
           <div class="flex items-center gap-2 text-body text-neutral-900">
             <span>© {new Date().getFullYear()} FES Agency</span>
             {
-              /* PT translation doesn't exist yet — rendered as plain labels
-                 rather than a functional locale switcher. The inactive
-                 locale reuses the 40% hover opacity as its resting state,
-                 since both labels are now the same neutral-900. */
+              /* Current locale only. This used to read "EN / PT" with the
+                 inactive half at 40% opacity, which measured 2.37:1 against
+                 the footer's white — an axe failure on all 21 pages — while
+                 pointing at a PT translation that doesn't exist. Dropped
+                 rather than recoloured: a disabled-looking label for a
+                 locale you can't reach is a promise the site doesn't keep,
+                 and the contrast question only exists because of it.
+
+                 Restore the pair when PT lands, as a real switcher (two
+                 links, the inactive one at a colour that passes 4.5:1 —
+                 neutral-500 or darker, not an opacity). */
             }
-            <span class="flex items-center gap-1 uppercase">
-              <span>en</span><span class="opacity-40">/</span><span class="opacity-40">pt</span>
-            </span>
+            <span class="uppercase">en</span>
           </div>
           <div class="flex items-center gap-6 text-body">
             <a href="/privacy-policy/" class="text-neutral-900 transition-opacity hover:opacity-40">Privacy Policy</a>

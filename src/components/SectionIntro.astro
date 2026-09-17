@@ -27,7 +27,7 @@ interface Props {
 const { eyebrow, eyebrowSize = 'text-body-sm', class: className } = Astro.props
 ---
 
-<div class:list={['grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-[120px]', className]}>
+<div class:list={['grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-[7.5rem]', className]}>
   <div>
     <p class:list={['intro-eyebrow float-left mr-8 font-medium text-accent-default', eyebrowSize]}>{eyebrow}</p>
     <p class="text-balance text-h1 text-ink" data-anim="split-text"><slot /></p>

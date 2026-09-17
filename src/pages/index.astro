@@ -47,23 +47,23 @@ const featuredRow1 = [
     iconBg: 'var(--color-neutral-50)',
   },
   {
-    href: '/projects/start-campus/',
-    title: 'Start Campus | Start Inside Out',
-    description: 'A video series showing the people behind Start Campus.',
-    image: undefined,
-    icon: undefined,
-    iconBg: undefined,
-  },
-]
-
-const featuredRow2 = [
-  {
     href: '/projects/we-want-you/',
     title: 'Natixis In Portugal | We Want You',
     description: 'An employer branding campaign designed to attract talent.',
     image: weWantYou,
     icon: weWantYouIcon,
     iconBg: '#450E61',
+  },
+]
+
+const featuredRow2 = [
+  {
+    href: '/projects/start-campus/',
+    title: 'Start Campus | Start Inside Out',
+    description: 'A video series showing the people behind Start Campus.',
+    image: undefined,
+    icon: undefined,
+    iconBg: undefined,
   },
   {
     href: '/projects/startup-braga-10x-forward/',
@@ -102,7 +102,13 @@ const stats = [
   { value: '+50k', label: 'paid media investment per year' },
 ]
 
-const testimonials = [
+// `tag` is typed but unset on every entry, deliberately — TestimonialCard
+// renders the eyebrow only when it's present, so the section looks finished
+// either way. See docs/parked-decisions.md #14: the tags (service + area)
+// are still to be assigned per client. Keeping the field on the type is
+// what makes `tag={t.tag}` below type-check; dropping the prop instead
+// would mean re-threading it through the card when the copy arrives.
+const testimonials: { quote: string; name: string; role: string; tag?: string }[] = [
   {
     quote:
       'BRIDGE IN has greatly benefited from the expertise of FES Agency, especially Joana and Liliana. Their guidance on our messaging was invaluable, resulting in our appearance in major Portuguese media outlets. They are consistently on time, reliable, and professional. We highly recommend their services.',
@@ -279,14 +285,25 @@ const testimonials = [
     data-anim="reveal"
   >
     {
-      /* Symmetric 25vw padding, no max-width: the heading's content box has
-         to be exactly the 50vw the cards below it occupy. The previous
+      /* Symmetric padding, no max-width: the heading's content box has to be
+         exactly the width the cards below it occupy. The previous
          `lg:max-w-[50vw]` + `lg:pl-[25vw]` pair fought each other under
          border-box — the 360px padding ate the 720px cap and left the
          heading wrapping inside a 315px column while the card track beneath
-         it ran the full 720px. */
+         it ran the full 720px.
+
+         The card is 45rem and the padding `calc(50vw - 22.5rem)`, rather
+         than the 50vw/25vw pair this used to be. Both express the same
+         geometry at the 1440 reference (45rem is 720px, the calc is 360px),
+         but they behave differently once the page zooms — see the viewport
+         zoom block in global.css. A card sized in vw keeps growing with the
+         window while its own contents stop at --zoom-max, so the card
+         inflates around frozen type as soon as that cap binds. In rem it
+         scales with everything inside it, and deriving the padding from 50vw
+         keeps card 1 centred at ANY --zoom-max — which matters, because that
+         value is meant to be tuned by eye. */
     }
-    <Heading as="h2" indent={false} class="px-[var(--space-gutter)] text-h2 lg:px-[25vw]">
+    <Heading as="h2" indent={false} class="px-[var(--space-gutter)] text-h2 lg:px-[calc(50vw-22.5rem)]">
       <span class="text-accent-400">Check some of our </span><span class="text-accent-100">Testimonials</span>
     </Heading>
 
@@ -297,7 +314,7 @@ const testimonials = [
          prev/next buttons as the only non-pointer way in. */
     }
     <div
-      class="mt-[var(--space-heading-gap)] flex cursor-grab gap-6 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory active:cursor-grabbing lg:px-[25vw] [&::-webkit-scrollbar]:hidden"
+      class="mt-[var(--space-heading-gap)] flex cursor-grab gap-6 overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory active:cursor-grabbing lg:px-[calc(50vw-22.5rem)] [&::-webkit-scrollbar]:hidden"
       data-testimonial-track
       data-anim="slide-right"
       role="region"
@@ -306,8 +323,8 @@ const testimonials = [
     >
       {
         /* active on the FIRST card, not the second: the track starts at
-           scrollLeft 0, and the lg:px-[25vw] gutter puts card 1 in exactly
-           the centred "active" slot at rest. Marking card 2 active meant the
+           scrollLeft 0, and the track's leading padding puts card 1 in
+           exactly the centred "active" slot at rest. Marking card 2 active meant the
            card actually on screen painted at opacity-30 while the bright one
            sat off-frame to the right — and because it's the server-rendered
            state, it was wrong on first paint and stayed wrong whenever the
@@ -320,13 +337,13 @@ const testimonials = [
             quote={t.quote}
             name={t.name}
             role={t.role}
-            class="w-screen snap-center lg:w-[50vw]"
+            class="w-screen snap-center lg:w-[45rem]"
           />
         ))
       }
     </div>
 
-    <div class="mt-8 flex gap-2 px-[var(--space-gutter)] lg:px-0 lg:ml-[25vw]">
+    <div class="mt-8 flex gap-2 px-[var(--space-gutter)] lg:px-0 lg:ml-[calc(50vw-22.5rem)]">
       <button
         type="button"
         data-testimonial-prev
@@ -375,7 +392,7 @@ const testimonials = [
         class="group flex flex-col gap-8 rounded-[var(--radius-card)] bg-accent-700 p-[var(--space-card-p)] lg:col-span-8 lg:flex-row lg:items-stretch"
         data-underline-trigger
       >
-        <div class="w-full shrink-0 rounded-[var(--radius-control)] bg-accent-50 p-3 lg:max-w-[220px]">
+        <div class="w-full shrink-0 rounded-[var(--radius-control)] bg-accent-50 p-3 lg:max-w-[13.75rem]">
           <div class="aspect-[3/4] overflow-hidden rounded-[var(--radius-control)]">
             {/* Caps at 220px CSS wide (the max-w on the wrapper), so 440 is the DPR-2 source. */}
             <Image

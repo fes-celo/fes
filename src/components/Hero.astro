@@ -75,9 +75,23 @@ import Heading from './Heading.astro'
      So the section is sized to the layout viewport (--hero-vh) so its
      background bleeds behind the toolbar, and the gap between the two
      (--hero-chrome) is added to the bottom padding so the headline and
-     lead still sit above it. The gap is clamped because an open keyboard
-     shrinks the visual viewport dramatically, and that shouldn't crush the
-     hero's content into the top half of the screen. */
+     lead still sit above it. On touch devices the gap is clamped, because
+     an open keyboard shrinks the visual viewport dramatically, and that
+     shouldn't crush the hero's content into the top half of the screen.
+
+     That clamp used to apply everywhere, which silently cut the lead off
+     in desktop Chrome: trackpad pinch-zoom and ctrl+scroll are a *visual*
+     zoom there (and on other Chromium/WebKit desktop browsers) — it's
+     invisible to window.innerHeight (Chrome intentionally keeps that tied
+     to the layout viewport) and only shrinks visualViewport.height, the
+     same signal an iOS toolbar or keyboard produces. A capped 25%
+     compensation is plenty for a toolbar but nowhere near enough once
+     someone's zoomed the page to, say, 175% — the lead ends up positioned
+     below the visible area with no on-page hint that scrolling would
+     reveal it. Coarse pointers (touch) are where on-screen keyboards
+     live, so the clamp now only applies there; a fine pointer (trackpad/
+     mouse) gets the gap compensated in full, which keeps the lead inside
+     whatever's actually visible at any zoom level. */
 }
 {
   /* data-astro-rerun: ClientRouter skips any script (inline included) whose
@@ -92,7 +106,11 @@ import Heading from './Heading.astro'
     function setHeroVh() {
       const visible = window.visualViewport ? window.visualViewport.height : window.innerHeight
       const layout = Math.max(window.innerHeight, visible)
-      const chrome = Math.min(Math.max(0, layout - visible), layout * 0.25)
+      // Only touch devices carry an on-screen keyboard, so only there does
+      // the gap need clamping — see the docblock above.
+      const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches
+      const chromeCap = isCoarsePointer ? layout * 0.25 : layout
+      const chrome = Math.min(Math.max(0, layout - visible), chromeCap)
       const style = document.documentElement.style
       style.setProperty('--hero-vh', layout + 'px')
       style.setProperty('--hero-chrome', chrome + 'px')
@@ -108,7 +126,7 @@ import Heading from './Heading.astro'
   })()
 </script>
 <section
-  class="sticky top-0 z-0 flex min-h-[720px] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
+  class="sticky top-0 z-0 flex min-h-[45rem] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
   style={`height: var(--hero-vh, 100lvh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
 >
   {
@@ -178,7 +196,7 @@ import Heading from './Heading.astro'
         aria-label="Open menu"
         aria-expanded="false"
         aria-controls="mobile-menu"
-        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
         data-nav-toggle
       >
         Menu

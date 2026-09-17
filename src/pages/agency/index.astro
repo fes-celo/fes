@@ -14,7 +14,6 @@
  */
 import { Image } from 'astro:assets'
 import BaseLayout from '../../layouts/BaseLayout.astro'
-import Button from '../../components/Button.astro'
 import Heading from '../../components/Heading.astro'
 import SectionLabel from '../../components/SectionLabel.astro'
 import LogoMarquee from '../../components/LogoMarquee.astro'
@@ -63,11 +62,6 @@ const behaviours = [
   },
 ]
 
-// TODO: Figma's mobile frame has a "Meet the Agency" button here (missing
-// from the desktop frame — likely a sync gap in the file). Pointed at the
-// team photos above for now; confirm the intended destination.
-const aboutCta = { label: 'Meet the Agency', href: '#team' }
-
 const pillars = [
   {
     title: 'Direct',
@@ -99,7 +93,7 @@ const pillars = [
   hideHeader
   bordered
 >
-  <section class="sticky top-0 z-0 flex h-screen min-h-[720px] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[var(--space-gutter)]">
+  <section class="sticky top-0 z-0 flex h-screen min-h-[45rem] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[var(--space-gutter)]">
     <Image
       src={heroLight}
       alt=""
@@ -129,7 +123,7 @@ const pillars = [
           aria-label="Open menu"
           aria-expanded="false"
           aria-controls="mobile-menu"
-          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
           data-nav-toggle
         >
           Menu
@@ -139,7 +133,7 @@ const pillars = [
 
     <div class="relative z-10">
       <Heading as="h1" indent={false} class="text-display text-balance text-ink" data-anim="split-text">We close the gaps other agencies leave open</Heading>
-      <p class="mt-7 max-w-[820px] text-lead text-neutral-950" data-anim="reveal">
+      <p class="mt-7 max-w-[51.25rem] text-lead text-neutral-950" data-anim="reveal">
         Ten years inside Portugal's tech ecosystem, spent making sure PR, brand, digital and events never work as
         separate pieces.
       </p>
@@ -169,7 +163,7 @@ const pillars = [
     >
       {
         team.map((member) => (
-          <figure class="w-[220px] shrink-0 lg:w-[400px]">
+          <figure class="w-[13.75rem] shrink-0 lg:w-[25rem]">
             <Image
               src={member.src}
               alt={`Portrait of ${member.name}, ${member.role} at FES Agency`}
@@ -200,7 +194,6 @@ const pillars = [
           between the specialists any growing company hires: PR, design, digital comms and events. That usually
           don't talk to each other. We built our Systems to close that gap on purpose, not by accident.
         </p>
-        <Button href={aboutCta.href} variant="tint">{aboutCta.label}</Button>
       </Fragment>
     </SectionIntro>
   </section>
@@ -211,7 +204,7 @@ const pillars = [
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {
           behaviours.map((item) => (
-            <div class="flex min-h-[280px] flex-col justify-between rounded-[var(--radius-control)] bg-accent-50 p-[var(--space-card-p)] lg:min-h-[400px]">
+            <div class="flex min-h-[17.5rem] flex-col justify-between rounded-[var(--radius-control)] bg-accent-50 p-[var(--space-card-p)] lg:min-h-[25rem]">
               <h3 class="text-h3 font-medium text-ink">{item.title}</h3>
               <p class="pt-6 text-body text-neutral-400 lg:pt-0">{item.body}</p>
             </div>
@@ -222,7 +215,7 @@ const pillars = [
   </section>
 
   <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
-    <div class="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(280px,586px)_1fr] lg:items-start lg:gap-[120px]">
+    <div class="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(280px,586px)_1fr] lg:items-start lg:gap-[7.5rem]">
       <h2 class="text-h2 text-ink lg:hidden" data-anim="split-text">We're frisky, focused &amp; funky</h2>
       <h2 class="hidden text-h2 text-ink lg:block" data-anim="split-text">We're frisky, focused<br />&amp; funky</h2>
       <div class="grid grid-cols-2 gap-x-7 gap-y-8">

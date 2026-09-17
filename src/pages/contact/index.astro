@@ -40,7 +40,7 @@ import { navItems } from '../../lib/nav'
         aria-label="Open menu"
         aria-expanded="false"
         aria-controls="mobile-menu"
-        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/30 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
         data-nav-toggle
       >
         Menu
@@ -49,7 +49,7 @@ import { navItems } from '../../lib/nav'
   </nav>
 
   <section class="bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]">
-    <div class="mx-auto flex w-full max-w-[800px] flex-col items-center gap-16" data-anim="reveal">
+    <div class="mx-auto flex w-full max-w-[50rem] flex-col items-center gap-16" data-anim="reveal">
       <Heading as="h1" indent={false} class="text-center text-h1 text-ink">
         Let's <span class="text-accent-default">talk</span>
       </Heading>
@@ -63,7 +63,7 @@ import { navItems } from '../../lib/nav'
               name="name"
               placeholder="Your name *"
               required
-              class="w-full bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled focus:outline-none"
+              class="w-full bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled"
             />
           </label>
         </div>
@@ -76,7 +76,7 @@ import { navItems } from '../../lib/nav'
               name="email"
               placeholder="Your e-mail *"
               required
-              class="w-full bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled focus:outline-none"
+              class="w-full bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled"
             />
           </label>
         </div>
@@ -89,14 +89,14 @@ import { navItems } from '../../lib/nav'
               placeholder="Your message*"
               required
               rows="7"
-              class="w-full resize-none bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled focus:outline-none"
+              class="w-full resize-none bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled"
             ></textarea>
           </label>
         </div>
 
         <button
           type="submit"
-          class="mx-auto mt-4 rounded-[var(--radius-button)] bg-accent-default px-[22px] py-[14px] text-h4 font-medium text-on-accent transition-colors hover:bg-accent-hover"
+          class="mx-auto mt-4 rounded-[var(--radius-button)] bg-accent-default px-[1.375rem] py-[0.875rem] text-h4 font-medium text-on-accent transition-colors hover:bg-accent-hover"
         >
           Send message
         </button>

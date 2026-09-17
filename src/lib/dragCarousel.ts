@@ -71,9 +71,12 @@ export function createDragCarousel(track: HTMLElement, opts: { cardSelector: str
   //
   // Offsets are taken RELATIVE TO THE FIRST CARD, not as raw offsetLeft: at
   // `scrollLeft: 0` card 1 already sits in its intended slot, inset by the
-  // track's own leading padding (the homepage/careers rows' `lg:px-[25vw]`,
-  // the Systems row's gutter). Snapping to a raw offsetLeft would land every
-  // card that far short of that slot — half a card out on desktop.
+  // track's own leading padding (the homepage and careers rows'
+  // `lg:px-[calc(50vw-22.5rem)]`, the Systems row's gutter). Snapping to a
+  // raw offsetLeft would land every card that far short of that slot — half
+  // a card out on desktop. Nothing here is keyed to those values: every
+  // offset is measured off the DOM, which is why the viewport-zoom pass (see
+  // global.css) could change them without touching this file.
   function nearestCardX(proxyX: number) {
     if (cards.length === 0) return proxyX
     const first = cards[0]!.offsetLeft

@@ -20,10 +20,12 @@ import digitalCommOverlayDark from '../assets/systems/what-we-do/digital-comm-ov
 
 interface Props {
   theme?: 'light' | 'dark'
+  /** Hide the "Our systems" CTA — it's redundant on /systems/ itself, since that's where this section already lives. */
+  showCta?: boolean
   class?: string
 }
 
-const { theme = 'light', class: className } = Astro.props
+const { theme = 'light', showCta = true, class: className } = Astro.props
 const isDark = theme === 'dark'
 
 const cards = [
@@ -63,20 +65,24 @@ const cards = [
     <SectionLabel dark={isDark}>What we do</SectionLabel>
 
     <div class="flex flex-col gap-7">
-      <p class:list={['max-w-[813px] text-h1 font-medium', isDark ? 'text-neutral-100' : 'text-neutral-950']}>
+      <p class:list={['max-w-[50.8125rem] text-h1 font-medium', isDark ? 'text-neutral-100' : 'text-neutral-950']}>
         Strategic systems built around the business challenges that matter most
       </p>
-      <Button
-        href="/systems/"
-        variant="tint"
-        arrow={false}
-        class:list={[
-          'w-fit !text-body',
-          isDark && '!bg-neutral-900 !text-white hover:!bg-white hover:!text-accent-default',
-        ]}
-      >
-        Our systems
-      </Button>
+      {
+        showCta && (
+          <Button
+            href="/systems/"
+            variant="tint"
+            arrow={false}
+            class:list={[
+              'w-fit !text-body',
+              isDark && '!bg-neutral-900 !text-white hover:!bg-white hover:!text-accent-default',
+            ]}
+          >
+            Our systems
+          </Button>
+        )
+      }
 
       <div class="mt-7 grid grid-cols-1 gap-7 lg:grid-cols-3">
         {
@@ -87,7 +93,7 @@ const cards = [
               image={c.base}
               overlay={c.overlay}
               variant="dark"
-              class="h-[22rem] lg:h-[419px]"
+              class="h-[22rem] lg:h-[26.1875rem]"
             >
               <p class="max-w-[75%] text-body text-neutral-50">{c.description}</p>
             </SystemCard>

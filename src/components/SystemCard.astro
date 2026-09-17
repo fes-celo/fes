@@ -72,11 +72,22 @@ const isDark = variant === 'dark'
   ]}
   data-sys-card
 >
+  {
+    /* `widths` is what makes `sizes` mean anything: without it astro:assets
+       emits a single src and no srcset, so `sizes` is inert and every
+       visitor downloads the full 1200px source into a card that renders
+       ~440 CSS px at 1440 (33vw) — 3x on the homepage, 3x again on
+       /systems/. The ladder covers the two real cases the `sizes` above
+       describes: 33vw of a 1024-2560 viewport (~340-845 CSS px, so 400-1200
+       once DPR is folded in) and 100vw of a phone (~390-430 CSS px, 780-860
+       at DPR 2). 1200 stays as the top rung and the intrinsic width. */
+  }
   <Image
     src={image}
     alt=""
     width={1200}
     height={882}
+    widths={[400, 640, 880, 1200]}
     sizes="(min-width: 1024px) 33vw, 100vw"
     class="absolute inset-0 size-full object-cover"
   />

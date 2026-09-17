@@ -13,6 +13,19 @@
 
 export interface CaseStudy {
   slug: string
+  /**
+   * Keeps the entry off search engines: renders `noindex, nofollow` in the
+   * page's own <head>, and its path is excluded from the sitemap in
+   * astro.config.mjs (submitting a URL you've marked noindex is a
+   * contradiction Search Console reports as an error).
+   *
+   * Set on the template entry below, whose copy is placeholder text in
+   * square brackets — indexed, it would put "[Client name] — [Case study
+   * title...]" in front of anyone searching for FES. The route stays live
+   * and reachable by URL, which is the point: it's the reference the real
+   * entries get built against. Real case studies omit this field.
+   */
+  draft?: boolean
   clientName: string
   clientLogo: string
   title: string
@@ -40,6 +53,7 @@ export interface CaseStudy {
 export const caseStudies: CaseStudy[] = [
   {
     slug: 'example-case-study',
+    draft: true,
     clientName: '[Client name]',
     clientLogo: '',
     title: '[Case study title — the outcome or campaign name, not just the client name]',

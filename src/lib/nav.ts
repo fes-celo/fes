@@ -24,6 +24,6 @@ export const footerItems = [
 export const socialItems = [
   { label: 'Facebook', href: 'https://www.facebook.com/wearefesagency' },
   { label: 'Linkedin', href: 'https://www.linkedin.com/company/wearefesagency' },
-  { label: 'Instagram', href: 'http://instagram.com/wearefesagency' },
+  { label: 'Instagram', href: 'https://instagram.com/wearefesagency' },
   { label: 'Behance', href: 'https://www.behance.net/wearefesagency' },
 ]

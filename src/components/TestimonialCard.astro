@@ -78,7 +78,7 @@ const cardSchemes: Record<'light' | 'clay', { card: string; accent: string; avat
       </figcaption>
     </figure>
   ) : (
-    <figure class:list={['flex h-full min-h-[420px] w-full flex-col justify-between rounded-[var(--radius-card)] p-[var(--space-card-p)]', cardSchemes[variant].card, className]}>
+    <figure class:list={['flex h-full min-h-[26.25rem] w-full flex-col justify-between rounded-[var(--radius-card)] p-[var(--space-card-p)]', cardSchemes[variant].card, className]}>
       <div>
         {tag && <p class:list={['pb-2 text-meta uppercase tracking-[0.01em]', cardSchemes[variant].accent]}>{tag}</p>}
         <blockquote class="text-h3 font-normal text-ink">{quote}</blockquote>

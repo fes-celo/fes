@@ -5,6 +5,22 @@ import cloudflare from '@astrojs/cloudflare';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
+// Surfaces that render `noindex` in their own <head>, and therefore must not
+// appear in the sitemap either: submitting a URL you've asked not to be
+// indexed is a contradiction Search Console reports as an error, and it
+// spends crawl budget on pages that can never rank. Keep this list and the
+// pages' own noindex in sync — they are two halves of one decision.
+//
+//   /styleguide          internal reference surface (the live type scale)
+//   /dark/               dark-mode variants of the Creative Projects
+//                        Blueprint sub-pages, kept for design review
+//   example-case-study   the case-study template; placeholder copy until
+//                        real client content lands. Driven by `draft: true`
+//                        in src/lib/caseStudies.ts — a real entry omits the
+//                        flag and is indexed normally, so this path is the
+//                        only one that needs listing here by hand.
+const NOINDEX_PATHS = ['/styleguide', '/dark/', '/projects/example-case-study']
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://fesagency.pt',
@@ -17,9 +33,7 @@ export default defineConfig({
     // into a real static file instead.
     imageService: 'compile',
   }),
-  // /styleguide/* is an internal reference surface (the live type scale), not
-  // a public page — noindexed in its own <head> and kept out of the sitemap.
-  integrations: [sitemap({ filter: (page) => !page.includes('/styleguide') })],
+  integrations: [sitemap({ filter: (page) => !NOINDEX_PATHS.some((path) => page.includes(path)) })],
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 3001
   },

@@ -45,14 +45,14 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
   logos.map((logo) => ({ logo, isDuplicate: set > 0 }))
 )
 
-const cellClass = 'mr-12 flex w-[160px] shrink-0 items-center justify-center lg:mr-20 lg:w-[200px]'
+const cellClass = 'mr-12 flex w-[10rem] shrink-0 items-center justify-center lg:mr-20 lg:w-[12.5rem]'
 // Fixed bounding box (not just a max-height) so every logo reads at the same
 // visual size regardless of its native aspect ratio — wordmark-shaped logos
 // like Infraspeak/Natixis/Subvisual are far wider-than-tall than the rest of
 // the set, so height-only constraints let them render 2-3x wider than the
 // squarer logos once scaled up. object-contain keeps each one's own aspect
 // ratio inside that shared box.
-const logoClass = `h-[40px] w-[130px] object-contain lg:h-[56px] lg:w-[170px]${grayscale ? ' grayscale' : ''}`
+const logoClass = `h-[2.5rem] w-[8.125rem] object-contain lg:h-[3.5rem] lg:w-[10.625rem]${grayscale ? ' grayscale' : ''}`
 ---
 
 <div
