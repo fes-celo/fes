@@ -495,6 +495,13 @@
     Verified at 1920x900, 3000x800 and 2560x1440. Change one and you have to
     change the other.
 
+    That reciprocal only holds where this block applies. Below 1440 the root
+    is a flat 16px and 45rem is a hard 720px, which IS taller than plenty of
+    real viewports — a phone in landscape, an iPhone SE, any iPhone one step
+    up on Safari's page zoom. Every hero therefore writes its floor as
+    min(45rem, <viewport>), so the guarantee above holds at every width and
+    not just past the reference. Up here the min() is a no-op.
+
   - the clamp's FLOOR is 1rem, and `rem` in the root's own font-size resolves
     against that property's INITIAL value — the user's browser default. That
     floor is what keeps this accessible: a larger default font size is still

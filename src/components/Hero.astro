@@ -91,7 +91,28 @@ import Heading from './Heading.astro'
      reveal it. Coarse pointers (touch) are where on-screen keyboards
      live, so the clamp now only applies there; a fine pointer (trackpad/
      mouse) gets the gap compensated in full, which keeps the lead inside
-     whatever's actually visible at any zoom level. */
+     whatever's actually visible at any zoom level.
+
+     None of that helps while a min-height sits ABOVE the viewport, which is
+     what the bare 45rem floor did. Below 1440px the root font size is a flat
+     16px (global.css section 5 only engages above the reference width), so
+     45rem is a hard 720px there — and the moment the layout viewport is
+     shorter than that, the section is taller than the screen, the
+     justify-between block is parked at 720px minus the padding, and
+     overflow-hidden eats whatever falls past the fold. Scrolling cannot
+     recover it either: the section is sticky and the next one scrolls over
+     the top of it.
+
+     720px is not an exotic viewport. iOS Safari's page zoom reflows rather
+     than magnifying, so it shrinks innerHeight — one step up from 100% on
+     any iPhone lands under 720 and clipped the lead by 12 to 125px. An
+     iPhone SE is under it at 100% zoom, as is any phone in landscape.
+
+     min(45rem, ...) is the whole fix: the floor can never exceed the box it
+     lives in. Above 1440 it stays a no-op, because the root-size guard in
+     global.css section 5 already keeps 45rem <= viewport height there — so
+     that invariant is preserved, not replaced. The content only needs about
+     420px, so nothing is squashed when the floor gives way. */
 }
 {
   /* data-astro-rerun: ClientRouter skips any script (inline included) whose
@@ -126,7 +147,7 @@ import Heading from './Heading.astro'
   })()
 </script>
 <section
-  class="sticky top-0 z-0 flex min-h-[45rem] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
+  class="sticky top-0 z-0 flex min-h-[min(45rem,var(--hero-vh,100svh))] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
   style={`height: var(--hero-vh, 100lvh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
 >
   {
