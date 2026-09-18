@@ -1,44 +1,38 @@
 ---
 /**
  * Case study detail template (/projects/[slug]/) — the page a visitor lands
- * on from a project card on the homepage, the Systems pages, or the /projects/
- * listing. Static/hardcoded for now (see src/lib/caseStudies.ts), one example
- * route ("example-case-study") built out end to end so the template itself
- * is reviewable ahead of real client content.
+ * on from a project card on the homepage, the Systems pages, or the
+ * /projects/ listing. Content is static/hardcoded for now; see
+ * src/lib/caseStudies.ts for the shape.
  *
- * Reuses, rather than re-invents:
- *  - PhasesScroll (the pinned "Phase 01/02/03/04" list, already a shared
- *    component from the Systems pages) for Approach.
- *  - StatsBar (new — extracted from the homepage's dark stats-bar pattern)
- *    for Results, hidden entirely when a client has no public metrics.
- *  - TestimonialCard's "light" variant for the optional testimonial.
- *  - DualCta (new — extracted from the Systems pages' "Get in touch" / "Our
- *    work" block, which is now the third consumer) for the close.
- *  - PlaceholderBlock for every image slot: this entry has no real
- *    photography yet, and CaseStudy's image fields are typed as plain
- *    asset-path strings (see caseStudies.ts) rather than astro:assets
- *    ImageMetadata, so an empty string renders the placeholder tone block
- *    instead of a broken <img>.
+ * Two columns, and the split IS the design:
  *
- * View Transitions: BaseLayout already renders <ClientRouter /> site-wide,
- * so every navigation (including into this page) gets the browser's native
- * view-transition cross-fade for free. transition:name on the cover image
- * and h1 below opts those two elements into a persistent-element morph
- * rather than the default fade — full card-to-hero morphing additionally
- * needs the SAME transition:name on the originating ProjectCard, which is
- * out of scope here (the /projects/ listing page is explicitly out of scope
- * for this pass).
+ *  - LEFT rail — client, title, intro, systems — is `position: sticky` at
+ *    full viewport height, so it holds still for the entire scroll. Same
+ *    mechanism as the sticky heroes on Agency/Systems/Careers, not a JS pin:
+ *    nothing here needs to measure or transform, so CSS does it for free and
+ *    it survives a View Transitions swap without re-initialising.
+ *    `self-start` matters — a grid item stretches to the row height by
+ *    default, and a stretched item has no free space to stick within.
+ *
+ *  - RIGHT column is an ordered list of blocks (`media` | `text`) rather
+ *    than fixed sections, so each case study composes its own rhythm.
+ *
+ * Below `lg` the rail un-sticks and the two columns stack: a viewport-tall
+ * pinned rail on a phone would spend the whole scroll covering the content.
+ *
+ * Images resolve by BASENAME through import.meta.glob (see `resolveImage`)
+ * instead of per-entry `import` statements, so adding photography to a case
+ * study is a drag-and-drop into src/assets/case-studies/<slug>/ with no code
+ * change. A basename with nothing behind it yet falls back to
+ * PlaceholderBlock labelled with the path it wants — the same "photography
+ * not shot yet" pattern ProjectCard uses.
  */
+import type { ImageMetadata } from 'astro'
+import { Image } from 'astro:assets'
 import BaseLayout from '../../layouts/BaseLayout.astro'
-import Heading from '../../components/Heading.astro'
-import Tag from '../../components/Tag.astro'
 import PlaceholderBlock from '../../components/PlaceholderBlock.astro'
-import PhasesScroll from '../../components/PhasesScroll.astro'
-import StatsBar from '../../components/StatsBar.astro'
-import TestimonialCard from '../../components/TestimonialCard.astro'
-import DualCta from '../../components/DualCta.astro'
 import { caseStudies, getCaseStudy } from '../../lib/caseStudies'
-import ourWorkCta from '../../assets/systems/our-work-cta.jpg'
 
 export function getStaticPaths() {
   return caseStudies.map((c) => ({ params: { slug: c.slug } }))
@@ -46,261 +40,154 @@ export function getStaticPaths() {
 
 const { slug } = Astro.params
 const caseStudy = getCaseStudy(slug!)!
-const headlineStat = caseStudy.metrics?.[0]
+
+/* Eager, so the resolved ImageMetadata is available during the SSG render.
+   The glob literal has to be statically analysable — hence the `**` over all
+   case studies rather than a per-slug pattern. */
+const assets = import.meta.glob<{ default: ImageMetadata }>(
+  '../../assets/case-studies/**/*.{jpg,jpeg,png,webp,avif,svg}',
+  { eager: true },
+)
+
+/* Keyed by `<slug>/<basename>` with the extension dropped, so caseStudies.ts
+   says `file: '01'` and picks up whichever of 01.webp/.jpg/.png is actually
+   in the folder. Two files sharing a basename is a conflict — last one wins,
+   which the folder README warns about. */
+const bySlugAndName = new Map<string, ImageMetadata>()
+for (const [path, mod] of Object.entries(assets)) {
+  const match = path.match(/case-studies\/([^/]+)\/([^/]+)\.[^./]+$/)
+  if (match) bySlugAndName.set(`${match[1]}/${match[2]}`, mod.default)
+}
+
+const resolveImage = (file: string) => bySlugAndName.get(`${caseStudy.slug}/${file}`)
+
+const logo = caseStudy.logo ? resolveImage(caseStudy.logo.file) : undefined
+const dropPath = `src/assets/case-studies/${caseStudy.slug}/`
 ---
 
 <BaseLayout
   title={`${caseStudy.clientName} — ${caseStudy.title}`}
-  description={caseStudy.tagline}
+  description={caseStudy.seoDescription ?? caseStudy.intro[0]}
   noindex={caseStudy.draft}
-  bordered
 >
-  {/* ---------- 1. Hero ---------- */}
-  <section class="w-full bg-canvas px-[var(--space-gutter)] pt-10 pb-[var(--space-section-y)]">
-    <div class="flex flex-col gap-8">
-      <div class="flex items-center gap-3">
-        {
-          caseStudy.clientLogo ? (
-            <img src={caseStudy.clientLogo} alt={`${caseStudy.clientName} logo`} class="h-8 w-auto" />
+  {
+    /*
+      --cs-gap is the RIGHT column's internal gutter — between a pair of
+      pictures, and between one media block and the next. Deliberately much
+      tighter than --space-gutter (the page margin): the design reads those
+      blocks as one contact sheet rather than as separate sections. Declared
+      here rather than in global.css until a second surface wants the same
+      measure.
+    */
+  }
+  <div
+    class="grid grid-cols-1 gap-12 px-[var(--space-gutter)] pb-[var(--space-section-y)] pt-12 lg:grid-cols-[minmax(0,3fr)_minmax(0,9fr)] lg:gap-[var(--space-gutter)]"
+    style="--cs-gap: 0.875rem;"
+  >
+    {/* ---------- Left rail (fixed for the whole scroll) ---------- */}
+    <div
+      class="flex flex-col lg:sticky lg:top-12 lg:h-[calc(100vh-6rem)] lg:self-start"
+    >
+      {
+        caseStudy.logo &&
+          (logo ? (
+            <Image src={logo} alt={caseStudy.logo.alt} widths={[120, 240]} sizes="120px" class="mb-8 h-8 w-auto" />
           ) : (
             <PlaceholderBlock
-              alt={`[${caseStudy.clientName} logo — SVG preferred, transparent background]`}
               tone="neutral"
-              class="flex h-8 w-24 items-center justify-center rounded-[var(--radius-control)]"
+              alt={`[${caseStudy.clientName} logo — drop ${caseStudy.logo.file} into ${dropPath}]`}
+              class="mb-8 h-8 w-24 rounded-[var(--radius-card)]"
             />
-          )
-        }
-        <span class="text-body-sm font-medium uppercase tracking-[0.01em] text-ink-secondary">
-          {caseStudy.clientName}
-        </span>
-      </div>
-
-      <Heading
-        as="h1"
-        indent={false}
-        class="text-display text-balance text-ink"
-        transition:name={`case-study-title-${caseStudy.slug}`}
-      >
-        {caseStudy.title}
-      </Heading>
-      <p class="max-w-2xl text-lead text-ink-secondary">{caseStudy.tagline}</p>
-
-      <div class="flex flex-wrap items-center gap-2">
-        {caseStudy.industryTags.map((t) => <Tag tone="onLight">{t}</Tag>)}
-        {
-          caseStudy.systemsUsed.map((s) => (
-            <a href={`/systems/${s.slug}/`}>
-              <Tag tone="onLight" class="transition-colors hover:bg-neutral-200">
-                {s.name}
-              </Tag>
-            </a>
           ))
-        }
-      </div>
-
-      <div
-        class="overflow-hidden rounded-[var(--radius-card)] bg-accent-tint"
-        transition:name={`case-study-cover-${caseStudy.slug}`}
-      >
-        {
-          caseStudy.coverImage ? (
-            <img src={caseStudy.coverImage} alt={caseStudy.title} class="aspect-[16/9] size-full object-cover" />
-          ) : (
-            <PlaceholderBlock
-              alt="[Cover image or video — wide, 16:9, the case study's lead visual]"
-              class="aspect-[16/9] size-full"
-            />
-          )
-        }
-      </div>
-
-      <div class="flex flex-wrap items-end justify-between gap-6 border-t border-line pt-6">
-        {
-          headlineStat && (
-            <div class="flex flex-col gap-1">
-              <span class="text-h1 text-ink">{headlineStat.value}</span>
-              <span class="text-body-sm text-ink-muted">{headlineStat.label}</span>
-            </div>
-          )
-        }
-        <span class="text-body-sm text-ink-muted">{caseStudy.duration}</span>
-      </div>
-    </div>
-  </section>
-
-  {/* ---------- 2. Overview ---------- */}
-  <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]">
-    <h2 class="text-h3 text-ink">Overview</h2>
-    <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-10 lg:grid-cols-3 lg:gap-7">
-      <div class="flex flex-col gap-3">
-        <h3 class="text-eyebrow uppercase text-ink-muted">Challenge</h3>
-        <p class="text-lead text-ink-secondary">{caseStudy.challenge}</p>
-      </div>
-      <div class="flex flex-col gap-3">
-        <h3 class="text-eyebrow uppercase text-ink-muted">Scope</h3>
-        <p class="text-lead text-ink-secondary">{caseStudy.scope}</p>
-      </div>
-      <div class="flex flex-col gap-3">
-        <h3 class="text-eyebrow uppercase text-ink-muted">Duration</h3>
-        <p class="text-lead text-ink-secondary">{caseStudy.duration}</p>
-      </div>
-    </div>
-  </section>
-
-  {/* ---------- 3. Approach ---------- */}
-  <PhasesScroll
-    steps={caseStudy.approach.map((a) => ({ number: a.step, title: a.title, description: a.description }))}
-    class="bg-surface"
-  />
-
-  {/* ---------- 4. Results ---------- */}
-  <StatsBar heading="Results" stats={caseStudy.metrics ?? []} />
-
-  {/* ---------- 5. Visual proof ---------- */}
-  <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]">
-    <h2 class="text-h3 text-ink">Visual proof</h2>
-    <div class="mt-[var(--space-heading-gap)] flex flex-col gap-7">
-      {
-        caseStudy.gallery[0] && (
-          <figure class="flex flex-col gap-3">
-            <div class="aspect-[16/9] overflow-hidden rounded-[var(--radius-card)] bg-accent-tint">
-              {caseStudy.gallery[0].src ? (
-                <img src={caseStudy.gallery[0].src} alt={caseStudy.gallery[0].alt} class="size-full object-cover" />
-              ) : (
-                <PlaceholderBlock alt={caseStudy.gallery[0].alt} class="size-full" />
-              )}
-            </div>
-            <figcaption class="text-body-sm text-ink-muted">{caseStudy.gallery[0].alt}</figcaption>
-          </figure>
-        )
       }
+
+      <h1 class="text-h2 text-balance text-ink">
+        {caseStudy.clientName}<br />{caseStudy.title}
+      </h1>
+
+      <div class="mt-8 flex flex-col gap-5 lg:mt-20">
+        {caseStudy.intro.map((paragraph) => <p class="text-body text-ink">{paragraph}</p>)}
+      </div>
+
       {
-        caseStudy.gallery.length > 1 && (
-          <div class="grid grid-cols-1 gap-7 sm:grid-cols-2">
-            {caseStudy.gallery.slice(1).map((g) => (
-              <figure class="flex flex-col gap-3">
-                <div class="aspect-[4/3] overflow-hidden rounded-[var(--radius-card)] bg-accent-tint">
-                  {g.src ? (
-                    <img src={g.src} alt={g.alt} class="size-full object-cover" />
-                  ) : (
-                    <PlaceholderBlock alt={g.alt} class="size-full" />
-                  )}
+        /* mt-auto, so the systems line sits on the bottom edge of the pinned
+           rail at lg and simply follows the intro on a stacked phone layout. */
+      }
+      <p class="mt-10 text-body-sm text-ink lg:mt-auto">{caseStudy.systems.join(' + ')}</p>
+    </div>
+
+    {/* ---------- Right column (scrolls past the rail) ---------- */}
+    <div class="flex flex-col gap-[var(--cs-gap)]">
+      {
+        caseStudy.blocks.map((block) =>
+          block.type === 'media' ? (
+            <div
+              class:list={[
+                'grid gap-[var(--cs-gap)]',
+                block.items.length > 1 && 'grid-cols-1 sm:grid-cols-2',
+              ]}
+            >
+              {block.items.map((item) => {
+                const image = resolveImage(item.file)
+                const aspect = item.aspect ?? (block.items.length > 1 ? '3 / 4' : '3 / 2')
+                /* One picture fills the 9/12 column; a pair splits it. Both
+                   go full-bleed once the columns stack. */
+                const sizes = block.items.length > 1
+                  ? '(min-width: 1024px) 37vw, (min-width: 640px) 48vw, 100vw'
+                  : '(min-width: 1024px) 74vw, 100vw'
+                return (
+                  <figure
+                    class="overflow-hidden rounded-[var(--radius-card)] bg-neutral-100"
+                    style={`aspect-ratio: ${aspect};`}
+                  >
+                    {image ? (
+                      <Image
+                        src={image}
+                        alt={item.alt}
+                        widths={[640, 1024, 1440, 1920]}
+                        sizes={sizes}
+                        class="size-full object-cover"
+                      />
+                    ) : (
+                      <PlaceholderBlock
+                        tone="neutral"
+                        alt={`[${item.alt} — drop ${item.file} into ${dropPath}]`}
+                        class="size-full"
+                      />
+                    )}
+                  </figure>
+                )
+              })}
+            </div>
+          ) : block.variant === 'full' ? (
+            /* The wide beat: one passage across the whole column at
+               --text-lead. Extra bottom space on both text variants —
+               pictures butt up against each other at --cs-gap, but copy
+               running that tight into the next picture reads as a caption
+               for it rather than as its own section. */
+            <div class="flex flex-col gap-10 pt-1.5 pb-14 last:pb-0 lg:pb-20">
+              {block.items.map((passage) => (
+                <div class="flex flex-col gap-2">
+                  {passage.label && <h2 class="text-body-sm text-neutral-400">{passage.label}</h2>}
+                  <p class="text-lead text-neutral-950">{passage.body}</p>
                 </div>
-                <figcaption class="text-body-sm text-ink-muted">{g.alt}</figcaption>
-              </figure>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              class="grid grid-cols-1 gap-10 pt-1.5 pb-14 last:pb-0 sm:grid-cols-2 sm:gap-[var(--cs-gap)] lg:pb-20"
+            >
+              {block.items.map((passage) => (
+                <div class="flex flex-col gap-2">
+                  {passage.label && <h2 class="text-body-sm text-neutral-400">{passage.label}</h2>}
+                  <p class="text-body text-neutral-950">{passage.body}</p>
+                </div>
+              ))}
+            </div>
+          ),
         )
       }
     </div>
-  </section>
-
-  {/* ---------- 6. Testimonial ---------- */}
-  {
-    caseStudy.testimonial && (
-      <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]">
-        <h2 class="sr-only">Testimonial</h2>
-        <TestimonialCard
-          variant="light"
-          quote={caseStudy.testimonial.quote}
-          name={caseStudy.testimonial.author}
-          role={caseStudy.testimonial.role}
-          class="mx-auto max-w-3xl"
-        />
-      </section>
-    )
-  }
-
-  {/* ---------- 7. Credits ---------- */}
-  <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]">
-    <h2 class="text-h3 text-ink">Credits</h2>
-    <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-7">
-      <div class="flex flex-col gap-3">
-        <h3 class="text-eyebrow uppercase text-ink-muted">Team</h3>
-        <ul class="flex flex-col gap-2 text-lead text-ink-secondary">
-          {caseStudy.credits.team.map((t) => <li>{t}</li>)}
-        </ul>
-      </div>
-      <div class="flex flex-col gap-3">
-        <h3 class="text-eyebrow uppercase text-ink-muted">Services &amp; Systems</h3>
-        <ul class="flex flex-wrap gap-2">
-          {
-            caseStudy.credits.servicesUsed.map((s) => (
-              <li>
-                <Tag tone="onLight">{s}</Tag>
-              </li>
-            ))
-          }
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  {/* ---------- 8. Close ---------- */}
-  {
-    (caseStudy.prevProject || caseStudy.nextProject) && (
-      <nav aria-label="Case study navigation" class="w-full border-t border-line px-[var(--space-gutter)] py-10">
-        <div class="flex items-center justify-between gap-6">
-          {caseStudy.prevProject ? (
-            <a
-              href={`/projects/${caseStudy.prevProject.slug}/`}
-              class="flex items-center gap-3 text-body text-ink-secondary hover:text-ink"
-            >
-              <img src="/icons/icon-arrow-dark.svg" alt="" class="size-4 rotate-180" width="16" height="16" />
-              <span>{caseStudy.prevProject.title}</span>
-            </a>
-          ) : (
-            <span />
-          )}
-          {caseStudy.nextProject ? (
-            <a
-              href={`/projects/${caseStudy.nextProject.slug}/`}
-              class="flex items-center gap-3 text-right text-body text-ink-secondary hover:text-ink"
-            >
-              <span>{caseStudy.nextProject.title}</span>
-              <img src="/icons/icon-arrow-dark.svg" alt="" class="size-4" width="16" height="16" />
-            </a>
-          ) : (
-            <span />
-          )}
-        </div>
-      </nav>
-    )
-  }
-
-  {
-    caseStudy.relatedProjects.length > 0 && (
-      <section class="w-full bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]">
-        <h2 class="text-h3 text-ink">More work</h2>
-        <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3">
-          {caseStudy.relatedProjects.map((p) => (
-            <a href={`/projects/${p.slug}/`} class="group flex flex-col gap-6">
-              <div class="aspect-[429/280] overflow-hidden rounded-[var(--radius-card)] bg-accent-tint">
-                {p.coverImage ? (
-                  <img
-                    src={p.coverImage}
-                    alt={p.title}
-                    class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                  />
-                ) : (
-                  <PlaceholderBlock alt={`[Cover image for ${p.title}]`} class="size-full" />
-                )}
-              </div>
-              <h3 class="text-lead text-ink">{p.title}</h3>
-            </a>
-          ))}
-        </div>
-      </section>
-    )
-  }
-
-  <DualCta
-    leftHeading="Ready to build something like this?"
-    leftHref="/contact/"
-    leftLabel="Get in touch"
-    rightHeading="See more of our work"
-    rightHref="/projects/"
-    rightLabel="Our work"
-    rightImage={ourWorkCta}
-  />
+  </div>
 </BaseLayout>
+

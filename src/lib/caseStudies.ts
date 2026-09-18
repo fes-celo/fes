@@ -4,117 +4,239 @@
 // rebuild. See docs/parked-decisions.md if that migration adds constraints
 // this file didn't anticipate.
 //
-// Image fields (clientLogo, coverImage, gallery[].src) are typed as plain
-// strings, matching what a future content collection would store (an asset
-// path), rather than astro:assets' ImageMetadata. The one example entry
-// below has no real photography yet, so every image field is an empty
-// string and the page falls back to PlaceholderBlock — the site's existing
-// "photography not shot yet" component — rather than a broken <img>.
+// The page is two columns: a LEFT rail that stays fixed on screen for the
+// whole scroll (logo, title, intro, systems) and a RIGHT column that
+// scrolls past it. Everything in the left rail is a flat field on
+// CaseStudy; everything in the right column is an ordered list of `blocks`,
+// so a case study is composed rather than slotted into fixed sections.
+//
+// Images are referenced by BASENAME ONLY (`file: '01'`), not by path or
+// import: [slug].astro resolves them against
+// src/assets/case-studies/<slug>/ via import.meta.glob, matching any image
+// extension. A basename with no file behind it yet renders the site's
+// PlaceholderBlock naming the path it wants, so the page is layout-complete
+// before the photography lands. See that folder's README.
+
+/** One picture in a `media` block. */
+export interface CaseStudyMedia {
+  /**
+   * Filename WITHOUT extension, inside src/assets/case-studies/<slug>/.
+   * '01' matches 01.webp, 01.jpg, 01.png or 01.avif — whichever is there.
+   */
+  file: string
+  alt: string
+  /**
+   * CSS `aspect-ratio` for the well the picture is cropped into
+   * (object-cover). Defaults to 3/2 for a full-width picture and 3/4 for a
+   * side-by-side pair.
+   */
+  aspect?: string
+}
+
+/** One labelled passage of copy in a `text` block. */
+export interface CaseStudyPassage {
+  /** Small grey kicker above the copy — omit for an unlabelled passage. */
+  label?: string
+  body: string
+}
+
+export type CaseStudyBlock =
+  /**
+   * Pictures. One item spans the full column; two sit side by side. More
+   * than two wraps into the same two-up grid.
+   */
+  | { type: 'media'; items: CaseStudyMedia[] }
+  /**
+   * Copy. 'columns' (the default) lays passages two-up at --text-body;
+   * 'full' runs a single passage across the whole column at --text-lead,
+   * for a beat that should carry more weight than its neighbours.
+   */
+  | { type: 'text'; variant?: 'columns' | 'full'; items: CaseStudyPassage[] }
 
 export interface CaseStudy {
   slug: string
   /**
    * Keeps the entry off search engines: renders `noindex, nofollow` in the
-   * page's own <head>, and its path is excluded from the sitemap in
-   * astro.config.mjs (submitting a URL you've marked noindex is a
-   * contradiction Search Console reports as an error).
-   *
-   * Set on the template entry below, whose copy is placeholder text in
-   * square brackets — indexed, it would put "[Client name] — [Case study
-   * title...]" in front of anyone searching for FES. The route stays live
-   * and reachable by URL, which is the point: it's the reference the real
-   * entries get built against. Real case studies omit this field.
+   * page's own <head>. A path marked draft must also be excluded from the
+   * sitemap in astro.config.mjs — submitting a URL you've marked noindex is
+   * a contradiction Search Console reports as an error. Real, finished case
+   * studies omit this field.
    */
   draft?: boolean
+  /** Left rail, line 1 of the title. */
   clientName: string
-  clientLogo: string
+  /** Left rail, line 2 of the title. */
   title: string
-  tagline: string
-  coverImage: string
-  industryTags: string[]
-  systemsUsed: { name: string; slug: string }[] // links back to /systems/[slug]
-  challenge: string
-  scope: string
-  duration: string
-  approach: { step: string; title: string; description: string }[]
-  metrics?: { value: string; label: string }[] // optional — some clients don't allow public numbers
-  gallery: { src: string; alt: string }[]
-  testimonial?: { quote: string; author: string; role: string }
-  credits: { team: string[]; servicesUsed: string[] }
-  prevProject?: { slug: string; title: string }
-  nextProject?: { slug: string; title: string }
-  relatedProjects: { slug: string; title: string; coverImage: string }[]
+  /**
+   * Client logo above the title in the left rail, resolved from the same
+   * case-study asset folder as the media blocks. Omit for no logo — the
+   * title then sits at the top of the rail on its own.
+   */
+  logo?: { file: string; alt: string }
+  /** Left rail intro, one string per paragraph. */
+  intro: string[]
+  /** Left rail footer — joined with " + ". */
+  systems: string[]
+  /** Meta description; falls back to the first intro paragraph. */
+  seoDescription?: string
+  blocks: CaseStudyBlock[]
 }
 
-// One example entry, populated with placeholder copy written as an
-// instruction for what belongs in each field — not lorem ipsum — per the
-// case-study template brief. Swap for real content collection entries once
-// this migrates off a hardcoded array.
 export const caseStudies: CaseStudy[] = [
   {
-    slug: 'example-case-study',
-    draft: true,
-    clientName: '[Client name]',
-    clientLogo: '',
-    title: '[Case study title — the outcome or campaign name, not just the client name]',
-    tagline: '[One line describing what FES did and for whom, e.g. "Repositioning a fintech challenger ahead of its Series B"]',
-    coverImage: '',
-    industryTags: ['[Industry, e.g. Fintech]', '[Sub-sector, e.g. Payments]'],
-    systemsUsed: [{ name: 'Influence & Reputation System', slug: 'influence-reputation' }],
-    challenge:
-      '[One to two sentences on the problem the client had before FES — what wasn\'t working, and why it mattered to their business.]',
-    scope:
-      '[What FES actually did — the services and Systems applied, written as a short direct sentence rather than a bullet dump.]',
-    duration: '[e.g. "6 months" or "Ongoing since 2024"]',
-    approach: [
-      {
-        step: '— 01',
-        title: '[Step 1 title, e.g. "Reputation Strategy"]',
-        description: '[One to two sentences on what happened in this step and why it came first.]',
-      },
-      {
-        step: '— 02',
-        title: '[Step 2 title]',
-        description: '[One to two sentences on what happened in this step.]',
-      },
-      {
-        step: '— 03',
-        title: '[Step 3 title]',
-        description: '[One to two sentences on what happened in this step.]',
-      },
-      {
-        step: '— 04',
-        title: '[Step 4 title]',
-        description: '[One to two sentences on what happened in this step.]',
-      },
+    slug: 'we-want-you',
+    clientName: 'Natixis',
+    title: 'We Want You',
+    // Natixis has a logo on disk (src/assets/logos/Logo_Natixis.png) but the
+    // design runs this rail without one. Copy it into
+    // src/assets/case-studies/we-want-you/ and add
+    // `logo: { file: 'logo', alt: 'Natixis' }` to turn the slot on.
+    intro: [
+      'Natixis is a French investment bank that opened its doors in Portugal and wanted to attract new employees.',
+      'To do this, FES Agency implemented different communication activities',
     ],
-    metrics: [
-      { value: '[+XX%]', label: '[What this measures, e.g. "increase in earned media reach"]' },
-      { value: '[N]', label: '[e.g. "press placements secured"]' },
-      { value: '[€X.XM]', label: '[e.g. "in tracked pipeline influenced"]' },
-      { value: '[+XX]', label: '[e.g. "qualified leads from campaign"]' },
-    ],
-    gallery: [
-      { src: '', alt: '[Hero/lead image from the campaign — wide format]' },
-      { src: '', alt: '[Supporting shot — product, event, or creative in context]' },
-      { src: '', alt: '[Supporting shot — behind the scenes or detail crop]' },
-    ],
-    testimonial: {
-      quote:
-        '[A client quote specific to this project — what changed for them, in their own words. Omit the whole block if no quote was approved for publication.]',
-      author: '[Full name]',
-      role: '[Title @ Client company]',
-    },
-    credits: {
-      team: ['[Team member name — role]', '[Team member name — role]', '[Team member name — role]'],
-      servicesUsed: ['[Service, e.g. Media Relations]', '[Service, e.g. Executive Positioning]', '[Service, e.g. Content Production]'],
-    },
-    prevProject: { slug: 'blip-tedx', title: 'Blip x TEDx' },
-    nextProject: { slug: 'coverflex', title: 'Coverflex' },
-    relatedProjects: [
-      { slug: 'dashlane', title: 'Dashlane', coverImage: '' },
-      { slug: '10x-forward', title: '10x Forward', coverImage: '' },
-      { slug: 'startup-portugal', title: 'Startup Portugal', coverImage: '' },
+    systems: ['Branding Blueprint', 'Digital Communication System'],
+    seoDescription:
+      'An employer branding campaign built to attract talent to Natixis in Portugal — concept, visual identity, website, events and paid media.',
+    blocks: [
+      {
+        type: 'media',
+        items: [
+          { file: 'natixis_wewantou-homepage', alt: 'The “We Want You” campaign homepage hero', aspect: '3 / 2' },
+        ],
+      },
+      {
+        // 1080×1350 — the same ratio as the post-1/post-2 pair below, so
+        // this one runs side by side too.
+        type: 'media',
+        items: [
+          {
+            file: 'natixis_wewantou-logo-alternativo-1',
+            alt: '“We Want You” wordmark on a dark background',
+            aspect: '1080 / 1350',
+          },
+          {
+            file: 'natixis_wewantou-logo-alternativo-2',
+            alt: '“We Want You” wordmark on a magenta background',
+            aspect: '1080 / 1350',
+          },
+        ],
+      },
+      {
+        type: 'text',
+        items: [
+          {
+            label: 'Concept & Naming Proposal',
+            body:
+              'The campaign was built around the impactful “We Want You” concept, aiming for a direct call to action. The focus was on individual identity and career opportunities within Natixis, creating a personal and engaging recruitment message.',
+          },
+          {
+            label: 'Visual Identity',
+            body:
+              'The visual identity was carefully crafted to disrupt the previous graphic language and introduce a more modern, vibrant approach with Natixis’s original colors (purple, blue, and green). The typography was chosen to be neutral yet distinctive, aligning with platforms familiar to the younger audience, such as Snapchat and TikTok.',
+          },
+        ],
+      },
+      {
+        type: 'media',
+        items: [{ file: 'natixis_wewantou-mobile', alt: 'The “We Want You” careers site on mobile', aspect: '3 / 2' }],
+      },
+      {
+        type: 'media',
+        items: [
+          {
+            file: 'natixis_wewantou-site-3',
+            alt: 'An overview of the “We Want You” careers site’s pages',
+            aspect: '3 / 2',
+          },
+        ],
+      },
+      {
+        type: 'text',
+        variant: 'full',
+        items: [
+          {
+            label: 'Website',
+            body:
+              'The website acted as the central hub for the campaign, offering potential applicants a streamlined experience to explore career opportunities. It featured a structured navigation to guide users through different areas like IT and banking, and introduced the “unlock your future” concept, reinforcing personalization and engagement. The website also supported SEO optimization and analytics to track performance.',
+          },
+        ],
+      },
+      {
+        // The only pair on the page at their native aspect ratio (1080×1350):
+        // every other pairing here was cropping non-matching ratios into a
+        // shared box, so it's singles from here on except this one.
+        type: 'media',
+        items: [
+          { file: 'natixis_wewantou-post-1', alt: 'A “We Want You” Instagram post promoting paid internships', aspect: '1080 / 1350' },
+          { file: 'natixis_wewantou-post-2', alt: 'A “We Want You” Instagram post on choosing Natixis', aspect: '1080 / 1350' },
+        ],
+      },
+      {
+        type: 'media',
+        items: [
+          {
+            file: 'natixis_wewantou-site-7',
+            alt: 'Natixis’s office — the urban garden and mural-painted lounge',
+            aspect: '3 / 2',
+          },
+        ],
+      },
+      {
+        type: 'media',
+        items: [
+          {
+            file: 'natixis_wewantou-site-1',
+            alt: 'The careers site’s “How can I help?” department picker',
+            aspect: '3 / 2',
+          },
+        ],
+      },
+      {
+        type: 'media',
+        items: [
+          {
+            file: 'natixis_wewantou-site-6',
+            alt: 'The careers site’s “Are you the right fit?” page, with Natixis’s Top Employer accreditation',
+            aspect: '3 / 2',
+          },
+        ],
+      },
+      {
+        type: 'media',
+        items: [
+          {
+            file: 'natixis_wewantou-stories',
+            alt: 'Instagram Stories creative for the “We Want You” campaign',
+            aspect: '3 / 2',
+          },
+        ],
+      },
+      {
+        type: 'media',
+        items: [
+          {
+            file: 'natixis_wewantou-stories-1',
+            alt: 'The campaign’s tagline system: “To unlock your future,” “To make an impact” and more',
+            aspect: '3 / 2',
+          },
+        ],
+      },
+      {
+        type: 'text',
+        items: [
+          {
+            label: 'Events',
+            body:
+              'One of the main events proposed was a hackathon, which aimed to engage students and professionals in the fintech space, focusing on creating sustainable banking solutions. Additionally, a series of university activations took place across Porto, Braga, and Aveiro, where students participated in the “Spin & Win Tour,” an engaging activity where they could win Natixis-branded goodies while learning about internship opportunities.',
+          },
+          {
+            label: 'Paid Media Campaign',
+            body:
+              'A targeted paid media campaign was implemented to boost the reach of Natixis’s recruitment efforts. This included digital advertising and social media marketing, designed to raise awareness and attract talent to the company.',
+          },
+        ],
+      },
     ],
   },
 ]

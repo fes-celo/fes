@@ -14,12 +14,11 @@ import tailwindcss from '@tailwindcss/vite';
 //   /styleguide          internal reference surface (the live type scale)
 //   /dark/               dark-mode variants of the Creative Projects
 //                        Blueprint sub-pages, kept for design review
-//   example-case-study   the case-study template; placeholder copy until
-//                        real client content lands. Driven by `draft: true`
-//                        in src/lib/caseStudies.ts — a real entry omits the
-//                        flag and is indexed normally, so this path is the
-//                        only one that needs listing here by hand.
-const NOINDEX_PATHS = ['/styleguide', '/dark/', '/projects/example-case-study']
+//
+// Case studies carry the same decision per entry, via `draft: true` in
+// src/lib/caseStudies.ts — an entry marked draft renders `noindex` and must
+// be added here as `/projects/<slug>` by hand. None are drafts today.
+const NOINDEX_PATHS = ['/styleguide', '/dark/']
 
 // https://astro.build/config
 export default defineConfig({
