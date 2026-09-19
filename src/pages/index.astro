@@ -183,14 +183,20 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
          --space-heading-gap. */
     }
     <section
-      class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]"
+      class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)]"
       data-anim="reveal"
     >
       <div>
         <Heading as="h2" indent={false} class="text-h2 text-ink">Selected projects</Heading>
 
-        <div class="mt-[var(--space-heading-gap)] flex flex-col gap-7">
-          <div class="grid grid-cols-1 gap-7 lg:grid-cols-2">
+        {
+          /* gap-y-12 against the card's own gap-4: stacked cards need ~3x the
+             separation of a card's internal image-to-caption gap before the
+             eye groups each caption with the image above it. Columns are
+             separated by the grid itself, so gap-x stays at 7. */
+        }
+        <div class="mt-[var(--space-heading-gap)] flex flex-col gap-12">
+          <div class="grid grid-cols-1 gap-x-7 gap-y-12 lg:grid-cols-2">
             {
               featuredRow1.map((p) => (
                 <ProjectCard
@@ -209,7 +215,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
               ))
             }
           </div>
-          <div class="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-4" data-featured-row-2>
+          <div class="grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 lg:grid-cols-4" data-featured-row-2>
             {
               featuredRow2.map((p, i) => (
                 <div data-last-project={i === featuredRow2.length - 1 ? '' : undefined}>

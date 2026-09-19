@@ -29,7 +29,7 @@
  */
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import Heading from '../../components/Heading.astro'
-import { navItems } from '../../lib/nav'
+import { navItems, isNavActive } from '../../lib/nav'
 import Logo from '../../components/Logo.astro'
 ---
 
@@ -43,7 +43,14 @@ import Logo from '../../components/Logo.astro'
         {
           navItems.map((item) => (
             <li>
-              <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+              <a
+                href={item.href}
+                aria-current={isNavActive(Astro.url.pathname, item.href) ? 'page' : undefined}
+                class:list={[
+                  'text-body',
+                  isNavActive(Astro.url.pathname, item.href) ? 'text-ink' : 'text-ink-secondary hover:text-ink',
+                ]}
+              >
                 {item.label}
               </a>
             </li>
@@ -55,7 +62,7 @@ import Logo from '../../components/Logo.astro'
         aria-label="Open menu"
         aria-expanded="false"
         aria-controls="mobile-menu"
-        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg transition-transform active:scale-[0.97] lg:hidden"
         data-nav-toggle
       >
         Menu
@@ -76,7 +83,7 @@ import Logo from '../../components/Logo.astro'
         data-contact-form
         data-success="/contact/thank-you/"
       >
-        <div class="rounded-[var(--radius-card)] border border-line has-[[aria-invalid=true]]:border-clay-default">
+        <div class="rounded-[var(--radius-card)] border border-line transition-colors duration-200 has-[[aria-invalid=true]]:border-clay-default">
           <label class="block">
             <span class="sr-only">Your name</span>
             <input
@@ -92,7 +99,7 @@ import Logo from '../../components/Logo.astro'
         </div>
         <p id="contact-error-name" class="-mt-4 px-6 text-body-sm text-clay-default" data-error-for="name" hidden></p>
 
-        <div class="rounded-[var(--radius-card)] border border-line has-[[aria-invalid=true]]:border-clay-default">
+        <div class="rounded-[var(--radius-card)] border border-line transition-colors duration-200 has-[[aria-invalid=true]]:border-clay-default">
           <label class="block">
             <span class="sr-only">Your e-mail</span>
             <input
@@ -108,7 +115,7 @@ import Logo from '../../components/Logo.astro'
         </div>
         <p id="contact-error-email" class="-mt-4 px-6 text-body-sm text-clay-default" data-error-for="email" hidden></p>
 
-        <div class="rounded-[var(--radius-card)] border border-line has-[[aria-invalid=true]]:border-clay-default">
+        <div class="rounded-[var(--radius-card)] border border-line transition-colors duration-200 has-[[aria-invalid=true]]:border-clay-default">
           <label class="block">
             <span class="sr-only">Your message</span>
             <textarea
@@ -145,14 +152,41 @@ import Logo from '../../components/Logo.astro'
 
         <button
           type="submit"
-          class="mx-auto mt-4 rounded-[var(--radius-button)] bg-accent-default px-[1.375rem] py-[0.875rem] text-h4 font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-wait disabled:opacity-70"
+          class="mx-auto mt-4 inline-flex items-center gap-3 rounded-[var(--radius-button)] bg-accent-default px-[1.375rem] py-[0.875rem] text-h4 font-medium text-on-accent transition-[background-color,transform] hover:bg-accent-hover active:scale-[0.97] disabled:cursor-wait disabled:opacity-70"
         >
-          Send message
+          <span
+            data-submit-spinner
+            aria-hidden="true"
+            class="hidden size-4 shrink-0 animate-spin rounded-full border-2 border-on-accent/30 border-t-on-accent"
+          ></span>
+          <span data-submit-label>Send message</span>
         </button>
       </form>
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  /* A spinning ring is fast/small enough to sit outside the "slow looping
+     oscillation" reduced-motion warns against, but this site checks
+     prefers-reduced-motion for every loop, not just the slow ones — see
+     Hero's shader and MobileMenu's GSAP checks. A soft pulse carries the
+     same "something is happening" signal with no rotation. */
+  @media (prefers-reduced-motion: reduce) {
+    [data-submit-spinner] {
+      animation: contact-spinner-pulse 1.4s ease-in-out infinite;
+    }
+  }
+  @keyframes contact-spinner-pulse {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+</style>
 
 <script>
   import { onPageLoad } from '../../lib/lifecycle'
@@ -176,8 +210,10 @@ import Logo from '../../components/Logo.astro'
     )
     const status = form.querySelector<HTMLElement>('[data-form-status]')
     const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')
-    if (!status || !submit) return
-    const submitLabel = submit.textContent
+    const submitLabel = submit?.querySelector<HTMLElement>('[data-submit-label]')
+    const submitSpinner = submit?.querySelector<HTMLElement>('[data-submit-spinner]')
+    if (!status || !submit || !submitLabel) return
+    const idleLabel = submitLabel.textContent
 
     // JS owns validation from here on, so the browser's own bubbles (which
     // aren't announced consistently and can't be styled) stay out of it.
@@ -238,7 +274,8 @@ import Logo from '../../components/Logo.astro'
       }
 
       submit.disabled = true
-      submit.textContent = 'Sending\u2026'
+      submitLabel.textContent = 'Sending\u2026'
+      submitSpinner?.classList.remove('hidden')
 
       try {
         const response = await fetch(form.action, {
@@ -261,7 +298,8 @@ import Logo from '../../components/Logo.astro'
         console.error(error)
         showStatus(MESSAGES.failure)
         submit.disabled = false
-        submit.textContent = submitLabel
+        submitLabel.textContent = idleLabel
+        submitSpinner?.classList.add('hidden')
         status.focus?.()
       }
     })

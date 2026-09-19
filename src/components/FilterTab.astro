@@ -26,7 +26,11 @@ const { href = '#', category, active = false, class: className } = Astro.props
   href={href}
   data-category={category}
   aria-current={active ? 'true' : undefined}
-  class:list={['transition-colors', active ? 'text-ink' : 'text-neutral-300 hover:text-ink-secondary', className]}
+  class:list={[
+    'transition-[color,transform] active:scale-[0.97]',
+    active ? 'text-ink' : 'text-neutral-300 hover:text-ink-secondary',
+    className,
+  ]}
 >
   <slot />
 </a>

@@ -57,7 +57,7 @@
  * stay in sync with MOBILE_QUERY in the script — which gates on aspect ratio
  * as well as width, for the reason set out where it's declared.
  */
-import { navItems } from '../lib/nav'
+import { navItems, isNavActive } from '../lib/nav'
 import Heading from './Heading.astro'
 import Logo from './Logo.astro'
 ---
@@ -218,7 +218,14 @@ import Logo from './Logo.astro'
         {
           navItems.map((item) => (
             <li>
-              <a href={item.href} class="text-body text-azure-50 hover:text-white">
+              <a
+                href={item.href}
+                aria-current={isNavActive(Astro.url.pathname, item.href) ? 'page' : undefined}
+                class:list={[
+                  'text-body',
+                  isNavActive(Astro.url.pathname, item.href) ? 'text-white' : 'text-azure-50 hover:text-white',
+                ]}
+              >
                 {item.label}
               </a>
             </li>
@@ -230,7 +237,7 @@ import Logo from './Logo.astro'
         aria-label="Open menu"
         aria-expanded="false"
         aria-controls="mobile-menu"
-        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg transition-transform active:scale-[0.97] lg:hidden"
         data-nav-toggle
       >
         Menu

@@ -16,7 +16,7 @@ import { Image } from 'astro:assets'
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import Heading from '../../components/Heading.astro'
 import SectionLabel from '../../components/SectionLabel.astro'
-import { navItems } from '../../lib/nav'
+import { navItems, isNavActive } from '../../lib/nav'
 import heroLight from '../../assets/hero/hero-light.jpg'
 import Logo from '../../components/Logo.astro'
 
@@ -48,7 +48,14 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
           {
             navItems.map((item) => (
               <li>
-                <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                <a
+                  href={item.href}
+                  aria-current={isNavActive(Astro.url.pathname, item.href) ? 'page' : undefined}
+                  class:list={[
+                    'text-body',
+                    isNavActive(Astro.url.pathname, item.href) ? 'text-ink' : 'text-ink-secondary hover:text-ink',
+                  ]}
+                >
                   {item.label}
                 </a>
               </li>
@@ -60,7 +67,7 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
           aria-label="Open menu"
           aria-expanded="false"
           aria-controls="mobile-menu"
-          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg transition-transform active:scale-[0.97] lg:hidden"
           data-nav-toggle
         >
           Menu

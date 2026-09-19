@@ -12,7 +12,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import ProjectsFilter from '../../components/ProjectsFilter.astro'
 import ProjectsGrid from '../../components/ProjectsGrid.astro'
-import { navItems } from '../../lib/nav'
+import { navItems, isNavActive } from '../../lib/nav'
 import { projects, projectCategories } from '../../lib/projects'
 import Logo from '../../components/Logo.astro'
 ---
@@ -32,7 +32,14 @@ import Logo from '../../components/Logo.astro'
         {
           navItems.map((item) => (
             <li>
-              <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+              <a
+                href={item.href}
+                aria-current={isNavActive(Astro.url.pathname, item.href) ? 'page' : undefined}
+                class:list={[
+                  'text-body',
+                  isNavActive(Astro.url.pathname, item.href) ? 'text-ink' : 'text-ink-secondary hover:text-ink',
+                ]}
+              >
                 {item.label}
               </a>
             </li>
@@ -44,7 +51,7 @@ import Logo from '../../components/Logo.astro'
         aria-label="Open menu"
         aria-expanded="false"
         aria-controls="mobile-menu"
-        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg transition-transform active:scale-[0.97] lg:hidden"
         data-nav-toggle
       >
         Menu
@@ -91,21 +98,48 @@ import Logo from '../../components/Logo.astro'
       label!.textContent = activeCategory === 'All' ? 'All Projects' : activeCategory
     }
 
+    // Matches ProjectsGrid's `transition-opacity duration-300` on
+    // [data-project-item] — a card being filtered out fades on the same
+    // timing as one fading in, instead of vanishing on the frame the
+    // category changes while its neighbours ease in beside it.
+    const HIDE_DELAY_MS = 300
+    const hideTimers = new Map<HTMLElement, number>()
+
     function applyFilter(category: string) {
       items.forEach((item) => {
         const cats = (item.dataset.category ?? '').split(',')
         const match = category === 'All' || cats.includes(category)
+        const pendingHide = hideTimers.get(item)
+
         if (match) {
-          item.classList.remove('hidden')
+          // A card re-matched while its fade-out timer is still pending
+          // (fast re-filtering) keeps its `hidden` class off — cancel the
+          // timer rather than let it hide a card that's supposed to show.
+          if (pendingHide) {
+            window.clearTimeout(pendingHide)
+            hideTimers.delete(item)
+          }
+          if (item.classList.contains('hidden')) {
+            item.classList.remove('hidden')
+            item.classList.add('opacity-0')
+            // Double rAF: forces the browser to paint the opacity-0 state
+            // before it's removed, so the fade-in transition actually runs
+            // instead of the two class changes collapsing into one frame.
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => item.classList.remove('opacity-0'))
+            })
+          } else {
+            item.classList.remove('opacity-0')
+          }
+        } else if (!pendingHide && !item.classList.contains('hidden')) {
           item.classList.add('opacity-0')
-          // Double rAF: forces the browser to paint the opacity-0 state
-          // before it's removed, so the fade-in transition actually runs
-          // instead of the two class changes collapsing into one frame.
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => item.classList.remove('opacity-0'))
-          })
-        } else {
-          item.classList.add('hidden')
+          hideTimers.set(
+            item,
+            window.setTimeout(() => {
+              item.classList.add('hidden')
+              hideTimers.delete(item)
+            }, HIDE_DELAY_MS),
+          )
         }
       })
     }
@@ -152,6 +186,8 @@ import Logo from '../../components/Logo.astro'
       trigger!.removeEventListener('click', onTriggerClick)
       trigger!.removeEventListener('keydown', onTriggerKeydown)
       optionListeners.forEach((opt) => opt.removeEventListener('click', onOptionClick))
+      hideTimers.forEach((id) => window.clearTimeout(id))
+      hideTimers.clear()
     }
   }
 

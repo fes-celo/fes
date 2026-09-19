@@ -38,3 +38,12 @@ export const breadcrumbLabels: Record<string, string> = {
   'creative-projects-blueprint': 'Creative Projects Blueprint',
   projects: 'Projects',
 }
+
+// Every navItems href is a section root ('/systems/', '/agency/', …), so
+// `startsWith` marks "Systems" active for its sub-pages too
+// (/systems/creative-projects-blueprint/branding/) rather than only the
+// exact index. None of navItems is '/', so this never falsely matches the
+// homepage.
+export function isNavActive(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(href)
+}

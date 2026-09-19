@@ -11,6 +11,11 @@
  * Added here rather than as a new component since it's the same "project
  * card" concept with a different image-bearing layout.
  *
+ * The card's own gap-4 must stay well under the gap of whatever grid lays
+ * these out (gap-y-12 on the homepage): a thumbnail closer to the next card
+ * than to its own caption makes a column read as alternating bands of image
+ * and text instead of discrete cards.
+ *
  * The icon chip is homepage-only — the /projects/ grid's card (Figma node
  * 770:948) has no icon at all, just title+description under the thumbnail.
  * The whole icon <span> is gated on the `icon` prop (not just the <Image>
@@ -103,8 +108,15 @@ const featuredTitleClasses: Record<string, string> = {
 // their own font-weight — defends against an ambient `font-medium` on a
 // parent leaking through the shared `--tw-font-weight` custom property,
 // which utilities resolve through as a fallback rather than a hard value.
+// Both tiers pin to text-body-sm at every breakpoint (lg's lg:text-body
+// escalation was removed — see docs/parked-decisions.md #43): at the 1440
+// reference that escalation put the lg row's description at the exact same
+// size as the sm row's title, so two elements playing different roles
+// (a caption under a big card vs. a heading on a small one) collided by
+// coincidence. Title vs. description is now carried by weight + color only,
+// which is already how the sm tier distinguishes them.
 const featuredDescriptionClasses: Record<string, string> = {
-  lg: 'text-body-sm lg:text-body font-normal',
+  lg: 'text-body-sm font-normal',
   sm: 'text-body-sm font-normal',
 }
 
@@ -162,7 +174,7 @@ const TitleTag = titleAs
 
 {
   variant === 'featured' ? (
-    <FeaturedTag href={href} class:list={['group flex flex-col gap-6', className]}>
+    <FeaturedTag href={href} class:list={['group flex flex-col gap-4', className]}>
       <div class:list={['relative overflow-hidden rounded-[var(--radius-card)] bg-accent-tint', imageAspect]}>
         {
           /* No cover shot yet → a LABELLED placeholder, not an unannotated
@@ -200,15 +212,18 @@ const TitleTag = titleAs
         )}
       </div>
       {
-        /* items-start (not items-center): the title's top edge aligns with
-           the logo's top edge regardless of description line count — a
-           1-line vs 2-line description grows the block downward, not
-           around a shared center. */
+        /* items-center (not items-start): a 1-line vs 2-line description
+           grows the text block by a full line-height, so pinning to the top
+           left the 54px icon's bottom edge landing anywhere from +3.5px to
+           -6.1px off the text block's own bottom depending on which card —
+           see docs/parked-decisions.md #43. Centering keeps the icon's
+           optical weight balanced against the text regardless of how many
+           lines the description wraps to. */
       }
-      <div class="flex items-start gap-4">
+      <div class="flex items-center gap-4">
         {icon && (
           <span
-            class="flex size-[3.375rem] shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-control)]"
+            class="flex size-[3.375rem] shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-card)]"
             style={`background-color:${iconBg}`}
           >
             {
@@ -226,7 +241,15 @@ const TitleTag = titleAs
           </span>
         )}
         <div class="flex min-w-0 flex-col gap-1">
-          <TitleTag class:list={[featuredTitleClasses[size], 'truncate text-ink']}>{title}</TitleTag>
+          {
+            /* line-clamp-2, not truncate: a single-line ellipsis was cutting
+               "Startup Portugal | Social Media Boost" mid-word (see
+               docs/parked-decisions.md #43) — a clipped client name in the
+               showcase section is worse than a second line. Clamped rather
+               than left to wrap freely so one long title can't push a card
+               taller than its row-mates. */
+          }
+          <TitleTag class:list={[featuredTitleClasses[size], 'line-clamp-2 text-ink']}>{title}</TitleTag>
           {description && <p class:list={[featuredDescriptionClasses[size], 'text-ink-muted']}>{description}</p>}
         </div>
       </div>

@@ -839,3 +839,196 @@ deploy` to just upload `dist/` and skip the wizard entirely; `_redirects` and
 inert but harmless, or can be removed. If a real server route appears, this
 is also decision 18's "Workers with static assets" fallback already arriving
 early — add `main` and the adapter back into `astro.config.mjs` too.
+
+### 36. The primary nav marks the current page/section
+
+**Decided:** added `isNavActive(pathname, href)` to `src/lib/nav.ts`
+(`pathname === href || pathname.startsWith(href)`) and wired it into every
+inline copy of the primary nav — `BaseLayout.astro`'s default header,
+`Hero.astro`'s and `MobileMenu.astro`'s own nav, and the per-page
+`hideHeader` nav block repeated on the legal pages, Contact, Projects,
+Careers, Tech Refresh, and each Systems/Creative Projects Blueprint page (18
+call sites in total). The active item renders in the same "on" color the
+rest of the site already uses for a selected state (`text-ink` on light
+navs, `text-white` on the dark hero/careers/CPB-hub navs and the mobile
+menu, matching `FilterTab`'s ink/neutral-300 convention) and carries
+`aria-current="page"`. `startsWith` rather than an exact match, so a Systems
+sub-page (`/systems/creative-projects-blueprint/branding/`) still lights up
+"Systems" in the nav. The homepage is unaffected — `/` isn't in `navItems`,
+so nothing false-matches it.
+
+**Why:** none of the 18 nav copies indicated the current page at all — every
+link rendered identically regardless of route. Wayfinding ("where am I?")
+failing on every page view is a bigger cost than the one-line-per-call-site
+fix, and the active/inactive colors already existed elsewhere in the design
+system; this only applies them here.
+
+**Reopen if:** a design pass gives the nav a different active-state
+treatment (underline, dot, weight change) — swap the one conditional class
+in `isNavActive`'s 18 call sites, the comparison function itself doesn't
+change.
+
+### 37. Case study blocks get the sitewide `data-anim="reveal"` treatment
+
+**Decided:** `src/pages/projects/[slug].astro`'s right-column blocks — each
+media grid and each text-passage group — now carry `data-anim="reveal"`,
+using the same `motion.ts` handler and `REVEAL` tuning (y:24, 0.8s, 0.08
+stagger, `power2.out`, triggered at `top 85%`) as every other page.
+
+**Why:** the case study template was rebuilt as the sticky-rail +
+block-based layout (see the most recent commit) with no `data-anim`
+anywhere in it — the one template on the site where the site's own motion
+language was silent, so images and copy teleported in on scroll instead of
+entering the way they do everywhere else. This wires markup into a handler
+that already exists; it doesn't add a new animation path, so it inherits
+reduced-motion (cross-fade, no travel) and the pre-hide/safety-deadline
+behavior for free.
+
+**Reopen if:** a case study's block rhythm is deliberately meant to feel
+different from the rest of the site (unlikely — nothing in `caseStudies.ts`
+suggests that) — then scope the attribute to specific block types instead
+of all of them.
+
+### 38. Contact form: eased invalid-border, and a spinner on submit
+
+**Decided:** the three field wrappers in `src/pages/contact/index.astro`
+gained `transition-colors duration-200` alongside the existing
+`has-[[aria-invalid=true]]:border-clay-default` rule, so the border eases to
+the error color instead of snapping. The submit button gained a small
+`animate-spin` ring (`data-submit-spinner`, hidden by default) next to a
+`data-submit-label` span; the script shows the spinner and swaps the label
+to "Sending…" on submit, and reverts both on failure (success navigates away
+before either matters). Under `prefers-reduced-motion: reduce` the spinner
+stops rotating and pulses opacity instead (1.4s ease-in-out).
+
+**Why:** this is the only lead-gen form on the site. An instant hard-cut to
+a red border on blur reads as an alarm rather than a correction, and the
+submit button's only feedback was a text swap — easy to miss on the site's
+single highest-stakes click, with nothing to look at during the network
+round trip before the page navigates to `/contact/thank-you/`.
+
+**Reopen if:** the Pages Function starts returning structured field errors
+(decision 22 already flags this) — the spinner/label wiring is independent
+of that and doesn't need to change either way.
+
+### 39. ProjectsFilter: filtered-out cards fade before they're hidden
+
+**Decided:** `applyFilter` in `src/pages/projects/index.astro` no longer
+adds `hidden` to a non-matching `[data-project-item]` in the same frame the
+category changes. It adds `opacity-0` (the wrapper already carries
+`transition-opacity duration-300` from `ProjectsGrid.astro`) and hides the
+element 300ms later via a tracked `setTimeout`, matching the fade-in
+duration the matching cards already use. A `Map<HTMLElement, number>` of
+pending hide timers is cancelled per-item if the card is re-matched before
+its timer fires (fast re-filtering), and the whole map is cleared in the
+feature's teardown.
+
+**Why:** matches faded in over 300ms while non-matches vanished on the
+`hidden` class instantly — asymmetric enter/exit for what's visually the
+same interaction. Without the pending-timer bookkeeping, clicking two
+filters in quick succession could strand a card mid-fade or hide one that
+had just been re-matched.
+
+**Reopen if:** the grid moves to a layout where `hidden` cards still occupy
+grid space (a CSS Grid collapse rather than remove-from-flow) — then the
+timing can likely move to a single `transitionend` listener instead of a
+matched-duration timeout.
+
+### 40. Project card icon chip uses the 4px card radius, not `--radius-control`
+
+**Decided:** the client-brand icon chip in `ProjectCard.astro`
+(`variant="featured"`) switched from `rounded-[var(--radius-control)]` (8px)
+to `rounded-[var(--radius-card)]` (4px), matching the thumbnail directly
+above it. The token itself was not changed — `--radius-control` still reads
+0.5rem and its ten other call sites (SystemCard, the addon carousels, the
+careers/homepage arrow buttons, the testimonial portrait) are untouched.
+
+**Why:** requested directly. The chip and the thumbnail are a single visual
+unit stacked 16px apart, and two different corner radii inside one card read
+as an inconsistency rather than a distinction. The global.css comment
+deriving `--radius-control` cites "the 72px client-icon avatars" — a
+different, larger element — so this 54px chip was never the shape that token
+was calibrated for.
+
+**Reopen if:** the chip grows substantially (past ~72px), where 4px starts
+to look like an unintentional near-square rather than a deliberate one.
+
+### 41. A featured card's internal gap is pinned below its grid's gap
+
+**Decided:** `ProjectCard.astro`'s featured root went from `gap-6` (24px) to
+`gap-4` (16px), and the homepage's two Selected Projects grids went from a
+uniform `gap-7` to `gap-x-7 gap-y-12` (28px across columns, 48px between
+stacked cards), with the row-1/row-2 flex wrapper matching at `gap-12`. The
+resulting ratio is 3:1 — 48px between cards against 16px inside one.
+
+**Why:** at 24px inside a card and 28px between cards, the ratio was 1.17:1,
+below the ~2:1 that Gestalt proximity needs before the eye groups a caption
+with the image above it. The section read as alternating bands of image and
+text rather than six discrete cards, worst in the single-column mobile
+layout where the gap is the only separator. Measured on the live page, not
+inferred. `/projects/` inherits the component half of this fix and improves
+from 1.17:1 to 1.75:1 below `lg`; its `lg:gap-y-20` was already healthy.
+
+**Reopen if:** the card gains a third stacked element (a tag row under the
+description, say) — then the internal rhythm needs re-deriving as a whole
+rather than as one gap.
+
+### 42. Selected Projects pays no bottom padding; Stats owns the gap
+
+**Decided:** the Selected Projects `<section>` on the homepage dropped
+`pb-[var(--space-section-y)]`. The gap to the Stats section is now supplied
+solely by Stats' own `py-[var(--space-section-y)]`.
+
+**Why:** the two paddings stacked into 240px at the 1440 reference and 192px
+on a phone — double the section rhythm used everywhere else on the page, and
+about a quarter of a phone screen of empty white between the last card and
+"Our Impact". The section already declined to pay its own *top* padding for
+the same reason (it runs `pt-[var(--space-gutter)]` because the Hero above
+it owns that space); the bottom simply never got the same treatment. Safe
+for the light-to-dark flip because `.invert-zone` paints
+`background-color: var(--color-surface)` and the section's own `bg-surface`
+tracks the same token, so the removed band was never a distinct color.
+
+**Reopen if:** Stats stops being the section that follows Selected Projects
+— the next section has to be checked for its own top padding, since this
+one no longer contributes any.
+
+### 43. Featured card meta row: centered icon, one description size, wrapped title
+
+**Decided:** three related fixes to `ProjectCard.astro`'s `variant="featured"`
+meta row (icon + title + description), all in the same block since they're
+the same row:
+
+- The icon/text flex row switched from `items-start` to `items-center`.
+- `featuredDescriptionClasses.lg` dropped its `lg:text-body` escalation, so
+  both size tiers now render description copy at a flat `text-body-sm`.
+- The title switched from `truncate` (single-line ellipsis) to
+  `line-clamp-2`.
+
+**Why:**
+- *Alignment* — `items-start` pinned the icon's top edge to the text
+  block's top edge, but a 1-line vs 2-line description changes the text
+  block's height by a full line, so the icon's bottom edge landed anywhere
+  from +3.5px to -6.1px off the text's own bottom depending on which card.
+  Centering keeps the icon's optical weight balanced regardless of
+  description length, and needs no per-card exception.
+- *Type collision* — at the 1440 reference, the large row's description
+  (`text-body-sm lg:text-body`) and the small row's title (`text-body`)
+  both resolved to 17.4px: two elements playing different roles landing on
+  an identical size by coincidence, which read as the two rows "arguing"
+  rather than sitting in one hierarchy. Pinning descriptions to
+  `text-body-sm` at every breakpoint removes the collision; title vs.
+  description is still legible as weight (`font-medium` vs `font-normal`)
+  and color (`text-ink` vs `text-ink-muted`), the same distinction the
+  small tier already relied on alone.
+- *Truncation* — `truncate` clipped "Startup Portugal | Social Media
+  Boost" mid-word at 1440px. A clipped client name in the site's flagship
+  project showcase is a worse failure than a second line. `line-clamp-2`
+  rather than an unclamped wrap, so one unusually long title still can't
+  grow a card taller than its row-mates.
+
+**Reopen if:** a future title needs 3 lines to read (raise the clamp and
+re-check the card's `min-h`), or a design pass wants title/description
+distinguished by size again — then the two need a size *gap* wide enough
+that neither tier's title and the other tier's description can land on the
+same computed pixel value at any viewport between 375 and 1920.

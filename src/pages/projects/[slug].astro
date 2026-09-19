@@ -128,6 +128,7 @@ const dropPath = `src/assets/case-studies/${caseStudy.slug}/`
         caseStudy.blocks.map((block) =>
           block.type === 'media' ? (
             <div
+              data-anim="reveal"
               class:list={[
                 'grid gap-[var(--cs-gap)]',
                 block.items.length > 1 && 'grid-cols-1 sm:grid-cols-2',
@@ -171,7 +172,7 @@ const dropPath = `src/assets/case-studies/${caseStudy.slug}/`
                pictures butt up against each other at --cs-gap, but copy
                running that tight into the next picture reads as a caption
                for it rather than as its own section. */
-            <div class="flex flex-col gap-10 pt-1.5 pb-14 last:pb-0 lg:pb-20">
+            <div data-anim="reveal" class="flex flex-col gap-10 pt-1.5 pb-14 last:pb-0 lg:pb-20">
               {block.items.map((passage) => (
                 <div class="flex flex-col gap-2">
                   {passage.label && <h2 class="text-body-sm text-neutral-400">{passage.label}</h2>}
@@ -181,6 +182,7 @@ const dropPath = `src/assets/case-studies/${caseStudy.slug}/`
             </div>
           ) : (
             <div
+              data-anim="reveal"
               class="grid grid-cols-1 gap-10 pt-1.5 pb-14 last:pb-0 sm:grid-cols-2 sm:gap-[var(--cs-gap)] lg:pb-20"
             >
               {block.items.map((passage) => (
