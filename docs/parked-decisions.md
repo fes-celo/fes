@@ -812,3 +812,30 @@ clipping — an unclipped track would show a 518px overhang. Note this is a
 different mechanism from decision 32's per-gesture suspension: that one hands
 snap back and forth with JS scrolling, this one is a one-shot for an entrance
 that never repeats (`once: true`).
+
+### 35. A static-assets `wrangler.jsonc` is back, but with no adapter and no `main`
+
+**Decided:** re-added `wrangler.jsonc` at the repo root — just `name`,
+`compatibility_date`, and `assets.directory: "./dist"`. No `main`, no
+`@astrojs/cloudflare`, nothing in `astro.config.mjs` changes.
+
+**Why:** decision 18 removed `wrangler.jsonc` on the assumption the live
+target was Cloudflare Pages' native git integration, which uploads whatever
+`npm run build` produces without needing a Wrangler config at all. The actual
+project runs `npx wrangler deploy` as its deploy command (Workers-style, not
+`wrangler pages deploy`) — the build log calls it "Worker Name: fes". With no
+config file present, that command doesn't know what to deploy, so Wrangler's
+non-interactive auto-setup decides this is a fresh Astro project and runs
+`astro add cloudflare` on its own, reinstalling an `@astrojs/cloudflare`
+version whose `renderForPrerender` import doesn't exist in Astro 7.2 —
+`[MISSING_EXPORT] "renderForPrerender" is not exported by
+"astro/dist/core/app/entrypoints/index.js"` — and the deploy fails on every
+push. A config file with `assets.directory` set is enough for `wrangler
+deploy` to just upload `dist/` and skip the wizard entirely; `_redirects` and
+`_headers` inside it are read the same way Pages read them.
+
+**Reopen if:** the Cloudflare project is ever recreated as classic Pages
+(native git integration, no `wrangler deploy` step) — then this file is
+inert but harmless, or can be removed. If a real server route appears, this
+is also decision 18's "Workers with static assets" fallback already arriving
+early — add `main` and the adapter back into `astro.config.mjs` too.

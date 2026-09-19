@@ -1,0 +1,13 @@
+{
+  // Static-assets-only Worker: no `main`, so `wrangler deploy` just uploads
+  // `dist/` as-is. Without this file, a git-connected deploy that runs
+  // `wrangler deploy` finds no config, treats the project as unconfigured,
+  // and in non-interactive CI auto-runs `astro add cloudflare` — reinstalling
+  // an @astrojs/cloudflare version that doesn't match Astro 7's exports and
+  // failing the build. See docs/parked-decisions.md §35.
+  "name": "fes",
+  "compatibility_date": "2026-09-19",
+  "assets": {
+    "directory": "./dist"
+  }
+}
