@@ -27,3 +27,14 @@ export const socialItems = [
   { label: 'Instagram', href: 'https://instagram.com/wearefesagency' },
   { label: 'Behance', href: 'https://www.behance.net/wearefesagency' },
 ]
+
+// Human labels for the URL segments that appear as intermediate crumbs in
+// the BreadcrumbList structured data (see SEO.astro). The LAST crumb of any
+// page is the page's own title, so only segments that have pages beneath
+// them need an entry here; a path with an unlabelled intermediate segment
+// gets no breadcrumb markup rather than a wrong one.
+export const breadcrumbLabels: Record<string, string> = {
+  systems: 'Systems',
+  'creative-projects-blueprint': 'Creative Projects Blueprint',
+  projects: 'Projects',
+}

@@ -3,15 +3,27 @@
 <title>Bake hero assets</title>
 <!--
   Regenerates the three baked assets the homepage hero depends on. Run this
-  whenever public/hero/hero-heatmap-shape.webp changes — all three are derived
-  from it and have to move together.
+  whenever src/assets/hero/hero-heatmap-shape.webp changes — all three are
+  derived from it and have to move together.
+
+  The shape lives in src/assets/ rather than public/ because nothing requests
+  it at runtime: it is an input to this page and to nothing else, and in
+  public/ it was being published to dist/hero/ on every build for no one
+  (247KB at the time it was moved). Vite serves the project root in dev, so
+  /src/assets/... is fetchable here even though it is not in public/. That
+  only holds while the dev server is up, which is already true of this page.
 
   How to run:
     1. npm run dev
     2. open http://localhost:<port>/../tools/bake-hero-assets.html — or simply
        drop this file into public/ temporarily and hit /bake-hero-assets.html,
-       since it needs to be same-origin with /hero/ and with node_modules.
+       since it needs to be same-origin with /src/assets/ and node_modules.
     3. click Bake; three files download. Move them into public/hero/.
+       Browsers block the second and third of a run of programmatic downloads
+       until you allow them for the origin — if only one file arrives, that is
+       what happened, not a failed bake. The log below prints a line per file
+       as it goes; three lines and "done" means all three were produced.
+       Delete the public/ copy of this page afterwards, or it ships.
 
   Why this exists as a browser page rather than a node script:
   toProcessedHeatmap() is canvas/DOM code, and the stills need a live WebGL
@@ -40,7 +52,7 @@
   } from '/node_modules/@paper-design/shaders/dist/index.js'
 
   // Keep in sync with src/components/Hero.astro.
-  const SHAPE = '/hero/hero-heatmap-shape.webp'
+  const SHAPE = '/src/assets/hero/hero-heatmap-shape.webp'
   const MOBILE_OFFSET_X = -0.2
   const STILL_SIZE = 1400
   const STILL_QUALITY = 0.88

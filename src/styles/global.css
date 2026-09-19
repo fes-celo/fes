@@ -9,23 +9,44 @@
 
 /* ---------- Fonts ---------- */
 
-/* Inter — self-hosted fallback so text stays close to brand if Aeonik fails
-   to load or is still swapping in. Weights matched to the Aeonik set below
-   (400/500/700).
+/* Metric-matched fallbacks for Aeonik's swap period.
 
-   `latin-<weight>.css`, not `<weight>.css`: the unsuffixed entry point pulls
-   EVERY subset fontsource ships — cyrillic, cyrillic-ext, greek, greek-ext,
-   vietnamese, latin-ext — so three weights emitted 21 woff2 files into the
-   build and 21 @font-face blocks into this bundle (12% of it) for a site
-   that is English-only. Nothing here renders Cyrillic, Greek or Vietnamese,
-   and this is a FALLBACK face at that: the files were never even fetched,
-   they just shipped. Three latin-only faces cover it.
+   These used to be three self-hosted Inter faces (@fontsource/inter). Inter
+   was never the face anyone saw: Aeonik is preloaded and `font-display:
+   swap` shows the fallback only until it arrives — but the fallback was
+   itself a web font, so on a slow connection the browser had to download
+   Inter to paint the provisional text and then download Aeonik to replace
+   it, and every line reflowed when the metrics changed.
 
-   Reopen if a PT locale lands that needs more than latin (it won't — PT is
-   latin-1) or if the site picks up a language outside latin/latin-ext. */
-@import "@fontsource/inter/latin-400.css";
-@import "@fontsource/inter/latin-500.css";
-@import "@fontsource/inter/latin-700.css";
+   A `local()` face costs no request. `size-adjust` and the *-override
+   descriptors scale the local font to Aeonik's average glyph width and
+   vertical metrics (Aeonik: unitsPerEm 1000, ascent 1000, descent 200,
+   lineGap 0, xAvgCharWidth 497 — read from the woff2 with fontkit), so
+   the swap changes the shapes of the letters but not where the lines fall.
+   Two faces because each local font needs its own ratio; the browser skips
+   a `local()` it can't find and moves to the next family in the stack.
+
+   Recompute if the Aeonik files are replaced:
+     size-adjust     = (aeonik.xAvg / aeonik.upm) / (local.xAvg / local.upm)
+     ascent-override = (aeonik.ascent / aeonik.upm) / size-adjust
+     descent-override = (aeonik.descent / aeonik.upm) / size-adjust */
+@font-face {
+  font-family: "Aeonik Fallback";
+  src: local("Helvetica Neue"), local("HelveticaNeue");
+  size-adjust: 111.2%;
+  ascent-override: 89.9%;
+  descent-override: 18%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Aeonik Fallback Arial";
+  src: local("Arial"), local("ArialMT");
+  size-adjust: 112.6%;
+  ascent-override: 88.8%;
+  descent-override: 17.8%;
+  line-gap-override: 0%;
+}
 
 @font-face {
   font-family: "Aeonik";
@@ -193,7 +214,7 @@
 
   /* ---------- 3. Type ---------- */
 
-  --font-sans: "Aeonik", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Aeonik", "Aeonik Fallback", "Aeonik Fallback Arial", ui-sans-serif, system-ui, sans-serif;
   --font-fono: "Aeonik Fono", ui-monospace, monospace;
 
   /*
@@ -652,4 +673,47 @@
   [data-projects-row]:has([data-project-card]:hover) [data-project-card]:not(:hover) > * {
     opacity: 0.3;
   }
+}
+
+/*
+  Entrance pre-hide for the `data-anim` choreography in src/lib/motion.ts.
+
+  Without this every navigation painted the page fully visible and the
+  entrance began with a visible snap to opacity 0 once the bundle ran. The
+  rule only exists under `html.js`, which a two-line inline script in
+  BaseLayout's <head> sets before first paint, so a browser without JS (or
+  with it blocked) never sees it and gets the plain visible page.
+
+  `visibility` rather than `opacity`: it is what GSAP does NOT animate here,
+  so the two never fight, and a hidden element is also skipped by
+  assistive tech until it is really there.
+
+  A reveal section animates its content children, never its own box (rule 2
+  in motion.ts), so for sections it is the children that are hidden — the
+  section's background stays painted exactly where the layout put it.
+
+  motion.ts adds `anim-armed` in the same frame it writes the inline
+  starting state, which switches the element from "hidden by CSS" to
+  "hidden by GSAP" without a painted frame in between.
+
+  The animation is the safety net: if the bundle never arrives, the pre-hide
+  lifts by itself after PREHIDE_SAFETY_MS (motion.ts) — the delay below has
+  to match that constant. `forwards` keeps the lifted state.
+
+  The net only covers a bundle that never ARRIVES, not a document that is
+  never RENDERED: a background tab advances no animation timeline, so this
+  rule cannot lift there. That case is motion.ts's to handle, and it does —
+  it arms without a tween rather than parking on a promise (see the
+  `document.hidden` branch in `initMotion`). Nothing here may ever become
+  the only thing standing between a hidden tab and a blank page.
+*/
+@keyframes anim-prehide-lift {
+  to {
+    visibility: visible;
+  }
+}
+html.js [data-anim]:not(.anim-armed),
+html.js section[data-anim='reveal']:not(.anim-armed) > * {
+  visibility: hidden;
+  animation: anim-prehide-lift 0s 2.5s forwards;
 }

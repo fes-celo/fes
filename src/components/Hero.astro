@@ -9,16 +9,25 @@
  * Background is the paper-design Heatmap shader (@paper-design/shaders),
  * mounted only here — no other page carries a shader hero, so nothing else
  * pays the WebGL cost. The uniform values below are copied from the Paper
- * editor. Speed is intentionally low since ShaderMount halts its rAF
- * loop entirely at speed 0, and pauses whenever the section is offscreen or
- * the tab is hidden either way.
+ * editor. Speed is intentionally low. ShaderMount halts its rAF loop
+ * entirely at speed 0 and pauses itself while the tab is hidden — but not
+ * while this section is merely covered, because a sticky element never
+ * leaves the viewport. The script below closes that gap: the shader is
+ * stopped once the page has scrolled past the hero, rendered at CSS
+ * resolution rather than the library's 2x minimum, and not mounted at all
+ * under prefers-reduced-motion or Save-Data, where the still is the same
+ * image anyway.
  *
  * Three assets in public/hero/, all baked by tools/bake-hero-assets.html —
- * regenerate all three together whenever hero-heatmap-shape.webp changes:
+ * regenerate all three together whenever the shape changes:
  *
- * - hero-heatmap-shape.webp     the authored 1:1 source, build-time input only
  * - hero-heatmap-processed.webp the shape run through toProcessedHeatmap()
  * - hero-still{,-mobile}.webp   frame 0 of the finished shader, gradient baked in
+ *
+ * The shape they are all derived from is the authored 1:1 source at
+ * src/assets/hero/hero-heatmap-shape.webp. It is deliberately *not* in
+ * public/: nothing fetches it at runtime, so publishing it only added weight
+ * to dist/. The bake page reads it through Vite's dev server instead.
  *
  * toProcessedHeatmap() packs three blur passes of the shape into one RGB
  * texture, and it used to run in the browser on every page load: ~810ms of
@@ -45,10 +54,12 @@
  * change how the page looks today, which is why it isn't done here.
  *
  * The mobile still bakes in MOBILE_OFFSET_X, so its media query below has to
- * stay in sync with MOBILE_QUERY in the script.
+ * stay in sync with MOBILE_QUERY in the script — which gates on aspect ratio
+ * as well as width, for the reason set out where it's declared.
  */
 import { navItems } from '../lib/nav'
 import Heading from './Heading.astro'
+import Logo from './Logo.astro'
 ---
 
 {
@@ -114,15 +125,7 @@ import Heading from './Heading.astro'
      that invariant is preserved, not replaced. The content only needs about
      420px, so nothing is squashed when the floor gives way. */
 }
-{
-  /* data-astro-rerun: ClientRouter skips any script (inline included) whose
-     exact text already ran once, and swapping the document also wipes the
-     <html> style attribute this writes --hero-vh into — so without the flag
-     the variable is gone the moment you navigate back here and the hero
-     silently falls back to 100lvh. The listeners are bound once behind a
-     window flag, since only the property write needs repeating. */
-}
-<script is:inline data-astro-rerun>
+<script is:inline>
   ;(function () {
     function setHeroVh() {
       const visible = window.visualViewport ? window.visualViewport.height : window.innerHeight
@@ -160,8 +163,18 @@ import Heading from './Heading.astro'
        is exactly the delay the still exists to remove. The two `media` attrs
        partition the viewport so only one of them is ever fetched. */
   }
-  <link rel="preload" as="image" href="/hero/hero-still.webp" media="(min-width: 1024px)" />
-  <link rel="preload" as="image" href="/hero/hero-still-mobile.webp" media="(max-width: 1023px)" />
+  <link
+    rel="preload"
+    as="image"
+    href="/hero/hero-still.webp"
+    media="not all and (max-width: 1023px) and (max-aspect-ratio: 3/5)"
+  />
+  <link
+    rel="preload"
+    as="image"
+    href="/hero/hero-still-mobile.webp"
+    media="(max-width: 1023px) and (max-aspect-ratio: 3/5)"
+  />
   <div
     id="hero-still"
     aria-hidden="true"
@@ -199,7 +212,7 @@ import Heading from './Heading.astro'
   <nav aria-label="Primary" class="relative z-10">
     <div class="flex items-start justify-between gap-6">
       <a href="/" class="shrink-0">
-        <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        <Logo variant="light" class="h-[var(--nav-logo-h)] w-auto" />
       </a>
       <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
         {
@@ -251,14 +264,15 @@ import Heading from './Heading.astro'
 </section>
 
 <style>
-  /* Breakpoint has to match MOBILE_QUERY in the script: the mobile still has
-     MOBILE_OFFSET_X baked into it, so the two must switch at the same width
-     or the cross-fade jumps sideways. */
+  /* Query has to match MOBILE_QUERY in the script — both halves of it. The
+     mobile still has MOBILE_OFFSET_X baked into it, so the two must switch
+     together or the cross-fade jumps sideways; and the pan only fits inside
+     the texture below 3/5, which is derived where MOBILE_QUERY is declared. */
   #hero-still {
     background-image: url('/hero/hero-still.webp');
   }
 
-  @media (max-width: 1023px) {
+  @media (max-width: 1023px) and (max-aspect-ratio: 3/5) {
     #hero-still {
       background-image: url('/hero/hero-still-mobile.webp');
     }
@@ -266,6 +280,7 @@ import Heading from './Heading.astro'
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import {
     ShaderMount,
     heatmapFragmentShader,
@@ -317,7 +332,25 @@ import Heading from './Heading.astro'
   // Panning toward the left lobe on narrow viewports is art direction, not
   // a fix: filling the height of a phone crops most of the width away, and
   // the gap between the two lobes reads better there than a lobe's middle.
-  const MOBILE_QUERY = '(max-width: 1023px)'
+  //
+  // The aspect-ratio half of the query is what keeps that pan from running
+  // off the end of the texture. `cover` sizes the image box to
+  // max(width, height) for a square texture, so the horizontal slack the pan
+  // eats into is entirely the amount by which the box is taller than it is
+  // wide. The vertex shader maps the container's right edge to
+  // `0.5 * width/box - u_offsetX + 0.5` in texture space, so the pan stays
+  // inside the texture only while width/box <= 1 - 2*|MOBILE_OFFSET_X|, i.e.
+  // 0.6 — a hero taller than 5:3. Past that the last columns sample the
+  // texture's clamped edge, which is bare blur margin: it painted as a flat
+  // vertical band down the right of the hero, hard-edged at exactly 80% of
+  // the width. Every portrait phone is around 0.42-0.56 and unaffected; what
+  // hit the band was everything else under 1024px — a tablet in portrait
+  // (0.75), a phone in landscape, a half-screen desktop window.
+  //
+  // Both halves have to stay in sync with the stills' media queries above:
+  // the mobile still bakes MOBILE_OFFSET_X in, so it carries the same band
+  // and has to stop being served at the same line the pan stops being used.
+  const MOBILE_QUERY = '(max-width: 1023px) and (max-aspect-ratio: 3/5)'
   const MOBILE_OFFSET_X = -0.2
 
   function viewParams(image: HTMLImageElement, container: HTMLElement) {
@@ -325,6 +358,51 @@ import Heading from './Heading.astro'
       u_scale: fillScale(image, container),
       u_offsetX: mobileQuery?.matches ? MOBILE_OFFSET_X : 0,
     }
+  }
+
+  // Copied from the Paper editor, like the uniforms.
+  const SPEED = 0.5
+
+  // Shader pixels per CSS pixel. ShaderMount defaults to a *minimum* of 2x
+  // (and a phone's native 3x), which suits the crisp-edged shaders in its
+  // catalogue. The library only exposes a pixel-count ceiling, so the ceiling
+  // is derived from the container's CSS area and re-derived as it resizes.
+  //
+  // This was 1 — CSS pixels, which on any 2x display is half the screen's
+  // linear resolution and a quarter of its pixels (measured at 1440x900 CSS
+  // on a dpr-2 screen: a 1440x900 backing store against 2880x1800 of actual
+  // device pixels). That was chosen when the heatmap read as nothing but
+  // blur passes over a soft shape, where the extra pixels genuinely resolve
+  // nothing. 1.5 is the deliberate middle: 0.75 of device linear, 2.25x the
+  // fragment work of 1 and 56% that of a full 2. Raise to 2 only with a
+  // frame-cost measurement to back it — this is a full-viewport shader
+  // competing with Lenis and ScrollTrigger on the same main thread.
+  const RENDER_SCALE = 1.5
+
+  function maxPixelCount(container: HTMLElement) {
+    const cssPixels = (container.clientWidth || 1) * (container.clientHeight || 1)
+    return Math.max(1, Math.round(cssPixels * RENDER_SCALE * RENDER_SCALE))
+  }
+
+  // The still is frame 0 of this same shader, so anyone who asked for less
+  // motion or less data gets exactly the image the canvas would open on —
+  // minus the WebGL context, the texture fetch and the render loop. Read
+  // once per page, like every other reduced-motion check on the site.
+  function prefersStill() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+    return connection?.saveData === true
+  }
+
+  // ShaderMount pauses itself when its element leaves the viewport, but a
+  // sticky element never does: the hero stays parked at top:0 while the rest
+  // of the page scrolls over it, and IntersectionObserver reports it fully
+  // intersecting all the way down. Left alone, the fragment shader ran on
+  // every frame of the whole homepage scroll, under content that hides it.
+  // Speed 0 halts the library's rAF loop outright, so covered means no GPU
+  // work at all; the frame counter simply resumes where it stopped.
+  function isCovered(section: HTMLElement) {
+    return window.scrollY >= section.offsetHeight
   }
 
   // Held across client-side navigations so returning to the homepage reuses
@@ -373,6 +451,7 @@ import Heading from './Heading.astro'
   let mobileQuery: MediaQueryList | null = null
   let resizeObserver: ResizeObserver | null = null
   let onQueryChange: (() => void) | null = null
+  let onScroll: (() => void) | null = null
   let onContextLost: ((event: Event) => void) | null = null
   let contextRetried = false
   // Bumped by every teardown so an in-flight mount (loading the shape is
@@ -382,8 +461,12 @@ import Heading from './Heading.astro'
 
   async function init() {
     const container = document.getElementById('hero-shader')
-    // Only the homepage renders it; astro:page-load fires on every page.
+    // Only the homepage renders it; this script runs on every page that mounts it.
     if (!container || mount) return
+    // Checked before the texture fetch so the gated visitor pays for nothing.
+    if (prefersStill()) return
+    const section = container.parentElement
+    if (!section) return
 
     const token = generation
     const image = await loadShape()
@@ -423,11 +506,27 @@ import Heading from './Heading.astro'
         ...viewParams(image, container),
       },
       undefined,
-      0.5,
+      SPEED,
+      0,
+      // minPixelRatio: 1 so the library never *raises* the target above
+      // device pixels; the ceiling below is what brings it down to CSS ones.
+      1,
+      maxPixelCount(container),
     )
+
+    let covered = false
+    onScroll = () => {
+      const next = isCovered(section)
+      if (next === covered) return
+      covered = next
+      mount?.setSpeed(covered ? 0 : SPEED)
+    }
 
     onQueryChange = () => {
       mount?.setUniforms(viewParams(image, container))
+      mount?.setMaxPixelCount(maxPixelCount(container))
+      // A resize moves the section's bottom edge, which is the pause line.
+      onScroll?.()
     }
     mobileQuery.addEventListener('change', onQueryChange)
     // Only load-bearing while the asset isn't square, but it's what keeps a
@@ -436,6 +535,12 @@ import Heading from './Heading.astro'
     // skips unchanged values, so with a square asset this costs nothing.
     resizeObserver = new ResizeObserver(onQueryChange)
     resizeObserver.observe(container)
+
+    // Lenis drives the native scroller, so window's own scroll event is the
+    // right signal. Run once up front: a reload or bfcache restore can land
+    // mid-page, with the hero already covered.
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
 
     // Mobile Safari drops WebGL contexts under memory pressure (backgrounding
     // the tab is enough), which leaves the canvas blank and the section
@@ -463,6 +568,7 @@ import Heading from './Heading.astro'
     // screen — after a navigation the element is replaced wholesale anyway.
     showStill(mount?.parentElement ?? document.getElementById('hero-shader'))
     if (mobileQuery && onQueryChange) mobileQuery.removeEventListener('change', onQueryChange)
+    if (onScroll) window.removeEventListener('scroll', onScroll)
     resizeObserver?.disconnect()
     if (mount && onContextLost) mount.canvasElement.removeEventListener('webglcontextlost', onContextLost)
     // Frees the GL program/textures and removes the canvas — without it a
@@ -473,14 +579,13 @@ import Heading from './Heading.astro'
     mobileQuery = null
     resizeObserver = null
     onQueryChange = null
+    onScroll = null
     onContextLost = null
   }
 
-  // Setup/teardown pair per feature (see docs/conventions.md). Mounting from
-  // module top-level instead would run exactly once per full page load: with
-  // <ClientRouter /> the module is already in the browser's registry when you
-  // navigate back to the homepage, so the shader never remounted and the
-  // section fell back to its bare CSS gradient.
+  // Setup/teardown pair per feature (see docs/conventions.md): the pair is
+  // what lets a back/forward-cache restore remount the shader instead of
+  // coming back to a section that lost its WebGL context while frozen.
   // A failed mount is survivable — the section keeps its CSS gradient — so
   // the rejection is swallowed rather than left to surface as an unhandled
   // promise error in the console.
@@ -488,11 +593,11 @@ import Heading from './Heading.astro'
     void init().catch(() => {})
   }
 
-  document.addEventListener('astro:page-load', () => {
+  onPageLoad(() => {
     // A fresh navigation gets a fresh retry budget; the recovery path itself
     // doesn't, so a device that can't hold a context stops after one attempt.
     contextRetried = false
     start()
   })
-  document.addEventListener('astro:before-swap', teardown)
+  onPageUnload(teardown)
 </script>

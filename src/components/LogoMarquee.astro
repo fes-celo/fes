@@ -118,25 +118,42 @@ const logoClass = `h-[2.5rem] w-[8.125rem] object-contain lg:h-[3.5rem] lg:w-[10
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import { gsap } from 'gsap'
-  import { horizontalLoop, type HorizontalLoop } from '../lib/horizontalLoop'
+  import type { HorizontalLoop } from '../lib/horizontalLoop'
 
   // Hover doesn't stop the strip, just eases it down to 30% pace — it stays
   // readable as "still moving" while giving the user a moment to grab a
   // logo and drag.
   const HOVER_TIME_SCALE = 0.3
 
+  // horizontalLoop pulls in GSAP Draggable + InertiaPlugin (~40KB), and on
+  // the homepage this strip is the last section on the page. So the module
+  // is `import()`ed only once a track comes within this margin of the
+  // viewport — generous enough that the fetch lands before the strip
+  // scrolls into view, so the loop is already running when it's seen.
+  // Same pattern as SystemAddonsMarquee.
+  const LOAD_MARGIN = '600px 0px'
+
   let loops: HorizontalLoop[] = []
   let cleanupFns: Array<() => void> = []
+  let observer: IntersectionObserver | null = null
+  // Bumped by teardown so an in-flight import can tell it was superseded.
+  let generation = 0
 
-  function init() {
+  async function start(tracks: HTMLElement[]) {
+    const mine = generation
+    const { horizontalLoop } = await import('../lib/horizontalLoop')
+    if (mine !== generation) return
+
     // Reduced motion: slows the base pace instead of stopping it outright —
     // a still-drifting strip doesn't trigger vestibular issues the way a
     // full-speed scroll can, but it also doesn't read as broken/frozen.
     // Dragging stays available either way.
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    document.querySelectorAll<HTMLElement>('[data-marquee-track]').forEach((track) => {
+    tracks.forEach((track) => {
+      if (!track.isConnected) return
       const baseSpeed = Number(track.dataset.speed) || 1
       const loop = horizontalLoop(track.children, {
         speed: reducedMotion ? baseSpeed * 0.35 : baseSpeed,
@@ -157,13 +174,32 @@ const logoClass = `h-[2.5rem] w-[8.125rem] object-contain lg:h-[3.5rem] lg:w-[10
     })
   }
 
+  function init() {
+    const tracks = Array.from(document.querySelectorAll<HTMLElement>('[data-marquee-track]'))
+    if (tracks.length === 0) return
+
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return
+        observer?.disconnect()
+        observer = null
+        void start(tracks)
+      },
+      { rootMargin: LOAD_MARGIN },
+    )
+    tracks.forEach((track) => observer!.observe(track))
+  }
+
   function teardown() {
+    generation += 1
+    observer?.disconnect()
+    observer = null
     loops.forEach((loop) => loop.destroy())
     loops = []
     cleanupFns.forEach((fn) => fn())
     cleanupFns = []
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

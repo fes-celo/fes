@@ -123,8 +123,9 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import type { HorizontalLoop } from '../lib/horizontalLoop'
-  import { pressCards } from '../lib/dragCarousel'
+  import { pressCards } from '../lib/pressCards'
 
   // Still passed through even with no autoplay: horizontalLoop's `speed`
   // sets the underlying timeline's total duration, which is what maps drag
@@ -248,6 +249,6 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
     cleanups = []
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

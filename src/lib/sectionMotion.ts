@@ -21,6 +21,7 @@
  * drop-in: SystemExpertiseRotator works the same on Growth Communication and
  * Creative Projects Blueprint without either page importing anything.
  */
+import { onPageLoad, onPageUnload } from './lifecycle'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -131,6 +132,6 @@ export function bindSection(selector: string, init: (ctx: SectionContext) => voi
     instances = []
   }
 
-  document.addEventListener('astro:page-load', setup)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(setup)
+  onPageUnload(teardown)
 }

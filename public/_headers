@@ -1,14 +1,40 @@
-# Cache policy for the unhashed assets in public/.
+# Cloudflare Pages headers. Two concerns live here: the security baseline
+# every response carries, and the cache policy for files served under the
+# name they were authored with (nothing hashed).
+
+# ---------- Security baseline, every response ----------
 #
-# The Cloudflare adapter appends its own `/_astro/*` immutable rule to this
-# file at build time (see the "[@astrojs/cloudflare] Injected immutable
-# Cache-Control" line in the build log) — everything under /_astro/ is
-# content-hashed by Astro, so a year + immutable is free there.
+# frame-ancestors 'none' + X-Frame-Options DENY: nothing embeds this site,
+# so nothing may frame it (the older header is for browsers that predate
+# CSP's directive). A full Content-Security-Policy is deliberately NOT set
+# yet: the hero's viewport-measuring script and the JSON-LD blocks are
+# inline, and the analytics beacon is a third-party script, so a real policy
+# needs nonces or hashes wired through the layout first — a half-strict CSP
+# that has to allow 'unsafe-inline' buys nothing.
 #
-# Nothing below is hashed: these are public/ paths served under the exact
-# name they were authored with. That rules out `immutable` for anything that
-# can be re-exported in place, because a client that cached it has no way to
-# learn it changed. Without any rule at all the platform serves them
+# HSTS is max-age only, no includeSubDomains: other fesagency.pt subdomains
+# are not this project's to commit to HTTPS. Bump to a year + preload once
+# the zone has run on HTTPS long enough to be sure.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000
+
+# ---------- Cache policy ----------
+#
+# Everything under /_astro/ is content-hashed by Astro, so a year + immutable
+# is free there. (The Cloudflare adapter used to append this rule at build
+# time; with the adapter gone it lives here.)
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The paths below are public/ files served under the exact name they were
+# authored with. That rules out `immutable` for anything that can be
+# re-exported in place, because a client that cached it has no way to learn
+# it changed. Without any rule at all the platform serves them
 # `max-age=0, must-revalidate`, so every navigation pays a conditional
 # request per font, icon and photo — which is the actual cost being fixed
 # here, not the transfer.

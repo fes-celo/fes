@@ -33,6 +33,7 @@ import SelectedProjectsRotator from '../../../../components/SelectedProjectsRota
 
 import heroBg from '../../../../assets/systems/creative-projects-blueprint/events-activations/hero-bg.jpg'
 import builtForBg from '../../../../assets/systems/built-for-bg.webp'
+import Logo from '../../../../components/Logo.astro'
 
 // Selected projects thumbnails — dropped flat (no subfolders) into
 // src/assets/systems/creative-projects-blueprint/events-activations/selected-projects/,
@@ -43,9 +44,14 @@ import builtForBg from '../../../../assets/systems/built-for-bg.webp'
 // tile instead of being dropped from the section — several of the events
 // below don't have photography selected yet.
 type ImageModule = { default: ImageMetadata }
+// NOT eager. An eager glob imports every file in the folder whether or not a
+// project below names it, and Vite then emits each unmatched original into
+// dist/ as-is — four unused PNGs, one of them 2MB, were shipping that way.
+// A lazy glob only imports what `findSelectedProjectImage` actually awaits,
+// so a file dropped into the folder ahead of its project costs nothing until
+// the project exists.
 const selectedProjectImages = import.meta.glob<ImageModule>(
   '../../../../assets/systems/creative-projects-blueprint/events-activations/selected-projects/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}',
-  { eager: true },
 )
 
 // Collapses repeated whitespace, trims, and normalises to NFC — several of
@@ -55,13 +61,13 @@ const selectedProjectImages = import.meta.glob<ImageModule>(
 // which otherwise fails a strict === against the NFC string literals below.
 const normalizeFilename = (name: string) => name.normalize('NFC').replace(/\s+/g, ' ').trim()
 
-function findSelectedProjectImage(file: string) {
+async function findSelectedProjectImage(file: string) {
   const target = normalizeFilename(file)
   const match = Object.entries(selectedProjectImages).find(([path]) => {
     const base = path.split('/').pop() ?? ''
     return normalizeFilename(base.replace(/\.[^.]+$/, '')) === target
   })
-  return match?.[1].default
+  return match ? (await match[1]()).default : undefined
 }
 
 const expertiseWords = ['Experience', 'Engagement', 'Relationships', 'Opportunity']
@@ -251,17 +257,22 @@ const eventCategories = [
 // Reshaped for SelectedProjectsRotator, which takes an `images` array per
 // project (0 renders its placeholder, 1 a static frame) rather than this
 // page's own file-lookup shape.
-const selectedProjectCategories = eventCategories.map((category) => ({
-  label: category.label,
-  projects: category.projects.map((project) => {
-    const image = findSelectedProjectImage(project.file)
-    return { title: project.title, images: image ? [image] : [] }
-  }),
-}))
+const selectedProjectCategories = await Promise.all(
+  eventCategories.map(async (category) => ({
+    label: category.label,
+    projects: await Promise.all(
+      category.projects.map(async (project) => {
+        const image = await findSelectedProjectImage(project.file)
+        return { title: project.title, images: image ? [image] : [] }
+      }),
+    ),
+  })),
+)
 ---
 
 <BaseLayout
   title="Events & Brand Activations"
+  ogImage={heroBg}
   description="Create experiences that move people, and business. A Blueprint that aligns strategy, experience design and production to generate real impact around the right audience."
   hideHeader
 >
@@ -284,7 +295,7 @@ const selectedProjectCategories = eventCategories.map((category) => ({
     <nav aria-label="Primary" class="relative z-10">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
-          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+          <Logo class="h-[var(--nav-logo-h)] w-auto" />
         </a>
         <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
           {
@@ -400,7 +411,10 @@ const selectedProjectCategories = eventCategories.map((category) => ({
   <BuiltForRotator phrases={builtForPhrases} backgroundImage={builtForBg} />
 
   {/* ---------- 6. Addons ---------- */}
-  <SystemAddonsMarquee addons={addons} class="bg-surface pb-[var(--space-section-y)]" />
+  <SystemAddonsMarquee
+    addons={addons}
+    class="bg-surface pt-[var(--space-section-y)] pb-[var(--space-section-y)]"
+  />
 
   {/* ---------- 7. Impact ---------- */}
   <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">

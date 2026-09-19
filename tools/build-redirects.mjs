@@ -1,5 +1,5 @@
 /**
- * Generates dist/client/_redirects from docs/redirect-map.csv.
+ * Generates dist/_redirects from docs/redirect-map.csv.
  *
  * WHY A SCRIPT. The CSV is the source of truth — 185 rows with the GSC
  * traffic behind each one — and it is maintained by hand. Copying it into a
@@ -15,7 +15,7 @@
  * this script starts emitting their 53 rows on the next build with no edit
  * here.
  *
- * WHY POSTBUILD. It reads dist/client to know which routes exist, so it can't
+ * WHY POSTBUILD. It reads dist to know which routes exist, so it can't
  * live in public/ (that's copied *during* the build). Wired as the second
  * half of `npm run build`.
  *
@@ -25,11 +25,11 @@
  * Cloudflare's zone-level Redirect Rules, not here. They're reported under
  * "needs zone config" so they don't get quietly lost.
  */
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const CSV = 'docs/redirect-map.csv'
-const OUT_DIR = 'dist/client'
+const OUT_DIR = 'dist'
 const OUT = join(OUT_DIR, '_redirects')
 const SITE_HOST = 'fesagency.pt'
 

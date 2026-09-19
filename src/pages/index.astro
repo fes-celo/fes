@@ -536,6 +536,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import { gsap } from 'gsap'
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
   import { createDragCarousel } from '../lib/dragCarousel'
@@ -717,6 +718,6 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
     cleanupFns = []
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

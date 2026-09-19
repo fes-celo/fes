@@ -13,6 +13,7 @@
  * pages that pin their hero at its own z-index.
  */
 import { navItems, footerItems, socialItems } from '../lib/nav'
+import Logo from './Logo.astro'
 
 const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
 ---
@@ -21,12 +22,15 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
   id="mobile-menu"
   class="fixed inset-0 z-[100] hidden overflow-y-auto bg-neutral-950"
   data-mobile-menu
+  role="dialog"
+  aria-modal="true"
+  aria-label="Menu"
   aria-hidden="true"
 >
   <div class="flex min-h-full flex-col gap-10 px-[var(--space-gutter)] pb-10 pt-[var(--space-gutter)]">
     <div class="flex shrink-0 items-center justify-between gap-6">
       <a href="/" class="shrink-0">
-        <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        <Logo variant="light" class="h-[var(--nav-logo-h)] w-auto" />
       </a>
       <button
         type="button"
@@ -110,6 +114,7 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
 </div>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import { gsap } from '../lib/sectionMotion'
   import { getLenis } from '../lib/lenis'
 
@@ -131,9 +136,38 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
     gsap.set(panel, { autoAlpha: 0 })
     gsap.set(items, { autoAlpha: 0, y: reduceMotion ? 0 : 16 })
 
-    function open() {
+    // The trigger that opened the panel, so close() can hand focus back to
+    // it — a screen-reader or keyboard user otherwise lands at the top of
+    // the document after Escape, far from where they were.
+    let lastTrigger: HTMLElement | null = null
+
+    // Tab and Shift+Tab cycle inside the panel while it's open: everything
+    // behind it is scrolled-locked and visually covered, so focus leaving
+    // the panel would land on controls the user can't see.
+    function trapFocus(e: KeyboardEvent) {
+      if (e.key !== 'Tab') return
+      // Items fade in with autoAlpha, so for the first few hundred ms some
+      // are still `visibility: hidden` — and a hidden element refuses
+      // focus. Skip those, or the wrap-around lands on nothing.
+      const focusable = Array.from(
+        panel!.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'),
+      ).filter((el) => el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden')
+      if (focusable.length === 0) return
+      const first = focusable[0]!
+      const last = focusable[focusable.length - 1]!
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    function open(e?: Event) {
       if (isOpen) return
       isOpen = true
+      lastTrigger = e?.currentTarget instanceof HTMLElement ? e.currentTarget : null
       panel!.classList.remove('hidden')
       panel!.setAttribute('aria-hidden', 'false')
       openTriggers.forEach((t) => t.setAttribute('aria-expanded', 'true'))
@@ -141,8 +175,14 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
       getLenis()?.stop()
 
       gsap.killTweensOf([panel, ...items])
+      // Visibility flips on synchronously, before the fade: `autoAlpha`
+      // would only make the panel visible on its first rendered frame, and
+      // an element that is still `visibility: hidden` refuses focus — which
+      // is why the Close button's focus() below used to silently fail and
+      // leave focus on the trigger behind the overlay.
+      gsap.set(panel, { visibility: 'inherit' })
       const tl = gsap.timeline()
-      tl.to(panel, { autoAlpha: 1, duration: reduceMotion ? 0 : 0.35, ease: 'power2.out' })
+      tl.to(panel, { opacity: 1, duration: reduceMotion ? 0 : 0.35, ease: 'power2.out' })
       tl.to(
         items,
         {
@@ -158,6 +198,7 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
       closeBtn!.focus()
       escHandler = (e: KeyboardEvent) => {
         if (e.key === 'Escape') close()
+        else trapFocus(e)
       }
       document.addEventListener('keydown', escHandler)
     }
@@ -189,6 +230,13 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
         ease: 'power2.in',
       })
       tl.to(panel, { autoAlpha: 0, duration: reduceMotion ? 0 : 0.3, ease: 'power2.in' }, reduceMotion ? 0 : '-=0.1')
+
+      // Focus goes back to whichever button opened the panel, if it is still
+      // inside the panel (Escape, the Close button, or a link click — the
+      // last one navigates away a moment later, so the hand-back is
+      // invisible there, but it keeps Escape and Close correct).
+      if (lastTrigger && panel!.contains(document.activeElement)) lastTrigger.focus()
+      lastTrigger = null
     }
 
     openTriggers.forEach((t) => t.addEventListener('click', open))
@@ -209,6 +257,6 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
     cleanup = null
   }
 
-  document.addEventListener('astro:page-load', setupMobileMenu)
-  document.addEventListener('astro:before-swap', teardownMobileMenu)
+  onPageLoad(setupMobileMenu)
+  onPageUnload(teardownMobileMenu)
 </script>

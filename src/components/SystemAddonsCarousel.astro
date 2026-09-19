@@ -112,8 +112,9 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import type { HorizontalLoop } from '../lib/horizontalLoop'
-  import { pressCards } from '../lib/dragCarousel'
+  import { pressCards } from '../lib/pressCards'
 
   const SPEED = 0.35
   /** How long each card holds in place before the next ease-forward. */
@@ -261,6 +262,6 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
     cleanups = []
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

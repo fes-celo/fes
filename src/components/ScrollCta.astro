@@ -93,6 +93,7 @@ const { showSelector, hideSelector } = Astro.props as Props
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import { gsap } from 'gsap'
 
   // Slide-up reveal instead of a plain CSS fade: the chip starts offset
@@ -170,6 +171,6 @@ const { showSelector, hideSelector } = Astro.props as Props
     observers = []
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

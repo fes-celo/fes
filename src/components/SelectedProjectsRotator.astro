@@ -312,6 +312,7 @@ const initialAspect = fixedAspect ?? (firstProject ? projectAspect(firstProject)
 </script>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   // Rotator wiring: category pills (if any) swap which project list/image
   // group is visible; the visible group's projects auto-advance, each one
   // filling its OWN row divider ink-dark while every other row's divider
@@ -532,6 +533,6 @@ const initialAspect = fixedAspect ?? (firstProject ? projectAspect(firstProject)
     cleanups = []
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

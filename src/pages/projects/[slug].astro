@@ -62,6 +62,11 @@ for (const [path, mod] of Object.entries(assets)) {
 const resolveImage = (file: string) => bySlugAndName.get(`${caseStudy.slug}/${file}`)
 
 const logo = caseStudy.logo ? resolveImage(caseStudy.logo.file) : undefined
+// Share image: the first picture in the study, which is also the first
+// thing a visitor sees on the page. Falls back to the site default when the
+// photography for that block hasn't been dropped in yet.
+const firstMedia = caseStudy.blocks.find((b) => b.type === 'media')
+const ogImage = firstMedia?.type === 'media' ? resolveImage(firstMedia.items[0]!.file) : undefined
 const dropPath = `src/assets/case-studies/${caseStudy.slug}/`
 ---
 
@@ -69,6 +74,7 @@ const dropPath = `src/assets/case-studies/${caseStudy.slug}/`
   title={`${caseStudy.clientName} — ${caseStudy.title}`}
   description={caseStudy.seoDescription ?? caseStudy.intro[0]}
   noindex={caseStudy.draft}
+  ogImage={ogImage}
 >
   {
     /*

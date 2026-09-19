@@ -21,6 +21,7 @@ import ourWorkCta from '../../assets/systems/our-work-cta.jpg'
 import heroLight from '../../assets/hero/hero-light.jpg'
 import DualCta from '../../components/DualCta.astro'
 import SystemsWhatWeDo from '../../components/SystemsWhatWeDo.astro'
+import Logo from '../../components/Logo.astro'
 
 // Questions shipped exactly as authored in the Figma FAQ frame (node
 // 770:839) — the left column's paragraph duplicates the Agency page's
@@ -81,7 +82,7 @@ const faqs = [
     <nav aria-label="Primary" class="relative z-10">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
-          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+          <Logo class="h-[var(--nav-logo-h)] w-auto" />
         </a>
         <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
           {
@@ -187,6 +188,7 @@ const faqs = [
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../../lib/lifecycle'
   // FAQ accordion — single-open: expanding one trigger collapses the
   // others. Height animation lives in the <style> block above, keyed off
   // the trigger's aria-expanded; this just flips that attribute.
@@ -228,6 +230,6 @@ const faqs = [
     teardownFaqAccordion()
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

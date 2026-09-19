@@ -1,14 +1,23 @@
 ---
-import { ClientRouter } from 'astro:transitions'
+import type { ImageMetadata } from 'astro'
+import { getImage } from 'astro:assets'
 import SEO from '../components/SEO.astro'
 import MobileMenu from '../components/MobileMenu.astro'
 import { navItems, footerItems, socialItems } from '../lib/nav'
 import '../styles/global.css'
+import Logo from '../components/Logo.astro'
 
 interface Props {
   title: string
   description: string
-  ogImage?: string
+  /**
+   * Share image. A public/ path (string) is used as-is; an imported asset
+   * is rendered to a 1200×630 JPEG at build time — the crop every network
+   * expects — so a page can hand over its own hero/thumbnail import rather
+   * than exporting a second, share-sized copy of it. Pages without a natural
+   * image of their own fall back to /og-default.jpg in SEO.astro.
+   */
+  ogImage?: string | ImageMetadata
   noindex?: boolean
   /**
    * Homepage renders its own nav overlaid transparently on the pinned Hero
@@ -27,11 +36,35 @@ interface Props {
 }
 
 const { title, description, ogImage, noindex, hideHeader = false, bordered = false } = Astro.props
+
+const ogImageUrl =
+  ogImage && typeof ogImage !== 'string'
+    ? (await getImage({ src: ogImage, width: 1200, height: 630, fit: 'cover', format: 'jpg', quality: 82 })).src
+    : ogImage
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    {
+      /* First thing in <head>, blocking, so it lands before any stylesheet
+         is applied: the `data-anim` pre-hide in global.css only exists under
+         html.js, and this is the only place that class is set. No JS, no
+         class, no pre-hide — see motion.ts rule 1. */
+    }
+    <script is:inline>document.documentElement.classList.add('js')</script>
+    {
+      /* No cross-document view transitions here (parked-decisions §30). The
+         browser's own page-to-page fade was removed because it paints the
+         incoming page from a snapshot taken before the GSAP entrance can
+         exist, which put its choreography and this site's in a race neither
+         could win. Navigation still feels instant without it: §28's
+         `prefetch` + `experimental.clientPrerender` in astro.config.mjs
+         already prerenders the link being hovered, so the destination is
+         painted before the click lands — and what the visitor then sees is
+         the page's own entrance rather than a second one competing with it.
+         Nothing to emit here; the config does it. */
+    }
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -51,8 +84,7 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
       crossorigin
     />
 
-    <SEO title={title} description={description} ogImage={ogImage} noindex={noindex} />
-    <ClientRouter />
+    <SEO title={title} description={description} ogImage={ogImageUrl} noindex={noindex} />
 
     {
       /*
@@ -86,7 +118,7 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
         <header class={`relative ${bordered ? 'border-b border-line-subtle' : ''}`}>
           <div class="flex items-start justify-between gap-6 px-[var(--space-gutter)] pb-5 pt-[var(--space-gutter)]">
             <a href="/" class="shrink-0">
-              <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+              <Logo class="h-[var(--nav-logo-h)] w-auto" />
             </a>
             <nav aria-label="Primary">
               <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
@@ -334,10 +366,11 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
     </style>
 
     <script>
+      import { onPageLoad, onPageUnload, type LoadContext } from '../lib/lifecycle'
       // Site-wide, because the `data-anim` attributes it drives are authored
       // on every page, not just the homepage.
-      import { initMotion, teardownMotion } from '../lib/motion'
-      // Side-effect only: registers its own astro:page-load/before-swap
+      import { initMotion } from '../lib/motion'
+      // Side-effect only: registers its own onPageLoad/onPageUnload
       // pair (see the module itself) — imported here so it runs on every
       // page rather than needing every page to remember to import it.
       import { getLenis } from '../lib/lenis'
@@ -442,7 +475,7 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
       // the production bundle.
       let typeInspector: typeof import('../lib/typeInspector') | null = null
 
-      function init() {
+      function init({ restored }: LoadContext) {
         setupBackToTop()
         setupFooterReveal()
         if (import.meta.env.DEV) {
@@ -454,18 +487,24 @@ const { title, description, ogImage, noindex, hideHeader = false, bordered = fal
         // Async (it waits on document.fonts.ready before line-splitting) and
         // deliberately not awaited — the nav and footer must not sit idle
         // behind a font load.
-        void initMotion()
+        //
+        // Fresh loads only. A bfcache restore brings back the page exactly
+        // as it was left, entrance already played and any unfired
+        // scroll-triggers still armed, so there is nothing to tear down on
+        // pagehide and replaying the load-in would snap content the visitor
+        // has already seen to opacity 0. The other setups here are stateless
+        // listeners and run again as usual.
+        if (!restored) void initMotion()
       }
 
       function teardown() {
         teardownBackToTop()
         teardownFooterReveal()
-        teardownMotion()
         typeInspector?.teardownTypeInspector()
       }
 
-      document.addEventListener('astro:page-load', init)
-      document.addEventListener('astro:before-swap', teardown)
+      onPageLoad(init)
+      onPageUnload(teardown)
     </script>
   </body>
 </html>

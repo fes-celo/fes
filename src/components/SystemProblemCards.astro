@@ -273,9 +273,42 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
       }
     }
 
+    // The entrance below translates the cards, and a scroll-snap AREA is
+    // the element's TRANSFORMED border box — so with `scroll-snap-type: x
+    // mandatory` live (see the stylesheet above) the browser re-snaps the
+    // strip every frame and CHASES the sliding cards, dragging scrollLeft
+    // up to ~150px before easing back. Measured on this row: the strip
+    // visibly scrolls itself sideways while the cards arrive, and where it
+    // ends up depends on which card's snap area happened to be nearest
+    // when the stagger finished — i.e. not necessarily back at the first
+    // card. Suspending snap for the length of the tween is the whole fix;
+    // the resting scroll position is untouched, so nothing has to be reset
+    // afterwards.
+    //
+    // Not left to createDragCarousel: that used to switch snap off for the
+    // lifetime of the row (which masked this), and now scopes it to an
+    // actual drag — correctly, since a wheel-scrolled row should still
+    // snap. This tween needs its own guard either way, and it can't rely
+    // on the drag plugin's lazy import having landed first.
+    function withoutSnap() {
+      const previous = viewport!.style.scrollSnapType
+      viewport!.style.scrollSnapType = 'none'
+      return () => {
+        viewport!.style.scrollSnapType = previous
+      }
+    }
+
     mm.add(MOTION_FULL, () => {
       const dragCleanup = createDragCarousel(viewport, { cardSelector: '.problem-card' })
       const progressCleanup = bindProgress()
+
+      // Suspended HERE, at creation — not in the tween's own `onStart`.
+      // `gsap.from` renders its start state immediately (immediateRender),
+      // so the cards sit at x:160 from page load, long before the trigger
+      // plays them: that single jump is enough for a mandatory snap
+      // container to re-snap and leave the row already scrolled off the
+      // first card while it waits to be scrolled into view.
+      let restoreSnap: (() => void) | null = withoutSnap()
 
       const tween = gsap.from(cards, {
         opacity: 0,
@@ -285,11 +318,16 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
         stagger: ENTRANCE.stagger,
         ease: ENTRANCE.ease,
         scrollTrigger: { trigger: viewport, start: ENTRANCE.start, once: true },
+        onComplete: () => {
+          restoreSnap?.()
+          restoreSnap = null
+        },
       })
 
       return () => {
         dragCleanup?.()
         progressCleanup()
+        restoreSnap?.()
         tween.scrollTrigger?.kill()
         tween.kill()
         gsap.set(cards, { clearProps: 'opacity,transform' })

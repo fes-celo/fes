@@ -1,7 +1,10 @@
 ---
+import { socialItems, breadcrumbLabels } from '../lib/nav'
+
 interface Props {
   title: string
   description: string
+  /** Absolute or site-relative URL of the share image — BaseLayout resolves an imported asset into one. */
   ogImage?: string
   noindex?: boolean
 }
@@ -18,6 +21,28 @@ const ogImageURL = new URL(ogImage, Astro.site)
 // for containment instead fixes it for any page that leads with the brand,
 // which is the only reason a title would ever want to.
 const siteTitle = title.includes('FES Agency') ? title : `${title} · FES Agency`
+
+// BreadcrumbList for anything two or more levels deep — the Systems
+// sub-pages and the case studies — so search results can show the section
+// path instead of the bare URL. Intermediate crumbs come from
+// `breadcrumbLabels`; the last is this page's own title. A path whose
+// intermediate segment has no label gets nothing: a breadcrumb that names
+// the wrong parent is worse than none.
+const segments = Astro.url.pathname.split('/').filter(Boolean)
+let breadcrumbs: { name: string; item: string }[] | null = null
+if (!noindex && segments.length >= 2) {
+  const crumbs = [{ name: 'Home', item: new URL('/', Astro.site).toString() }]
+  let path = ''
+  let complete = true
+  segments.forEach((segment, i) => {
+    path += `/${segment}`
+    const isLast = i === segments.length - 1
+    const name = isLast ? title : breadcrumbLabels[segment]
+    if (!name) complete = false
+    crumbs.push({ name: name ?? segment, item: new URL(`${path}/`, Astro.site).toString() })
+  })
+  if (complete) breadcrumbs = crumbs
+}
 ---
 
 <title>{siteTitle}</title>
@@ -43,9 +68,32 @@ const siteTitle = title.includes('FES Agency') ? title : `${title} · FES Agency
   name: 'FES Agency',
   url: Astro.site?.toString(),
   logo: new URL('/fes-logo-dark.svg', Astro.site).toString(),
+  email: 'hello@fesagency.pt',
   address: {
     '@type': 'PostalAddress',
     addressLocality: 'Porto',
     addressCountry: 'PT',
   },
+  // The same four profiles the footer and mobile menu link to — one list,
+  // so a new network is added in nav.ts and lands here for free.
+  sameAs: socialItems.map((s) => s.href),
 })} />
+
+{
+  breadcrumbs && (
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: breadcrumbs.map((crumb, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: crumb.name,
+          item: crumb.item,
+        })),
+      })}
+    />
+  )
+}

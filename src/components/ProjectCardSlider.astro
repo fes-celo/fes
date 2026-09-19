@@ -113,6 +113,7 @@ const descriptionClasses: Record<string, string> = {
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   // Per-card autoplay, hover/focus-gated: setup/teardown pair on the Astro
   // page-load lifecycle, same convention as SystemAddonsCarousel.astro.
   let cleanups: Array<() => void> = []
@@ -180,6 +181,6 @@ const descriptionClasses: Record<string, string> = {
     cleanups = []
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

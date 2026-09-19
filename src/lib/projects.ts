@@ -104,4 +104,35 @@ export const projects: Project[] = [
     tag: 'Digital Communication System',
     category: ['Startups & Scaleups'],
   },
+  // The five entries below have no thumbnail/icon yet — ProjectCard renders
+  // its labelled placeholder in place of a cover shot until real photography
+  // lands, same pattern as the case-study media blocks (see caseStudies.ts).
+  {
+    href: '/projects/anchorage-digital/',
+    title: 'Anchorage Digital | Portugal',
+    description: 'Media relations that brought a global crypto platform into the Portuguese press.',
+    tag: 'Influence & Reputation System',
+    category: ['Enterprise'],
+  },
+  {
+    href: '/projects/subvisual/',
+    title: 'Subvisual | Alchemy Conf',
+    description: 'Social media management and event promotion for a Web3 venture studio.',
+    tag: 'Digital Communication System',
+    category: ['Startups & Scaleups'],
+  },
+  {
+    href: '/projects/data-makers-fest/',
+    title: 'Data Makers Fest | Reddit Ads & Event Comms',
+    description: 'PR and digital communication for a three-day data and AI conference in Porto.',
+    tag: 'Digital Communication System',
+    category: ['Startups & Scaleups'],
+  },
+  {
+    href: '/projects/blip-activation/',
+    title: 'Blip | Brand Activation',
+    description: 'A brand activation campaign across outdoor advertising, paid media and more.',
+    tag: 'Creative Projects Blueprint',
+    category: ['Enterprise'],
+  },
 ]

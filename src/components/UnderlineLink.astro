@@ -102,6 +102,7 @@ const Tag = as
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import { gsap } from 'gsap'
 
   let cleanups: Array<() => void> = []
@@ -192,6 +193,6 @@ const Tag = as
     cleanups = []
   }
 
-  document.addEventListener('astro:page-load', setupUnderlines)
-  document.addEventListener('astro:before-swap', teardownUnderlines)
+  onPageLoad(setupUnderlines)
+  onPageUnload(teardownUnderlines)
 </script>

@@ -8,21 +8,36 @@
  * The form posts to /api/contact and expects a redirect to
  * /contact/thank-you on success — that's the lead-measurement contract
  * frozen in docs/measurement.md (Pages Function: validates, sends via
- * Resend, logs the record, then 302s). The Function itself, Turnstile, and
- * /contact/thank-you are Phase 3 build items and don't exist yet; this page
- * only wires up the markup/contract so that phase is a backend task, not a
- * markup one.
+ * Resend, logs the record, then 302s). The Function and Turnstile don't
+ * exist yet; /contact/thank-you does (src/pages/contact/thank-you/).
+ *
+ * The <script> below is progressive enhancement over that contract:
+ *
+ *  - client-side validation with inline messages, so a missing field or a
+ *    malformed address is caught before a round trip and announced next to
+ *    the field it belongs to (aria-describedby + aria-invalid);
+ *  - the submit goes over fetch, so a failure — the Function not deployed
+ *    yet, a 5xx, no network — ends in a visible, retryable error with the
+ *    email address as the way out, instead of a bare 404 page;
+ *  - a successful response (a 2xx, or the 302 the Function issues, which
+ *    fetch follows) navigates to /contact/thank-you, so the pageview that
+ *    IS the lead metric still fires.
+ *
+ * Without JS the form still posts natively, same contract. The `website`
+ * field is a honeypot: visually and semantically hidden, never filled by a
+ * person; the Function should drop any submission that carries a value.
  */
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import Heading from '../../components/Heading.astro'
 import { navItems } from '../../lib/nav'
+import Logo from '../../components/Logo.astro'
 ---
 
 <BaseLayout title="Contact" description="Get in touch with FES Agency — tell us about your project and we'll get back to you." hideHeader>
   <nav aria-label="Primary" class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)]">
     <div class="flex items-start justify-between gap-6">
       <a href="/" class="shrink-0">
-        <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+        <Logo class="h-[var(--nav-logo-h)] w-auto" />
       </a>
       <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
         {
@@ -49,39 +64,51 @@ import { navItems } from '../../lib/nav'
   </nav>
 
   <section class="bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]">
-    <div class="mx-auto flex w-full max-w-[50rem] flex-col items-center gap-16" data-anim="reveal">
+    <div class="relative mx-auto flex w-full max-w-[50rem] flex-col items-center gap-16" data-anim="reveal">
       <Heading as="h1" indent={false} class="text-center text-h1 text-ink">
         Let's <span class="text-accent-default">talk</span>
       </Heading>
 
-      <form action="/api/contact" method="POST" class="flex w-full flex-col gap-6">
-        <div class="rounded-[var(--radius-card)] border border-line">
+      <form
+        action="/api/contact"
+        method="POST"
+        class="flex w-full flex-col gap-6"
+        data-contact-form
+        data-success="/contact/thank-you/"
+      >
+        <div class="rounded-[var(--radius-card)] border border-line has-[[aria-invalid=true]]:border-clay-default">
           <label class="block">
             <span class="sr-only">Your name</span>
             <input
               type="text"
               name="name"
+              autocomplete="name"
               placeholder="Your name *"
               required
+              aria-describedby="contact-error-name"
               class="w-full bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled"
             />
           </label>
         </div>
+        <p id="contact-error-name" class="-mt-4 px-6 text-body-sm text-clay-default" data-error-for="name" hidden></p>
 
-        <div class="rounded-[var(--radius-card)] border border-line">
+        <div class="rounded-[var(--radius-card)] border border-line has-[[aria-invalid=true]]:border-clay-default">
           <label class="block">
             <span class="sr-only">Your e-mail</span>
             <input
               type="email"
               name="email"
+              autocomplete="email"
               placeholder="Your e-mail *"
               required
+              aria-describedby="contact-error-email"
               class="w-full bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled"
             />
           </label>
         </div>
+        <p id="contact-error-email" class="-mt-4 px-6 text-body-sm text-clay-default" data-error-for="email" hidden></p>
 
-        <div class="rounded-[var(--radius-card)] border border-line">
+        <div class="rounded-[var(--radius-card)] border border-line has-[[aria-invalid=true]]:border-clay-default">
           <label class="block">
             <span class="sr-only">Your message</span>
             <textarea
@@ -89,14 +116,36 @@ import { navItems } from '../../lib/nav'
               placeholder="Your message*"
               required
               rows="7"
+              aria-describedby="contact-error-message"
               class="w-full resize-none bg-transparent p-6 text-body text-ink placeholder:text-ink-disabled"
             ></textarea>
           </label>
         </div>
+        <p id="contact-error-message" class="-mt-4 px-6 text-body-sm text-clay-default" data-error-for="message" hidden></p>
+
+        {/* Honeypot — see the docblock. Not `display:none`: some bots skip
+            hidden inputs, so it's positioned off-canvas instead. */}
+        <div class="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+          <label>
+            Website
+            <input type="text" name="website" tabindex="-1" autocomplete="off" />
+          </label>
+        </div>
+
+        {/* Submission-level status (network failure, server error). Polite,
+            not assertive: it appears in response to the user's own action,
+            so it doesn't need to interrupt. */}
+        <p
+          class="rounded-[var(--radius-card)] border border-clay-default bg-clay-tint px-6 py-4 text-body text-ink"
+          data-form-status
+          role="status"
+          aria-live="polite"
+          hidden
+        ></p>
 
         <button
           type="submit"
-          class="mx-auto mt-4 rounded-[var(--radius-button)] bg-accent-default px-[1.375rem] py-[0.875rem] text-h4 font-medium text-on-accent transition-colors hover:bg-accent-hover"
+          class="mx-auto mt-4 rounded-[var(--radius-button)] bg-accent-default px-[1.375rem] py-[0.875rem] text-h4 font-medium text-on-accent transition-colors hover:bg-accent-hover disabled:cursor-wait disabled:opacity-70"
         >
           Send message
         </button>
@@ -104,3 +153,119 @@ import { navItems } from '../../lib/nav'
     </div>
   </section>
 </BaseLayout>
+
+<script>
+  import { onPageLoad } from '../../lib/lifecycle'
+
+  type Field = HTMLInputElement | HTMLTextAreaElement
+
+  const MESSAGES = {
+    name: 'Please tell us your name.',
+    email: 'Please enter your e-mail address.',
+    emailFormat: 'That e-mail address doesn\u2019t look right — check it and try again.',
+    message: 'Please write a message.',
+    failure: 'We couldn\u2019t send your message. Please try again, or email us directly at ',
+  }
+
+  function init() {
+    const form = document.querySelector<HTMLFormElement>('[data-contact-form]')
+    if (!form) return
+
+    const fields = Array.from(form.querySelectorAll<Field>('input[name], textarea[name]')).filter(
+      (f) => f.name !== 'website',
+    )
+    const status = form.querySelector<HTMLElement>('[data-form-status]')
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')
+    if (!status || !submit) return
+    const submitLabel = submit.textContent
+
+    // JS owns validation from here on, so the browser's own bubbles (which
+    // aren't announced consistently and can't be styled) stay out of it.
+    form.noValidate = true
+
+    function messageFor(field: Field): string {
+      if (field.validity.valueMissing) return MESSAGES[field.name as keyof typeof MESSAGES] ?? MESSAGES.message
+      if (field.type === 'email' && field.validity.typeMismatch) return MESSAGES.emailFormat
+      return ''
+    }
+
+    function showError(field: Field, message: string) {
+      const slot = form!.querySelector<HTMLElement>(`[data-error-for="${field.name}"]`)
+      field.setAttribute('aria-invalid', message ? 'true' : 'false')
+      if (!slot) return
+      slot.textContent = message
+      slot.hidden = !message
+    }
+
+    function showStatus(message: string) {
+      status!.textContent = ''
+      if (!message) {
+        status!.hidden = true
+        return
+      }
+      status!.append(message)
+      const mail = document.createElement('a')
+      mail.href = 'mailto:hello@fesagency.pt'
+      mail.textContent = 'hello@fesagency.pt'
+      mail.className = 'underline'
+      status!.append(mail, '.')
+      status!.hidden = false
+    }
+
+    fields.forEach((field) => {
+      // Validate on blur, then live once a field has been flagged — so a
+      // message appears when the user leaves a field, and clears the
+      // moment they fix it, never while they are still typing a valid entry.
+      field.addEventListener('blur', () => showError(field, messageFor(field)))
+      field.addEventListener('input', () => {
+        if (field.getAttribute('aria-invalid') === 'true') showError(field, messageFor(field))
+      })
+    })
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      showStatus('')
+
+      let firstInvalid: Field | null = null
+      fields.forEach((field) => {
+        const message = messageFor(field)
+        showError(field, message)
+        if (message && !firstInvalid) firstInvalid = field
+      })
+      if (firstInvalid) {
+        ;(firstInvalid as Field).focus()
+        return
+      }
+
+      submit.disabled = true
+      submit.textContent = 'Sending\u2026'
+
+      try {
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { Accept: 'application/json, text/html' },
+        })
+        // fetch follows the Function's 302 to /contact/thank-you itself, so
+        // `redirected` + `url` is that page; a plain 2xx means "sent" too.
+        if (response.redirected) {
+          window.location.assign(response.url)
+          return
+        }
+        if (response.ok) {
+          window.location.assign(form.dataset.success ?? '/contact/thank-you/')
+          return
+        }
+        throw new Error(`Contact form: HTTP ${response.status}`)
+      } catch (error) {
+        console.error(error)
+        showStatus(MESSAGES.failure)
+        submit.disabled = false
+        submit.textContent = submitLabel
+        status.focus?.()
+      }
+    })
+  }
+
+  onPageLoad(init)
+</script>

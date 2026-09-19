@@ -36,6 +36,7 @@ import marcelo from '../../assets/people/FES_Marcelo.png'
 import claudia from '../../assets/people/FES_Cláudia.png'
 import diana from '../../assets/people/FES_Diana.png'
 import maria from '../../assets/people/FES_Maria.png'
+import Logo from '../../components/Logo.astro'
 
 const team = [
   { name: 'Liliana Castro', role: 'Founder & CEO', src: liliana },
@@ -96,6 +97,7 @@ const pillars = [
 
 <BaseLayout
   title="Agency"
+  ogImage={heroLight}
   description="Ten years inside Portugal's tech ecosystem: the team and systems behind FES Agency's PR, digital, design and events work."
   hideHeader
   bordered
@@ -112,7 +114,7 @@ const pillars = [
     <nav aria-label="Primary" class="relative z-10">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
-          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+          <Logo class="h-[var(--nav-logo-h)] w-auto" />
         </a>
         <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
           {
@@ -296,6 +298,7 @@ const pillars = [
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../../lib/lifecycle'
   // Team-photo drag mirrors the homepage/Careers testimonial carousels: same
   // press-scale + magnetic snap-to-nearest-card mechanic (see
   // src/lib/dragCarousel.ts) instead of a plain mousedown/mousemove scroll.
@@ -348,6 +351,6 @@ const pillars = [
     teamProgressCleanup = null
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

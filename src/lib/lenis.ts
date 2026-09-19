@@ -18,6 +18,7 @@
  * preference, which is the same outcome this site's other motion already
  * lands on by hand.
  */
+import { onPageLoad, onPageUnload } from './lifecycle'
 import Lenis from 'lenis'
 import { gsap, ScrollTrigger } from './sectionMotion'
 
@@ -45,8 +46,8 @@ function teardown() {
   lenis = null
 }
 
-document.addEventListener('astro:page-load', setup)
-document.addEventListener('astro:before-swap', teardown)
+onPageLoad(setup)
+onPageUnload(teardown)
 
 /** For anything that needs to scroll programmatically (e.g. "back to top") — falls back to nothing if Lenis hasn't initialized yet. */
 export function getLenis(): Lenis | null {

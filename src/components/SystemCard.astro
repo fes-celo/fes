@@ -195,6 +195,7 @@ const isDark = variant === 'dark'
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import { gsap } from 'gsap'
 
   // Same hover-motion language as UnderlineLink.astro's CTA underline: a
@@ -249,6 +250,6 @@ const isDark = variant === 'dark'
     cleanups = []
   }
 
-  document.addEventListener('astro:page-load', setupCardArrows)
-  document.addEventListener('astro:before-swap', teardownCardArrows)
+  onPageLoad(setupCardArrows)
+  onPageUnload(teardownCardArrows)
 </script>

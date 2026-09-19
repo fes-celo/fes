@@ -3,9 +3,10 @@
  * `overflow-x: auto` card row.
  *
  * Used by the homepage Testimonials, Careers "Feedback from previous team
- * members", and the Systems "Sound familiar?" row's own mobile/reduced-motion
- * fallback branch — three tracks that were otherwise hand-rolling a near
- * identical `mousedown/mousemove` → `scrollLeft` listener.
+ * members", the Agency team row, and the Systems "Sound familiar?" row's own
+ * mobile/reduced-motion fallback branch — tracks that were otherwise
+ * hand-rolling a near identical `mousedown/mousemove` → `scrollLeft`
+ * listener.
  *
  * NOT `Draggable`'s `type: 'scroll'`: that mode wraps the target's children
  * in a GSAP-generated "ScrollProxy" content div to simulate overscroll, and
@@ -16,21 +17,32 @@
  * the actual `type: 'x'` drag target, and `scrollLeft` is written by hand
  * from its `x` — one extra line, but the track's own markup and layout are
  * never touched.
+ *
+ * LAZY. Draggable + InertiaPlugin are ~40KB and were the single longest
+ * task on every page that has a drag row (600–850ms on a throttled phone,
+ * measured), for an interaction that only exists once the row is on screen
+ * and the pointer is on it. So the plugins are `import()`ed the first time
+ * the track comes within LOAD_MARGIN of the viewport, and attached then.
+ * Until that moment the row is a plain native scroller — same resting
+ * layout, same scroll-snap, same prev/next buttons — so nothing the user
+ * can see is different; only the grab-and-throw arrives a beat later.
+ * Attaching doesn't change that either: the native scroll-snap is only
+ * suspended while a drag is actually in progress (see `attach` below).
+ *
+ * The return value is still a synchronous cleanup: it cancels a pending
+ * load and kills the Draggable if it was already attached.
  */
 import { gsap } from 'gsap'
-import { Draggable } from 'gsap/Draggable'
-import { InertiaPlugin } from 'gsap/InertiaPlugin'
+import type { Draggable as DraggableType } from 'gsap/Draggable'
+import { pressCards } from './pressCards'
 
-gsap.registerPlugin(Draggable, InertiaPlugin)
+export { pressCards, PRESS_SCALE, PRESS_DURATION, PRESS_EASE } from './pressCards'
 
-/** Subtle press feedback: each card shrinks toward its own center, so the
- *  gap between cards visibly grows rather than the row scaling as one block. */
-export const PRESS_SCALE = 0.98
-export const PRESS_DURATION = 0.2
-export const PRESS_EASE = 'power2.out'
+/** How close to the viewport the track has to be before the plugins load. */
+const LOAD_MARGIN = '400px 0px'
 
 /**
- * Throw physics, shared so all three rows settle with the same weight.
+ * Throw physics, shared so all the rows settle with the same weight.
  *
  * `edgeResistance: 1` pins the drag exactly at the bounds instead of letting
  * it creep past them: the row is clamped by `scrollLeft` (or by the pin's own
@@ -53,13 +65,20 @@ export const DRAG_PHYSICS = {
   maxDuration: 0.85,
 } as const
 
-export function pressCards(cards: Element[], pressed: boolean) {
-  gsap.to(cards, { scale: pressed ? PRESS_SCALE : 1, duration: PRESS_DURATION, ease: PRESS_EASE, overwrite: 'auto' })
+let pluginsPromise: Promise<typeof DraggableType> | null = null
+
+/** One import per page, however many tracks ask for it. */
+function loadDraggable(): Promise<typeof DraggableType> {
+  pluginsPromise ??= Promise.all([import('gsap/Draggable'), import('gsap/InertiaPlugin')]).then(
+    ([{ Draggable }, { InertiaPlugin }]) => {
+      gsap.registerPlugin(Draggable, InertiaPlugin)
+      return Draggable
+    },
+  )
+  return pluginsPromise
 }
 
-export function createDragCarousel(track: HTMLElement, opts: { cardSelector: string }): (() => void) | null {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null
-
+function attach(Draggable: typeof DraggableType, track: HTMLElement, opts: { cardSelector: string }): () => void {
   const cards = Array.from(track.querySelectorAll<HTMLElement>(opts.cardSelector))
   const proxy = document.createElement('div')
 
@@ -100,22 +119,56 @@ export function createDragCarousel(track: HTMLElement, opts: { cardSelector: str
     return -closest
   }
 
-  // JS now owns the resting position via `snap` below — leaving native
-  // scroll-snap on would let the browser fight the inertia glide the same
-  // way sectionMotion.ts's pinned branch already has to switch it off.
-  const prevSnapType = track.style.scrollSnapType
-  track.style.scrollSnapType = 'none'
+  // Both native CSS properties below are suspended FOR THE DURATION OF A
+  // DRAG ONLY, not for the lifetime of the Draggable.
+  //
+  // They used to be switched off at attach time and back on at cleanup,
+  // which quietly cost every one of these rows its native scroll-snap for
+  // good: the moment the row came within LOAD_MARGIN, `scroll-snap-type`
+  // went to `none` and never came back, so a wheel/trackpad scroll — the
+  // way most people actually move these rows on desktop — left the cards
+  // resting wherever the scroll happened to stop. Scoping the suspension
+  // to the gesture gives the row GSAP's magnetic snap while dragging and
+  // the browser's own snap the rest of the time; the two agree on where a
+  // card rests (`nearestCardX` measures offsets relative to the first
+  // card, which is exactly what `snap-center` + the track's leading
+  // padding, or `snap-align: start` + `scroll-padding`, resolve to), so
+  // handing control back at the end of a throw never moves the row.
+  //
+  // WHY they have to be off during the drag at all:
+  //
+  // - `scroll-snap-type`: JS owns the resting position via `snap` below,
+  //   and leaving native snap on lets the browser fight the inertia glide
+  //   the same way sectionMotion.ts's pinned branch already has to.
+  //
+  // - `scroll-behavior`: THE thing that made dragging feel clunky. These
+  //   tracks carry Tailwind's `scroll-smooth` for the prev/next buttons,
+  //   and `scroll-behavior: smooth` applies to plain `scrollLeft`
+  //   assignment too — so every frame of a drag started a fresh
+  //   browser-run scroll ANIMATION toward that frame's value instead of
+  //   going there, and the row chased the cursor from several hundred
+  //   milliseconds behind (measured: assigning 500 settled at 286). The
+  //   buttons are unaffected either way: their `scrollBy` passes
+  //   `behavior: 'smooth'` explicitly, which outranks the CSS property.
+  let suspended = false
+  let prevSnapType = ''
+  let prevScrollBehavior = ''
 
-  // THE thing that made dragging feel clunky: these tracks carry Tailwind's
-  // `scroll-smooth` for the prev/next buttons, and `scroll-behavior: smooth`
-  // applies to plain `scrollLeft` assignment too — so every frame of a drag
-  // started a fresh browser-run scroll ANIMATION toward that frame's value
-  // instead of going there, and the row chased the cursor from several
-  // hundred milliseconds behind (measured: assigning 500 settled at 286).
-  // The buttons are unaffected: their `scrollBy` passes `behavior: 'smooth'`
-  // explicitly, which outranks the CSS property.
-  const prevScrollBehavior = track.style.scrollBehavior
-  track.style.scrollBehavior = 'auto'
+  function suspendNativeScroll() {
+    if (suspended) return
+    suspended = true
+    prevSnapType = track.style.scrollSnapType
+    prevScrollBehavior = track.style.scrollBehavior
+    track.style.scrollSnapType = 'none'
+    track.style.scrollBehavior = 'auto'
+  }
+
+  function restoreNativeScroll() {
+    if (!suspended) return
+    suspended = false
+    track.style.scrollSnapType = prevSnapType
+    track.style.scrollBehavior = prevScrollBehavior
+  }
 
   const [draggable] = Draggable.create(proxy, {
     ...DRAG_PHYSICS,
@@ -123,7 +176,7 @@ export function createDragCarousel(track: HTMLElement, opts: { cardSelector: str
     trigger: track,
     allowNativeTouchScrolling: true,
     bounds: { minX: -maxScroll(), maxX: 0 },
-    onPressInit(this: Draggable) {
+    onPressInit(this: DraggableType) {
       // Re-baseline the proxy to the CURRENT scroll position before this
       // drag's own math takes over — without this, a resize or a
       // prev/next-button click between drags would leave proxy.x stale, and
@@ -132,21 +185,65 @@ export function createDragCarousel(track: HTMLElement, opts: { cardSelector: str
       this.applyBounds({ minX: -maxScroll(), maxX: 0 })
       pressCards(cards, true)
     },
-    onDrag(this: Draggable) {
+    // Suspended on DRAG start rather than on press: a press that never
+    // moves (a click, or a touch the user turns into a vertical page
+    // scroll — `allowNativeTouchScrolling` hands those straight back to
+    // the browser) should leave native snapping exactly as it found it.
+    onDragStart: suspendNativeScroll,
+    onDrag(this: DraggableType) {
       track.scrollLeft = -this.x
     },
-    onThrowUpdate(this: Draggable) {
+    onThrowUpdate(this: DraggableType) {
       track.scrollLeft = -this.x
     },
     snap: (value: number) => nearestCardX(value),
-    onRelease: () => pressCards(cards, false),
+    // The throw tween is what lands the row on `snap`'s target, so native
+    // snap only comes back once it has finished. `inertia: true` means a
+    // release after any real drag always produces one, however slow —
+    // but a press with no movement resolves through `onRelease` alone,
+    // hence the one-frame check for a throw that never started.
+    onThrowComplete: restoreNativeScroll,
+    onRelease: () => {
+      pressCards(cards, false)
+      requestAnimationFrame(() => {
+        if (!draggable?.isThrowing) restoreNativeScroll()
+      })
+    },
   })
 
   return () => {
     draggable?.kill()
     proxy.remove()
-    track.style.scrollSnapType = prevSnapType
-    track.style.scrollBehavior = prevScrollBehavior
+    restoreNativeScroll()
     gsap.set(cards, { clearProps: 'scale' })
+  }
+}
+
+export function createDragCarousel(track: HTMLElement, opts: { cardSelector: string }): (() => void) | null {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null
+
+  let cancelled = false
+  let detach: (() => void) | null = null
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return
+      observer.disconnect()
+      void loadDraggable().then((Draggable) => {
+        // The page may have torn this row down while the plugins were in
+        // flight — attaching to a detached track would just leak a Draggable.
+        if (cancelled || !track.isConnected) return
+        detach = attach(Draggable, track, opts)
+      })
+    },
+    { rootMargin: LOAD_MARGIN },
+  )
+  observer.observe(track)
+
+  return () => {
+    cancelled = true
+    observer.disconnect()
+    detach?.()
+    detach = null
   }
 }

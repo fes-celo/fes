@@ -37,28 +37,33 @@ const { value, label, variant = 'card', active = false, class: className } = Ast
 ---
 
 {
+  /* Source order is <dt> then <dd> — the only order a <dl> group is valid
+     in — and the visual order (number above label) comes from flex `order`.
+     The <dd> IS the track element: a <dd> has to be a direct child of the
+     group, so the value, the rule and the fill all live inside it rather
+     than wrapping it in a div of their own. */
+}
+{
   variant === 'minimal' ? (
     <div
       class:list={['group/stat stat-minimal flex flex-col items-start pb-8', className]}
       data-active={active ? 'true' : 'false'}
     >
-      <div class="stat-minimal__track relative w-full pb-4">
-        <dd
-          class="text-h1 tracking-tight transition-colors duration-300 [color:var(--stat-ink-muted,var(--color-neutral-700))] group-data-[active=true]/stat:[color:var(--stat-ink,var(--color-neutral-200))]"
-        >
-          {value}
-        </dd>
-        <span class="stat-minimal__line absolute inset-x-0 bottom-0 h-px [background-color:var(--stat-ink-muted,var(--color-neutral-700))]" />
-        <span class="stat-minimal__fill absolute inset-x-0 bottom-0 h-px origin-left [background-color:var(--stat-ink,var(--color-neutral-200))]" />
-      </div>
-      <dt class="pt-4 text-body-sm leading-[1.2] transition-colors duration-300 [color:var(--stat-ink-muted,var(--color-neutral-400))] group-data-[active=true]/stat:[color:var(--stat-ink,var(--color-neutral-200))]">
+      <dt class="order-2 pt-4 text-body-sm leading-[1.2] transition-colors duration-300 [color:var(--stat-ink-muted,var(--color-neutral-400))] group-data-[active=true]/stat:[color:var(--stat-ink,var(--color-neutral-200))]">
         {label}
       </dt>
+      <dd class="stat-minimal__track relative order-1 w-full pb-4">
+        <span class="block text-h1 tracking-tight transition-colors duration-300 [color:var(--stat-ink-muted,var(--color-neutral-700))] group-data-[active=true]/stat:[color:var(--stat-ink,var(--color-neutral-200))]">
+          {value}
+        </span>
+        <span class="stat-minimal__line absolute inset-x-0 bottom-0 h-px [background-color:var(--stat-ink-muted,var(--color-neutral-700))]" />
+        <span class="stat-minimal__fill absolute inset-x-0 bottom-0 h-px origin-left [background-color:var(--stat-ink,var(--color-neutral-200))]" />
+      </dd>
     </div>
   ) : (
     <div class:list={['flex flex-col gap-6 rounded-[var(--radius-card)] bg-surface p-[var(--space-card-p)] shadow-[var(--shadow-card)]', className]}>
-      <dd class="text-h1 text-ink">{value}</dd>
-      <dt class="text-body text-ink-secondary">{label}</dt>
+      <dt class="order-2 text-body text-ink-secondary">{label}</dt>
+      <dd class="order-1 text-h1 text-ink">{value}</dd>
     </div>
   )
 }

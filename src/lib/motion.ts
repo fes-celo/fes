@@ -5,10 +5,18 @@
  *
  * Two rules shape the implementation:
  *
- * 1. The hidden state is set from JS (gsap.set), never from CSS. A CSS
- *    `opacity: 0` default would leave the whole site blank if the bundle
- *    fails or is blocked; this way no-JS gets the plain, fully visible page
- *    and the animation is purely additive.
+ * 1. The animated state is owned by JS (gsap.from), and the page is never
+ *    left blank without it. It used to follow from this that nothing was
+ *    hidden by CSS at all — but then every navigation painted the page fully
+ *    visible, and the entrance began with a visible snap to opacity 0 once
+ *    the bundle ran (worst in dev, where Vite serves ~26 unbundled modules
+ *    before this file executes). The pre-hide in global.css closes that gap
+ *    without giving up the guarantee: it only applies under `html.js`, a
+ *    class a two-line inline script sets before first paint, so no-JS still
+ *    gets the plain visible page; a CSS safety animation lifts it after
+ *    PREHIDE_SAFETY_MS if this bundle never arrives; and each element is
+ *    released (`ARMED` class) in the same frame gsap.from writes its
+ *    inline starting state, so the hand-over is never painted.
  *
  * 2. Nothing animates a <section> box itself. The homepage stacks a sticky
  *    hero, a scroll-driven light/dark invert zone and a footer reveal that
@@ -33,10 +41,48 @@ ScrollTrigger.config({ ignoreMobileResize: true })
 
 // Tuning surface — the taste knobs live here rather than scattered inline.
 const REVEAL = { y: 24, duration: 0.8, stagger: 0.08, ease: 'power2.out', start: 'top 85%' }
-const SLIDE_RIGHT = { x: 100, duration: 0.7, stagger: 0.1, ease: 'power2.out', start: 'top 85%' }
+const SLIDE_RIGHT = {
+  /** Travel as a share of the card's own width, so the entrance reads the
+   *  same on a 45rem desktop card and a full-bleed phone one. */
+  xRatio: 0.72,
+  xMax: 560,
+  duration: 0.9,
+  stagger: 0.12,
+  ease: 'power3.out',
+  start: 'top 85%',
+}
 const SPLIT = { y: '110%', duration: 0.9, stagger: 0.07, ease: 'power3.out', start: 'top 85%' }
 /** How far the per-line clip box extends below the line box to clear descenders. */
 const DESCENDER_PAD = '0.2em'
+
+/**
+ * The CSS pre-hide's hand-over. global.css keeps every `[data-anim]` element
+ * (and a reveal section's children) at `visibility: hidden` under `html.js`
+ * until it carries this class; each setup adds it right after gsap.from has
+ * written the inline starting state, so the element goes from "hidden by
+ * CSS" to "hidden by GSAP" without a painted frame in between. Cleanup
+ * removes it so a restored page starts from the same place.
+ */
+const ARMED = 'anim-armed'
+
+/**
+ * Must match the safety delay in global.css. Past it the CSS has already
+ * lifted the pre-hide on its own — a tab opened in the background and only
+ * looked at later is the everyday case — and anything on screen has been
+ * plainly visible for a while. Running the entrance then would snap it to
+ * opacity 0 first, the exact flash the pre-hide exists to remove, so
+ * in-view elements skip their entrance instead and only the scroll-triggered
+ * ones below the fold keep it.
+ */
+const PREHIDE_SAFETY_MS = 2500
+
+function arm(el: HTMLElement) {
+  el.classList.add(ARMED)
+}
+
+function disarm(el: HTMLElement) {
+  el.classList.remove(ARMED)
+}
 
 type Cleanup = () => void
 
@@ -54,9 +100,38 @@ function isInView(el: HTMLElement): boolean {
   return rect.top < window.innerHeight && rect.bottom > 0
 }
 
-/** Scroll-triggered, or immediate for elements already in view. */
-function schedule(el: HTMLElement, vars: gsap.TweenVars, start: string): gsap.TweenVars {
-  return isInView(el) ? { ...vars, delay: 0.15 } : { ...vars, scrollTrigger: { trigger: el, start, once: true } }
+/**
+ * True when an in-view entrance would do more harm than good, evaluated
+ * fresh for every element at the moment it is set up rather than once per
+ * init — the split-text pass waits on the font and can land seconds after
+ * the reveals, on the far side of the safety deadline.
+ *
+ * Two cases, and both end the same way: the element is armed with no tween,
+ * so the pre-hide lifts onto content that is simply there.
+ *
+ * - `document.hidden` — a background tab (cmd-click, session restore). Its
+ *   rAF is suspended, so a tween written here would never advance a frame;
+ *   the page would sit at opacity 0 until it was focused. This used to be a
+ *   promise that parked init until the tab was looked at, which left the
+ *   CSS pre-hide holding a page nothing could release — a hidden tab
+ *   rendered blank indefinitely, because an unrendered document does not
+ *   advance the CSS safety animation either. Skipping beats deferring.
+ * - Past PREHIDE_SAFETY_MS the CSS has already lifted the pre-hide by
+ *   itself and the content has been plainly visible for a while; starting
+ *   an entrance now would snap it to opacity 0 first.
+ */
+function entranceWouldFlash(): boolean {
+  return document.hidden || performance.now() > PREHIDE_SAFETY_MS
+}
+
+/**
+ * Scroll-triggered, or immediate for elements already in view — or `null`
+ * for an in-view element whose entrance should be skipped (see
+ * `entranceWouldFlash`), which callers must still arm.
+ */
+function schedule(el: HTMLElement, vars: gsap.TweenVars, start: string): gsap.TweenVars | null {
+  if (!isInView(el)) return { ...vars, scrollTrigger: { trigger: el, start, once: true } }
+  return entranceWouldFlash() ? null : { ...vars, delay: 0.15 }
 }
 
 /**
@@ -90,24 +165,30 @@ function setupReveals(reduced: boolean): Cleanup[] {
     // no travel — the appearance cue survives, the movement doesn't.
     const from = reduced ? { opacity: 0 } : { opacity: 0, y: REVEAL.y }
 
-    const tween = gsap.from(
-      targets,
-      schedule(
-        el,
-        {
-          ...from,
-          duration: reduced ? 0.4 : REVEAL.duration,
-          stagger: reduced ? 0 : REVEAL.stagger,
-          ease: REVEAL.ease,
-        },
-        REVEAL.start
-      )
+    const vars = schedule(
+      el,
+      {
+        ...from,
+        duration: reduced ? 0.4 : REVEAL.duration,
+        stagger: reduced ? 0 : REVEAL.stagger,
+        ease: REVEAL.ease,
+      },
+      REVEAL.start
     )
+    if (!vars) {
+      arm(el)
+      cleanups.push(() => disarm(el))
+      return
+    }
+
+    const tween = gsap.from(targets, vars)
+    arm(el)
 
     cleanups.push(() => {
       tween.scrollTrigger?.kill()
       tween.kill()
       gsap.set(targets, { clearProps: 'opacity,transform' })
+      disarm(el)
     })
   })
 
@@ -121,6 +202,13 @@ function setupReveals(reduced: boolean): Cleanup[] {
  * scrolls into view. Kept separate from `setupReveals` because it targets
  * individual cards rather than section-level blocks, and moves on x instead
  * of y.
+ *
+ * Travel is a share of the card's own width rather than a flat 100px. At
+ * 100px against a 720px card the card is already sitting in its slot when
+ * the tween starts and merely drifts the last few percent — it read as a
+ * nudge-and-return, not an entrance. Both tracks are clipped (the track's
+ * own `overflow-x`, plus `overflow-hidden` on the section), so a card that
+ * starts most of its width to the right genuinely enters from the edge.
  *
  * Position only, no opacity fade: the cards carry their own
  * `transition-opacity` (the carousel's active/inactive dimming), and a CSS
@@ -141,24 +229,40 @@ function setupSlideRight(reduced: boolean): Cleanup[] {
     const targets = Array.from(track.children).filter((c): c is HTMLElement => c instanceof HTMLElement)
     if (targets.length === 0) return
 
-    const tween = gsap.from(
-      targets,
-      schedule(
-        track,
-        {
-          x: SLIDE_RIGHT.x,
-          duration: SLIDE_RIGHT.duration,
-          stagger: SLIDE_RIGHT.stagger,
-          ease: SLIDE_RIGHT.ease,
-        },
-        SLIDE_RIGHT.start
-      )
+    const vars = schedule(
+      track,
+      {
+        x: (_i: number, el: HTMLElement) => Math.min(el.offsetWidth * SLIDE_RIGHT.xRatio, SLIDE_RIGHT.xMax),
+        duration: SLIDE_RIGHT.duration,
+        stagger: SLIDE_RIGHT.stagger,
+        ease: SLIDE_RIGHT.ease,
+      },
+      SLIDE_RIGHT.start
     )
+    if (!vars) {
+      arm(track)
+      cleanups.push(() => disarm(track))
+      return
+    }
+
+    // Snap off for the length of the entrance. A scroll-snap area is the
+    // target's *transformed* border box, so under `snap-mandatory` the
+    // scrollport chases the cards while they tween and drags the track along
+    // behind them — the travel cancels itself out and the whole thing reads as
+    // a rubber band rather than an arrival. `gsap.from` writes its start state
+    // on creation, so the suspend has to happen here, not in `onStart`.
+    const restoreSnap = () => track.style.removeProperty('scroll-snap-type')
+    track.style.scrollSnapType = 'none'
+
+    const tween = gsap.from(targets, { ...vars, onComplete: restoreSnap })
+    arm(track)
 
     cleanups.push(() => {
       tween.scrollTrigger?.kill()
       tween.kill()
       gsap.set(targets, { clearProps: 'transform' })
+      restoreSnap()
+      disarm(track)
     })
   })
 
@@ -292,12 +396,37 @@ function setupSplitText(reduced: boolean): Cleanup[] {
     // Reduced motion: fall back to the same flat cross-fade the reveals use
     // rather than a per-line march, and skip splitting the DOM entirely.
     if (reduced) {
-      const tween = gsap.from(el, schedule(el, { opacity: 0, duration: 0.4 }, SPLIT.start))
+      const vars = schedule(el, { opacity: 0, duration: 0.4 }, SPLIT.start)
+      if (!vars) {
+        arm(el)
+        cleanups.push(() => disarm(el))
+        return
+      }
+      const tween = gsap.from(el, vars)
+      arm(el)
       cleanups.push(() => {
         tween.scrollTrigger?.kill()
         tween.kill()
         gsap.set(el, { clearProps: 'opacity,transform' })
+        disarm(el)
       })
+      return
+    }
+
+    // Skipped entrance: no reason to split the DOM either.
+    const vars = schedule(
+      el,
+      {
+        yPercent: parseFloat(SPLIT.y),
+        duration: SPLIT.duration,
+        stagger: SPLIT.stagger,
+        ease: SPLIT.ease,
+      },
+      SPLIT.start
+    )
+    if (!vars) {
+      arm(el)
+      cleanups.push(() => disarm(el))
       return
     }
 
@@ -335,24 +464,14 @@ function setupSplitText(reduced: boolean): Cleanup[] {
       return inner
     })
 
-    const tween = gsap.from(
-      inners,
-      schedule(
-        el,
-        {
-          yPercent: parseFloat(SPLIT.y),
-          duration: SPLIT.duration,
-          stagger: SPLIT.stagger,
-          ease: SPLIT.ease,
-        },
-        SPLIT.start
-      )
-    )
+    const tween = gsap.from(inners, vars)
+    arm(el)
 
     cleanups.push(() => {
       tween.scrollTrigger?.kill()
       tween.kill()
       revert()
+      disarm(el)
     })
   })
 
@@ -362,53 +481,67 @@ function setupSplitText(reduced: boolean): Cleanup[] {
 let cleanups: Cleanup[] = []
 
 /**
- * Resolves once the page is actually being looked at.
+ * Resolves once this document is a real page rather than a speculative one.
  *
- * GSAP's ticker is requestAnimationFrame-driven, and rAF is suspended in a
- * backgrounded tab. Initialising there would apply every `from` state
- * (opacity 0) and then never advance a frame, so a page opened in a
- * background tab — cmd-click, session restore, a prerender — would sit
- * blank until it was focused. Deferring setup keeps the untouched, fully
- * visible page as the resting state and starts the choreography when
- * there's someone to see it.
+ * A prerendered document (astro.config.mjs's `prefetch` +
+ * `experimental.clientPrerender`, parked-decisions §28) reports
+ * `visibilityState: 'hidden'` and runs with its rAF suspended, exactly like
+ * a background tab — but unlike a background tab it is about to become the
+ * page someone is looking at, at which point the entrance is precisely what
+ * they should see. `prerenderingchange` fires on activation, which is the
+ * moment a prerendered load becomes an ordinary one.
+ *
+ * Nothing else is waited on. A genuinely backgrounded tab is handled by
+ * skipping the entrance outright (`entranceWouldFlash`), not by parking
+ * here: an init suspended behind the CSS pre-hide is a blank page.
  */
-function whenVisible(): Promise<void> {
-  if (!document.hidden) return Promise.resolve()
+function whenActivated(): Promise<void> {
+  if (!document.prerendering) return Promise.resolve()
   return new Promise((resolve) => {
-    const onChange = () => {
-      if (document.hidden) return
-      document.removeEventListener('visibilitychange', onChange)
-      resolve()
-    }
-    document.addEventListener('visibilitychange', onChange)
+    document.addEventListener('prerenderingchange', () => resolve(), { once: true })
   })
 }
 
-// Both awaits below can outlive the page that started them (a ClientRouter
-// navigation while the tab is still backgrounded, or before the font
-// resolves). The generation counter lets a teardown invalidate an init that
-// is still suspended, so it doesn't wake up and animate a swapped-out DOM.
+// The awaits below can outlive the page that started them — a prerender
+// that is never activated, or a font that resolves after the visitor has
+// already navigated on. The generation counter lets a teardown invalidate
+// an init that is still suspended, so it doesn't wake up and animate a
+// swapped-out DOM.
 let generation = 0
 
 export async function initMotion() {
   const mine = ++generation
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-  await whenVisible()
+  await whenActivated()
+  if (mine !== generation) return
 
-  // Aeonik is swap-loaded, and line splitting done against the fallback
-  // metrics bakes in the wrong line breaks — the split lines would keep the
-  // fallback's wrap points after Aeonik paints. Wait for the real font.
+  // Two passes, split on one question: does this entrance measure text?
+  //
+  // Reveals and slides do not — they move a box that layout has already
+  // placed — so they start as soon as the DOM is parsed. They used to sit
+  // behind `document.fonts.ready` with everything else, which meant the
+  // whole page stayed at `visibility: hidden` until the font resolved and
+  // then released at once. That single held-then-dumped frame is most of
+  // what read as "the page pops" rather than "the page arrives".
+  cleanups = [...setupReveals(reduced), ...setupSlideRight(reduced)]
+
+  // Split-text does measure: Aeonik is swap-loaded, and line breaks taken
+  // against the fallback metrics get baked in permanently (nothing
+  // re-splits on resize). This pass is worth the wait; the one above is
+  // not.
   try {
     await document.fonts.ready
   } catch {
     // Non-blocking: a browser without the Font Loading API just splits
     // against whatever is painted.
   }
-
   if (mine !== generation) return
 
-  cleanups = [...setupReveals(reduced), ...setupSlideRight(reduced), ...setupSplitText(reduced)]
+  cleanups.push(...setupSplitText(reduced))
+
+  // After the font, so every trigger above is measured against the metrics
+  // the page will actually keep.
   ScrollTrigger.refresh()
 }
 

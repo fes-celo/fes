@@ -1,0 +1,66 @@
+---
+/**
+ * The form-conversion page. Per docs/measurement.md this URL is the lead
+ * metric itself: the contact Function 302s here only after a submission
+ * has actually been validated, sent and logged, and "form leads" is the
+ * count of pageviews on it. Two consequences shape the page:
+ *
+ *  - `noindex`, and excluded from the sitemap in astro.config.mjs — a
+ *    crawler landing here would count as a lead;
+ *  - no form, no CTA back into the funnel; just confirmation and the two
+ *    places a person might reasonably go next.
+ *
+ * Same white-canvas nav pattern as /contact/.
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import Heading from '../../../components/Heading.astro'
+import Button from '../../../components/Button.astro'
+import { navItems } from '../../../lib/nav'
+import Logo from '../../../components/Logo.astro'
+---
+
+<BaseLayout title="Thank you" description="Your message has reached FES Agency — we'll get back to you shortly." hideHeader noindex>
+  <nav aria-label="Primary" class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)]">
+    <div class="flex items-start justify-between gap-6">
+      <a href="/" class="shrink-0">
+        <Logo class="h-[var(--nav-logo-h)] w-auto" />
+      </a>
+      <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
+        {
+          navItems.map((item) => (
+            <li>
+              <a href={item.href} class="text-body text-ink-secondary hover:text-ink">
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <button
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+        class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg lg:hidden"
+        data-nav-toggle
+      >
+        Menu
+      </button>
+    </div>
+  </nav>
+
+  <section class="bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]">
+    <div class="mx-auto flex w-full max-w-[50rem] flex-col items-center gap-10 text-center" data-anim="reveal">
+      <Heading as="h1" indent={false} class="text-h1 text-ink">
+        Thank you, <span class="text-accent-default">we've got it</span>
+      </Heading>
+      <p class="max-w-[var(--measure-prose)] text-lead text-ink-secondary">
+        Your message is in our inbox. Someone from the team will reply within two working days — usually sooner.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <Button href="/projects/">See our work</Button>
+        <Button href="/" variant="tint">Back to the homepage</Button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

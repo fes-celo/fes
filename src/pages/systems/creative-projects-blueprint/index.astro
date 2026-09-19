@@ -33,6 +33,7 @@ import eventsBg from '../../../assets/systems/creative-projects-blueprint/events
 import videoSeriesBg from '../../../assets/systems/creative-projects-blueprint/podcast-video-series/hero-bg.jpg'
 import DualCta from '../../../components/DualCta.astro'
 import SystemCard from '../../../components/SystemCard.astro'
+import Logo from '../../../components/Logo.astro'
 
 const blueprints = [
   {
@@ -93,6 +94,7 @@ const faqs = [
 
 <BaseLayout
   title="Creative Projects Blueprint"
+  ogImage={heroBg}
   description="Branding, Events & Brand Activations, and Podcast & Video-Series — three scoped creative Blueprints FES Agency builds for Portuguese tech companies."
   hideHeader
   bordered
@@ -113,7 +115,7 @@ const faqs = [
     <nav aria-label="Primary" class="relative z-10">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
-          <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+          <Logo variant="light" class="h-[var(--nav-logo-h)] w-auto" />
         </a>
         <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
           {
@@ -240,6 +242,7 @@ const faqs = [
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../../../lib/lifecycle'
   // FAQ accordion — single-open: expanding one trigger collapses the
   // others. Height animation lives in the <style> block above, keyed off
   // the trigger's aria-expanded; this just flips that attribute.
@@ -281,6 +284,6 @@ const faqs = [
     teardownFaqAccordion()
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

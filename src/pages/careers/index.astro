@@ -42,6 +42,7 @@ import { navItems } from '../../lib/nav'
 import teamPhoto from '../../assets/careers/team-photo.webp'
 import ourWorkCta from '../../assets/systems/our-work-cta.jpg'
 import UnderlineLink from '../../components/UnderlineLink.astro'
+import Logo from '../../components/Logo.astro'
 
 // Hero cursor trail photos — resized/compressed copies in
 // public/images/careers-trail/ (see the file-level comment above).
@@ -125,6 +126,7 @@ const alumniFeedback = [
 
 <BaseLayout
   title="Careers"
+  ogImage={teamPhoto}
   description="Work on the brands that define Portugal's tech scene — open roles, values and perks at FES Agency."
   hideHeader
   bordered
@@ -145,7 +147,7 @@ const alumniFeedback = [
     <nav aria-label="Primary" class="relative z-10">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
-          <img src="/fes-logo-white.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+          <Logo variant="light" class="h-[var(--nav-logo-h)] w-auto" />
         </a>
         <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
           {
@@ -397,6 +399,7 @@ const alumniFeedback = [
 </style>
 
 <script>
+  import { onPageLoad, onPageUnload } from '../../lib/lifecycle'
   import { gsap } from 'gsap'
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
   import { createDragCarousel } from '../../lib/dragCarousel'
@@ -458,6 +461,15 @@ const alumniFeedback = [
 
       if (useImage) {
         ;(el as HTMLImageElement).src = images[imageIndex % images.length]!
+        // Decorative: the trail is a pointer effect, not content. An empty
+        // alt keeps it out of the accessible name space and aria-hidden
+        // keeps the spawned <img>s out of the tree entirely — without both,
+        // every block was an unlabelled image to a screen reader and a
+        // missing-alt failure to Lighthouse (which also dented the page's
+        // SEO score).
+        ;(el as HTMLImageElement).alt = ''
+        el.setAttribute('aria-hidden', 'true')
+        ;(el as HTMLImageElement).decoding = 'async'
         imageIndex++
         el.className = 'absolute rounded-[var(--radius-card)] object-cover shadow-[var(--shadow-card-hover)]'
       } else {
@@ -805,6 +817,6 @@ const alumniFeedback = [
     cleanupFns = []
   }
 
-  document.addEventListener('astro:page-load', init)
-  document.addEventListener('astro:before-swap', teardown)
+  onPageLoad(init)
+  onPageUnload(teardown)
 </script>

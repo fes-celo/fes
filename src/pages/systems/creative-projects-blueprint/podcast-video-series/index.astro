@@ -32,6 +32,7 @@ import DualCta from '../../../../components/DualCta.astro'
 import ourWorkCta from '../../../../assets/systems/our-work-cta.jpg'
 import heroBg from '../../../../assets/systems/creative-projects-blueprint/podcast-video-series/hero-bg.jpg'
 import builtForBg from '../../../../assets/systems/built-for-bg.webp'
+import Logo from '../../../../components/Logo.astro'
 
 const expertiseWords = ['Knowledge', 'Content', 'Authority', 'Influence']
 
@@ -161,6 +162,7 @@ const selectedProjects = [
 
 <BaseLayout
   title="Podcast & Video-Series"
+  ogImage={heroBg}
   description="Turn expertise into influence. A Blueprint that turns knowledge into an editorial platform, produced once and repurposed into dozens of assets."
   hideHeader
 >
@@ -183,7 +185,7 @@ const selectedProjects = [
     <nav aria-label="Primary" class="relative z-10">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
-          <img src="/fes-logo-dark.svg" alt="FES Agency" width="106" height="60" class="h-[var(--nav-logo-h)] w-auto" />
+          <Logo class="h-[var(--nav-logo-h)] w-auto" />
         </a>
         <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
           {
@@ -295,7 +297,10 @@ const selectedProjects = [
   <BuiltForRotator phrases={builtForPhrases} backgroundImage={builtForBg} />
 
   {/* ---------- 6. Addons ---------- */}
-  <SystemAddonsMarquee addons={addons} class="bg-surface pb-[var(--space-section-y)]" />
+  <SystemAddonsMarquee
+    addons={addons}
+    class="bg-surface pt-[var(--space-section-y)] pb-[var(--space-section-y)]"
+  />
 
   {/* ---------- 7. Impact ---------- */}
   <section class="w-full bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
