@@ -2,6 +2,7 @@
 import { Image } from 'astro:assets'
 import BaseLayout from '../layouts/BaseLayout.astro'
 import Hero from '../components/Hero.astro'
+import FixedNav from '../components/FixedNav.astro'
 import Heading from '../components/Heading.astro'
 import SectionLabel from '../components/SectionLabel.astro'
 import Button from '../components/Button.astro'
@@ -160,12 +161,25 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
   hideHeader
   bordered
 >
+  <FixedNav />
   <Hero />
 
   {
     /* Light → dark inversion zone: Selected Projects + Stats share one
        wrapper so the flip covers everything still on screen when it fires
        (see the <style> block), instead of only repainting Stats. */
+  }
+  {
+    /*
+      No data-nav-ink here on purpose. The zone's ink isn't a fixed
+      "entering" value — see the script below, which keeps the nav's ink
+      synced to this zone's own live --dark-progress instead, both on the
+      internal flip AND on re-entering the zone (a static attribute here
+      would get the re-entry case wrong: scrolling back up from "What we do"
+      into the zone's bottom edge would reset the nav to the zone's ENTERING
+      state, "dark", even when the zone's own background is still the
+      near-black state it flipped to on the way down).
+    */
   }
   <div class="invert-zone relative z-10" data-invert-zone>
     {
@@ -267,7 +281,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
               href="/agency/"
               variant="tint"
               arrow={false}
-              class="!text-body !text-ink hover:!bg-white hover:!text-accent-default"
+              class="!text-ink hover:!bg-white hover:!text-accent-default"
             >
               Meet the Agency
             </Button>
@@ -286,6 +300,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
   <SystemsWhatWeDo theme="dark" class="relative z-10" />
 
   <section
+    data-nav-ink="light"
     class="relative z-10 overflow-hidden bg-accent-950 pt-[var(--space-section-y)] pb-[var(--space-section-y-lg)]"
     data-testimonials-section
     data-anim="reveal"
@@ -376,6 +391,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
        h2 so the section is reachable in a document outline. */
   }
   <section
+    data-nav-ink="dark"
     class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]"
     data-anim="reveal"
   >
@@ -391,7 +407,11 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
        purpose: this pairs with "Trusted by" above it, whose own bottom
        padding is the gap between them. */
   }
-  <section class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]" data-anim="reveal">
+  <section
+    data-nav-ink="dark"
+    class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]"
+    data-anim="reveal"
+  >
     <div class="grid grid-cols-1 gap-7 lg:grid-cols-12 lg:items-stretch">
       <a
         href="/contact/"
@@ -546,6 +566,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
   import { gsap } from 'gsap'
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
   import { createDragCarousel } from '../lib/dragCarousel'
+  import { setNavInk } from '../lib/fixedNav'
 
   gsap.registerPlugin(ScrollTrigger)
 
@@ -554,6 +575,48 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
     const row2 = document.querySelector<HTMLElement>('[data-featured-row-2]')
     const statsSection = document.querySelector<HTMLElement>('[data-stats-section]')
     if (!zone || !row2) return null
+
+    // Keeps FixedNav's ink synced to this zone's live --dark-progress —
+    // tracked here as `zoneUnderNav` rather than pushed unconditionally,
+    // because setDark() below runs from onRefresh, which GSAP fires on
+    // every ScrollTrigger.refresh() sitewide (including ones caused by
+    // unrelated animations elsewhere on the page via motion.ts), completely
+    // independent of whether the nav is anywhere near this zone. Without
+    // this guard, a refresh at scroll position 0 — nav still over the dark
+    // hero — pushed 'dark' ink from this zone's not-yet-triggered state and
+    // stuck the nav in the wrong color from the very first frame.
+    //
+    // Two triggers still write into it, both needed: setDark() covers the
+    // internal flip (fires exactly when the zone's own background changes,
+    // but only counts while zoneUnderNav is true); the observer here covers
+    // RE-ENTERING the zone from either edge, reading whatever the zone's
+    // current value actually is rather than assuming — the zone deliberately
+    // carries no static data-nav-ink for this (see the comment on
+    // [data-invert-zone] itself).
+    //
+    // The probe has to be the same thin line FixedNav's own generic observer
+    // uses (the nav's vertical centre), not a loose band — a band as tall as
+    // "the top 15% of the viewport" marked this zone as "under the nav"
+    // roughly 90px before its top edge actually reached the nav, which
+    // flipped the ink to the zone's still-light entering state for a brief
+    // stretch while the nav was visually still over the dark hero above it.
+    const triggerRect = document.getElementById('fixed-nav-trigger')?.getBoundingClientRect()
+    const probe = triggerRect ? Math.round((triggerRect.top + triggerRect.bottom) / 2) || 34 : 34
+
+    let zoneUnderNav = false
+    const zoneInkObserver = new IntersectionObserver(
+      ([entry]) => {
+        zoneUnderNav = Boolean(entry?.isIntersecting)
+        if (!zoneUnderNav) return
+        const dark = getComputedStyle(zone).getPropertyValue('--dark-progress').trim() === '1'
+        setNavInk(dark ? 'light' : 'dark')
+      },
+      {
+        rootMargin: `-${probe}px 0px -${Math.max(0, window.innerHeight - probe - 1)}px 0px`,
+        threshold: 0,
+      },
+    )
+    zoneInkObserver.observe(zone)
 
     // Flips when the SECOND Selected Projects row starts leaving the top of
     // the viewport — i.e. well before the already-dark "What we do" section
@@ -567,8 +630,16 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
     // edge" is exactly what start:'top top' expresses, and unlike
     // intersectionRatio it doesn't depend on the trigger element's height.
     // A fast CSS transition (see .invert-zone) handles the dissolve; this
-    // only toggles the boolean.
-    const setDark = (on: boolean) => zone.style.setProperty('--dark-progress', on ? '1' : '0')
+    // only toggles the boolean. Also syncs FixedNav's own ink at the exact
+    // same instant, but ONLY while the nav is actually parked over this
+    // zone (see zoneUnderNav above) — otherwise both properties transition
+    // over the same 200ms ease-out, so the nav and the zone dissolve in
+    // visual lockstep even though they're two separate custom properties on
+    // two separate elements.
+    const setDark = (on: boolean) => {
+      zone.style.setProperty('--dark-progress', on ? '1' : '0')
+      if (zoneUnderNav) setNavInk(on ? 'light' : 'dark')
+    }
 
     // Below 1024px (the site's lg breakpoint) the flip instead fires when
     // "We drive results" itself enters the screen, per user request — on a
@@ -590,7 +661,10 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
       // seed the state from where the scroll position actually is.
       onRefresh: (self) => setDark(self.progress > 0),
     })
-    return trigger
+    return () => {
+      trigger.kill()
+      zoneInkObserver.disconnect()
+    }
   }
 
   function setupStatsCycle() {
@@ -708,12 +782,12 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
   let cleanupFns: Array<() => void> = []
 
   function init() {
-    const darkInversionTrigger = setupDarkInversion()
+    const darkInversionCleanup = setupDarkInversion()
     const statsCleanup = setupStatsCycle()
     const carouselCleanup = setupTestimonialCarousel()
 
     cleanupFns = [
-      () => darkInversionTrigger?.kill(),
+      () => darkInversionCleanup?.(),
       () => statsCleanup?.(),
       () => carouselCleanup?.(),
     ]

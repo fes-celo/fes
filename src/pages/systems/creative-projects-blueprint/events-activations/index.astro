@@ -31,6 +31,7 @@ import SystemAddonsMarquee from '../../../../components/SystemAddonsMarquee.astr
 import DualCta from '../../../../components/DualCta.astro'
 import SelectedProjectsRotator from '../../../../components/SelectedProjectsRotator.astro'
 
+import ourWorkCta from '../../../../assets/systems/our-work-cta.jpg'
 import heroBg from '../../../../assets/systems/creative-projects-blueprint/events-activations/hero-bg.jpg'
 import builtForBg from '../../../../assets/systems/built-for-bg.webp'
 import Logo from '../../../../components/Logo.astro'
@@ -439,16 +440,23 @@ const selectedProjectCategories = await Promise.all(
   </section>
 
   {/* ---------- 8. Selected projects ---------- */}
-  <SelectedProjectsRotator categories={selectedProjectCategories} fixedAspect="886 / 580" />
+  <SelectedProjectsRotator
+    categories={selectedProjectCategories}
+    fixedAspect="886 / 580"
+    titleAction={{
+      label: 'See our detailed portfolio',
+      href: 'https://drive.google.com/file/d/17LpSFfD04wwv1nHCLklP3WyVXEQsDeB6/view',
+    }}
+  />
 
   {/* ---------- 9. Contact ---------- */}
   <DualCta
     leftHeading="Have an event in mind?"
     leftHref="/contact/"
     leftLabel="Get in touch"
-    rightHeading="Want to see more of our work?"
-    rightHref="https://drive.google.com/file/d/17LpSFfD04wwv1nHCLklP3WyVXEQsDeB6/view"
-    rightLabel="See our detailed portfolio"
-    rightVariant="outline"
+    rightHeading="Not sure Events & Brand Activations is the fit?"
+    rightHref="/systems/creative-projects-blueprint/"
+    rightLabel="See all Blueprints"
+    rightImage={ourWorkCta}
   />
 </BaseLayout>

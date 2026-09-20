@@ -1,0 +1,545 @@
+---
+/**
+ * Side-by-side comparison of two fixed-nav treatments for the mobile
+ * logo/menu trigger (see docs/parked-decisions.md for the discussion this
+ * came out of):
+ *
+ *   1. blend  — logo + trigger fixed top, `mix-blend-mode: difference`,
+ *      always on, no background chip.
+ *   2. hybrid — same transparent/blend look while over the hero, then
+ *      crossfades to the site's existing frosted pill (bg-neutral-950/60 +
+ *      backdrop-blur, the same treatment already used for the real Menu
+ *      button on every page) once the hero scrolls past.
+ *
+ * A floating control at the bottom switches which one is live. The stacked
+ * sections below use real assets (the hero still, a team photo, the brand
+ * accent) specifically so blend-mode's weak spots — saturated color,
+ * business photography — are visible, not just the easy black/white cases.
+ *
+ * Standalone, like styleguide/type.astro: no BaseLayout, so nothing here
+ * competes with the real header this is prototyping.
+ */
+import '../../styles/global.css'
+import Logo from '../../components/Logo.astro'
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Nav experiments — FES</title>
+  </head>
+  <body class="bg-canvas text-ink">
+    {
+      /* ---------- Fixed nav under test ---------- */
+    }
+    {
+      /* No shared `fixed` wrapper: a fixed *parent* becomes its own stacking
+         context, and mix-blend-mode only ever blends against paint within
+         the nearest stacking context it belongs to — so a blended child
+         nested in a fixed wrapper only ever "sees" its fixed siblings, never
+         the actual scrolling page underneath, and just renders as its plain
+         source color. Each piece is fixed individually instead, so each
+         one's stacking context is body's own and its backdrop is the real,
+         scrolled content behind it. */
+    }
+    <div id="demo-nav" data-past-hero="false">
+      <a
+        href="#top"
+        id="demo-logo"
+        class="fixed left-[var(--space-gutter)] top-[var(--space-gutter)] z-50 shrink-0"
+        aria-label="FES Agency"
+      >
+        <Logo variant="light" class="h-[var(--nav-logo-h)] w-auto" />
+      </a>
+      <button
+        type="button"
+        id="demo-trigger"
+        class="fixed right-[var(--space-gutter)] top-[var(--space-gutter)] z-50 inline-flex h-[var(--nav-logo-h)] shrink-0 items-center rounded-[var(--radius-button)] px-3.5 text-body-sm font-medium leading-none text-white"
+      >
+        Menu
+      </button>
+    </div>
+
+    {
+      /* ---------- Floating mode switcher ---------- */
+    }
+    <div class="fixed inset-x-0 bottom-0 z-50 flex justify-center px-[var(--space-gutter)] pb-6">
+      <div
+        class="flex flex-col items-center gap-1.5 rounded-[1.25rem] bg-neutral-950/85 p-2 text-body-sm text-white backdrop-blur-lg shadow-[0_8px_30px_rgba(0,0,0,0.35)]"
+      >
+        <div class="flex items-center gap-1">
+          <button type="button" data-mode-btn="blend" class="rounded-full px-3 py-1.5 font-medium transition-colors">
+            Blend
+          </button>
+          <button type="button" data-mode-btn="hybrid" class="rounded-full px-3 py-1.5 font-medium transition-colors">
+            Hybrid
+          </button>
+          <button type="button" data-mode-btn="theme" class="rounded-full px-3 py-1.5 font-medium transition-colors">
+            Outline
+          </button>
+          <button type="button" data-mode-btn="filled" class="rounded-full px-3 py-1.5 font-medium transition-colors">
+            Filled
+          </button>
+        </div>
+        <div class="flex items-center gap-2 px-1">
+          <button
+            type="button"
+            data-autohide-btn
+            aria-pressed="false"
+            class="rounded-full border border-white/25 px-3 py-1 font-medium transition-colors"
+          >
+            Auto-hide: off
+          </button>
+          <span class="text-center text-white/60" data-status>over hero</span>
+        </div>
+      </div>
+    </div>
+
+    <main id="top">
+      {
+        /* ---------- 1. Hero — busy shader still, the hardest case a real
+           page opens on ---------- */
+      }
+      <section
+        data-nav-ink="light"
+        class="relative flex min-h-[100svh] flex-col justify-end overflow-hidden bg-cover bg-center px-[var(--space-gutter)] pb-16"
+        style="background-image: url('/hero/hero-still.webp')"
+      >
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent">
+        </div>
+        <div class="relative max-w-2xl">
+          <p class="text-eyebrow uppercase text-white/70">1 — hero still</p>
+          <h1 class="mt-2 text-h1 text-white">We make tech companies impossible to ignore</h1>
+          <p class="mt-4 text-body text-white/80">
+            Busiest, most colour-varied background on the page — the case that breaks
+            <code class="rounded bg-white/15 px-1.5 py-0.5 text-body-sm">difference</code> blending most often.
+          </p>
+        </div>
+        {
+          /* Sentinel: hybrid mode flips to the solid pill once this leaves the top of the
+             viewport, i.e. once the hero itself has scrolled past. */
+        }
+        <div id="hero-sentinel" class="absolute bottom-0 left-0 h-px w-full"></div>
+      </section>
+
+      {
+        /* ---------- 2. Light content ---------- */
+      }
+      <section
+        data-nav-ink="dark"
+        class="flex min-h-[80svh] flex-col justify-center gap-4 bg-canvas px-[var(--space-gutter)] py-24"
+      >
+        <p class="text-eyebrow uppercase text-ink-secondary">2 — light content</p>
+        <h2 class="max-w-xl text-h2 text-ink">The easy case: plain light background</h2>
+        <p class="max-w-xl text-body text-ink-secondary">
+          What most of the site actually looks like between sections — should be effortless for either
+          treatment.
+        </p>
+      </section>
+
+      {
+        /* ---------- 3. Team photo ---------- */
+      }
+      <section
+        data-nav-ink="light"
+        class="relative flex min-h-[90svh] items-end bg-cover bg-center px-[var(--space-gutter)] pb-16"
+        style="background-image: url('/images/careers-trail/FES-team-12.webp')"
+      >
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
+        </div>
+        <p class="relative max-w-md text-body text-white">
+          3 — full-bleed photography. Skin tones and mixed lighting are the other place
+          <code class="rounded bg-white/15 px-1.5 py-0.5 text-body-sm">difference</code> tends to go muddy.
+        </p>
+      </section>
+
+      {
+        /* ---------- 4. Saturated brand accent ---------- */
+      }
+      <section
+        data-nav-ink="light"
+        class="flex min-h-[80svh] flex-col justify-center gap-4 bg-accent-600 px-[var(--space-gutter)] py-24"
+      >
+        <p class="text-eyebrow uppercase text-white/70">4 — saturated brand purple</p>
+        <h2 class="max-w-xl text-h2 text-white">Pure, high-chroma color</h2>
+        <p class="max-w-xl text-body text-white/80">
+          A flat saturated fill is where a difference-blended white mark is most likely to render as an
+          odd tinted grey rather than a clean invert — watch the logo here specifically.
+        </p>
+      </section>
+
+      {
+        /* ---------- 5. Solid dark ---------- */
+      }
+      <section
+        data-nav-ink="light"
+        class="flex min-h-[80svh] flex-col justify-center gap-4 bg-neutral-950 px-[var(--space-gutter)] py-24"
+      >
+        <p class="text-eyebrow uppercase text-white/50">5 — solid dark</p>
+        <h2 class="max-w-xl text-h2 text-white">The other easy case</h2>
+        <p class="max-w-xl text-body text-neutral-300">
+          Scroll back up to compare the two against section 1 again — that's the one that matters most,
+          since it's what every page opens on.
+        </p>
+      </section>
+
+      <section
+        data-nav-ink="dark"
+        class="flex min-h-[40svh] items-center justify-center bg-canvas px-[var(--space-gutter)]"
+      >
+        <p class="text-body text-ink-muted">End of demo.</p>
+      </section>
+    </main>
+
+    <style>
+      /* The trigger's box matches the full logo height (--nav-logo-h), so the
+         two line up top and bottom. That also lands the touch target at 44px
+         on a phone with no extra hit area needed. */
+
+      /* One transition list for both pieces, as longhands rather than the
+         shorthand: the colour modes below and the auto-hide transform have
+         different durations and curves, and a later `transition:` shorthand
+         in any one mode would wipe out the others. */
+      #demo-logo,
+      #demo-trigger {
+        transition-property: opacity, transform, color, background-color, border-color;
+        transition-duration: 120ms, 180ms, 200ms, 200ms, 200ms;
+        transition-timing-function: ease, cubic-bezier(0.22, 1, 0.36, 1), ease-out, ease-out, ease-out;
+      }
+      #demo-nav[data-mode='blend'] #demo-logo,
+      #demo-nav[data-mode='hybrid'][data-solid='false'] #demo-logo {
+        mix-blend-mode: difference;
+      }
+      #demo-nav[data-mode='blend'] #demo-trigger,
+      #demo-nav[data-mode='hybrid'][data-solid='false'] #demo-trigger {
+        mix-blend-mode: difference;
+        background: transparent;
+      }
+
+      /* ---------- Solid look: the site's existing frosted-pill trigger,
+         reused as-is (bg-neutral-950/60 + backdrop-blur-lg) ---------- */
+      #demo-nav[data-mode='hybrid'][data-solid='true'] #demo-logo {
+        mix-blend-mode: normal;
+      }
+      #demo-nav[data-mode='hybrid'][data-solid='true'] #demo-trigger {
+        mix-blend-mode: normal;
+        background: color-mix(in srgb, var(--color-neutral-950) 60%, transparent);
+        backdrop-filter: blur(16px);
+      }
+      #demo-nav[data-mode='hybrid'][data-solid='true'] #demo-logo {
+        border-radius: var(--radius-button);
+        background: color-mix(in srgb, var(--color-neutral-950) 60%, transparent);
+        backdrop-filter: blur(16px);
+        padding: 0.5rem 0.625rem;
+        margin: -0.5rem -0.625rem;
+      }
+
+      /* Crossfade at the hero boundary: opacity dips to 0, the mode classes
+         above swap while invisible, then it fades back — avoids animating
+         mix-blend-mode itself, which browsers can't tween. */
+      #demo-nav[data-swapping='true'] #demo-logo,
+      #demo-nav[data-swapping='true'] #demo-trigger {
+        opacity: 0;
+      }
+
+      /* ---------- Section theme: the homepage's own invert mechanism ----------
+         Same shape as .invert-zone in pages/index.astro — a 0/1 flag drives
+         color-mix() between two token values, and a short transition on the
+         color property does the dissolve. The difference is scope and who
+         decides: there, one ScrollTrigger flips a whole band of content; here
+         each section DECLARES the ink it wants via data-nav-ink, and the
+         observer below just reads whichever section is currently behind the
+         nav. Nothing is computed from the pixels, so the muddy results
+         `difference` gives over photography and saturated brand color can't
+         occur — the tradeoff is that every section needs an opinion. */
+      #demo-nav[data-mode='theme'],
+      #demo-nav[data-mode='filled'] {
+        --dark-progress: 0;
+        --demo-nav-ink: color-mix(
+          in srgb,
+          var(--color-white) calc(var(--dark-progress) * 100%),
+          var(--color-neutral-950)
+        );
+        /* The same mix run the other way — what the filled variant paints its
+           label in, so the pair always reads as a true inversion of each
+           other rather than two independently chosen colours. */
+        --demo-nav-ink-inverse: color-mix(
+          in srgb,
+          var(--color-neutral-950) calc(var(--dark-progress) * 100%),
+          var(--color-white)
+        );
+      }
+      #demo-nav[data-mode='theme'] #demo-logo,
+      #demo-nav[data-mode='theme'] #demo-trigger,
+      #demo-nav[data-mode='filled'] #demo-logo,
+      #demo-nav[data-mode='filled'] #demo-trigger {
+        mix-blend-mode: normal;
+        backdrop-filter: none;
+      }
+
+      /* Outline: the box is drawn in the declared ink, over the page itself. */
+      #demo-nav[data-mode='theme'] #demo-trigger {
+        background: transparent;
+        color: var(--demo-nav-ink);
+        border: 1px solid var(--demo-nav-ink);
+      }
+
+      /* Filled: box painted in the declared ink, label in its inverse — so it
+         is a white chip with dark text over dark sections, and flips to a
+         dark chip with white text the moment the page behind it goes light. */
+      #demo-nav[data-mode='filled'] #demo-trigger {
+        background: var(--demo-nav-ink);
+        color: var(--demo-nav-ink-inverse);
+        border: 1px solid var(--demo-nav-ink);
+      }
+
+      /* :global() for the same reason index.astro needs it — the paths are
+         rendered by Logo.astro and never carry this page's scope hash. CSS
+         beats the SVG `fill` presentation attribute, so the component's own
+         hardcoded hex doesn't have to change for the prototype. */
+      #demo-nav[data-mode='theme'] #demo-logo :global(svg path),
+      #demo-nav[data-mode='filled'] #demo-logo :global(svg path) {
+        fill: var(--demo-nav-ink);
+        transition: fill 200ms ease-out;
+      }
+      /* ---------- Auto-hide on scroll down, reveal on scroll up ----------
+         The transform goes on each piece individually, never on a shared
+         wrapper: a transformed ancestor is both a new stacking context and a
+         new containing block for fixed children, which would re-break the
+         blend modes above and unpin the nav. Both pieces are the same height
+         and get the same values, so they still move in lockstep.
+
+         The two directions are deliberately asymmetric, and it falls out of
+         the cascade: leaving uses the hidden rule's own slower ease-in
+         (it's going away, it can accelerate out), while coming back inherits
+         the faster decelerating curve in the base rule above — a reveal is
+         answering a deliberate gesture, so it should feel like it got there
+         first. */
+      #demo-nav[data-autohide='on'][data-hidden='true'] #demo-logo,
+      #demo-nav[data-autohide='on'][data-hidden='true'] #demo-trigger {
+        transform: translateY(calc(-100% - var(--space-gutter) - 0.25rem));
+        transition-duration: 120ms, 250ms, 200ms, 200ms, 200ms;
+        transition-timing-function: ease, cubic-bezier(0.4, 0, 1, 1), ease-out, ease-out, ease-out;
+      }
+
+      /* A keyboard user tabbing to the trigger must not be focusing an
+         element parked off-screen. Specificity has to beat the rule above. */
+      #demo-nav[data-autohide='on'][data-hidden='true']:focus-within #demo-logo,
+      #demo-nav[data-autohide='on'][data-hidden='true']:focus-within #demo-trigger {
+        transform: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #demo-logo,
+        #demo-trigger,
+        #demo-nav[data-autohide='on'][data-hidden='true'] #demo-logo,
+        #demo-nav[data-autohide='on'][data-hidden='true'] #demo-trigger,
+        #demo-nav[data-mode='theme'] #demo-logo :global(svg path),
+        #demo-nav[data-mode='filled'] #demo-logo :global(svg path) {
+          transition-duration: 1ms;
+        }
+      }
+    </style>
+
+    <script>
+      const nav = document.getElementById('demo-nav')!
+      const statusEl = document.querySelector<HTMLElement>('[data-status]')!
+      const modeButtons = document.querySelectorAll<HTMLButtonElement>('[data-mode-btn]')
+      const sentinel = document.getElementById('hero-sentinel')!
+      const autoHideBtn = document.querySelector<HTMLButtonElement>('[data-autohide-btn]')!
+      const trigger = document.getElementById('demo-trigger')!
+
+      type Mode = 'blend' | 'hybrid' | 'theme' | 'filled'
+
+      let mode: Mode = 'blend'
+      let pastHero = false
+      let currentInk: 'light' | 'dark' = 'light'
+      let triggerOpen = false
+
+      function paintModeButtons() {
+        modeButtons.forEach((btn) => {
+          const active = btn.dataset.modeBtn === mode
+          btn.classList.toggle('bg-white', active)
+          btn.classList.toggle('text-neutral-950', active)
+          btn.classList.toggle('text-white/70', !active)
+        })
+      }
+
+      function paintStatus() {
+        let text: string
+        if (mode === 'blend') {
+          text = 'always blended'
+        } else if (mode === 'hybrid') {
+          text = pastHero ? 'past hero — solid pill' : 'over hero — blended'
+        } else {
+          text = `${currentInk} ink · ${mode === 'filled' ? 'filled' : 'outlined'}`
+        }
+        statusEl.textContent = autoHide && navHidden ? `${text} · hidden` : text
+      }
+
+      function applySolid(solid: boolean, animate: boolean) {
+        nav.dataset.solid = String(solid)
+        if (!animate) return
+        nav.dataset.swapping = 'true'
+        window.setTimeout(() => {
+          delete nav.dataset.swapping
+        }, 130)
+      }
+
+      function setMode(next: Mode) {
+        mode = next
+        nav.dataset.mode = mode
+        applySolid(mode === 'hybrid' && pastHero, false)
+        paintModeButtons()
+        paintStatus()
+      }
+
+      // ---------- Auto-hide on scroll down, reveal on scroll up ----------
+      // Thresholds, not raw direction: reacting to every pixel of delta makes
+      // the nav flicker on a jittery finger. Revealing takes less movement
+      // than hiding does, because a reveal is what the visitor is asking for
+      // — a small flick up should be enough to get it back.
+      const SHOW_NEAR_TOP = 80
+      const HIDE_AFTER = 10
+      const REVEAL_AFTER = 7
+
+      let autoHide = false
+      let navHidden = false
+      let lastY = window.scrollY
+      let downAccum = 0
+      let upAccum = 0
+
+      function setHidden(hidden: boolean) {
+        if (hidden === navHidden) return
+        navHidden = hidden
+        nav.dataset.hidden = String(hidden)
+        paintStatus()
+      }
+
+      function onScroll() {
+        // Clamped at both ends so iOS rubber-band doesn't read as real
+        // movement — an overscroll past the bottom springs back as an upward
+        // delta, which would pop the nav open for no reason.
+        const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+        const y = Math.min(Math.max(0, window.scrollY), max)
+        const delta = y - lastY
+        lastY = y
+
+        if (!autoHide) return
+        // Never hidden while the panel is open, or up at the top of the page
+        // where there is nothing to get out of the way of.
+        if (triggerOpen || y <= SHOW_NEAR_TOP) {
+          downAccum = 0
+          upAccum = 0
+          setHidden(false)
+          return
+        }
+
+        if (delta > 0) {
+          upAccum = 0
+          downAccum += delta
+          if (downAccum > HIDE_AFTER) setHidden(true)
+        } else if (delta < 0) {
+          downAccum = 0
+          upAccum -= delta
+          if (upAccum > REVEAL_AFTER) setHidden(false)
+        }
+      }
+
+      function setAutoHide(on: boolean) {
+        autoHide = on
+        nav.dataset.autohide = on ? 'on' : 'off'
+        autoHideBtn.setAttribute('aria-pressed', String(on))
+        autoHideBtn.textContent = `Auto-hide: ${on ? 'on' : 'off'}`
+        autoHideBtn.classList.toggle('bg-white', on)
+        autoHideBtn.classList.toggle('text-neutral-950', on)
+        downAccum = 0
+        upAccum = 0
+        if (!on) setHidden(false)
+        nav.dataset.hidden = String(navHidden)
+        paintStatus()
+      }
+
+      // Which section is currently behind the nav. A thin band across the top
+      // of the viewport, roughly the row the fixed nav occupies: sections are
+      // stacked and non-overlapping, so exactly one intersects it at a time.
+      // Runs in every mode (it's cheap) — only the `theme` CSS above reads
+      // the result, so there's no observer to wire up and tear down on each
+      // mode switch.
+      function applyInk(ink: 'light' | 'dark') {
+        currentInk = ink
+        nav.style.setProperty('--dark-progress', ink === 'light' ? '1' : '0')
+        paintStatus()
+      }
+
+      function setupInkObserver() {
+        // A 1px probe line at the nav's vertical midpoint, not a band as tall
+        // as the nav. With a tall band, both sections intersect while the nav
+        // straddles a boundary and the last callback to fire wins — which
+        // painted the logo white over the light section for the few pixels
+        // where the photo below had entered the band but the logo was still
+        // over the light one. Sections are contiguous and non-overlapping, so
+        // exactly one can contain a single line, and "which section is behind
+        // the logo" stops being ambiguous.
+        const r = trigger.getBoundingClientRect()
+        const probe = Math.round((r.top + r.bottom) / 2) || 34
+        // Written up front, not left to the first observer callback: the CSS
+        // default (--dark-progress: 0) means dark ink, so a first section that
+        // happens to declare `light` would be skipped by the equality check
+        // below and the nav would open with the wrong colour.
+        applyInk(currentInk)
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue
+              const ink = (entry.target as HTMLElement).dataset.navInk === 'dark' ? 'dark' : 'light'
+              if (ink === currentInk) continue
+              applyInk(ink)
+            }
+          },
+          {
+            rootMargin: `-${probe}px 0px -${Math.max(0, window.innerHeight - probe - 1)}px 0px`,
+            threshold: 0,
+          },
+        )
+        document.querySelectorAll<HTMLElement>('[data-nav-ink]').forEach((s) => observer.observe(s))
+      }
+
+      modeButtons.forEach((btn) => {
+        btn.addEventListener('click', () => setMode(btn.dataset.modeBtn as Mode))
+      })
+
+      autoHideBtn.addEventListener('click', () => setAutoHide(!autoHide))
+      window.addEventListener('scroll', onScroll, { passive: true })
+
+      const heroObserver = new IntersectionObserver(
+        ([entry]) => {
+          const next = !entry.isIntersecting
+          if (next === pastHero) return
+          pastHero = next
+          if (mode === 'hybrid') applySolid(pastHero, true)
+          paintStatus()
+        },
+        { threshold: 0 },
+      )
+      heroObserver.observe(sentinel)
+
+      setupInkObserver()
+
+      trigger.addEventListener('click', () => {
+        triggerOpen = !triggerOpen
+        // Visual-only affordance — this page is comparing the fixed
+        // logo/trigger treatment itself, not the panel it would open. It
+        // still pins the nav open, since a menu that scrolls away mid-use is
+        // the one case auto-hide must never produce.
+        trigger.textContent = triggerOpen ? 'Close' : 'Menu'
+        if (triggerOpen) setHidden(false)
+      })
+
+      setMode('blend')
+      setAutoHide(false)
+    </script>
+  </body>
+</html>

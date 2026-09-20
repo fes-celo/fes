@@ -23,5 +23,10 @@ pnpm-debug.log*
 # local-only Claude Code settings (machine-specific absolute paths)
 .claude/settings.local.json
 
+# locally-installed Claude Code skills (machine-specific)
+.agents/
+.claude/skills/
+skills-lock.json
+
 # jetbrains setting folder
 .idea/

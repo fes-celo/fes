@@ -55,6 +55,8 @@ interface Props {
   slideIntervalMs?: number
   /** `"W / H"`, e.g. `"886 / 580"`. When set, every project renders in this one ratio (object-cover crops each photo to fit) instead of each project's own photo ratio — use it wherever the source photos vary enough in shape that per-project ratio causes visible layout jitter as the rotator auto-advances. */
   fixedAspect?: string
+  /** Optional link rendered beside the "Selected projects" heading, at the same text-lead size — e.g. a full/detailed portfolio that lives outside the site. Undefined renders the heading alone, as every other caller does. */
+  titleAction?: { label: string; href: string }
   class?: string
 }
 
@@ -65,6 +67,7 @@ const {
   intervalMs = 4500,
   slideIntervalMs = 1400,
   fixedAspect,
+  titleAction,
   class: className,
 } = Astro.props
 
@@ -96,9 +99,44 @@ const initialAspect = fixedAspect ?? (firstProject ? projectAspect(firstProject)
   data-selected-projects-section
 >
   <div class="flex flex-col gap-14" data-projects-row>
-    <Heading as="h2" indent={false} class="text-lead text-ink">
-      Selected projects
-    </Heading>
+    <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+      <Heading as="h2" indent={false} class="text-lead text-ink">
+        Selected projects
+      </Heading>
+      {
+        titleAction && (
+          <a
+            href={titleAction.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-lead text-ink/50 transition-colors duration-150 hover:text-accent-default"
+          >
+            {titleAction.label}
+            {
+              /* Default inline-block vertical-align: baseline sits this
+                 SVG's BOTTOM edge on the text baseline; translate-y-full
+                 then shifts it down by exactly its own height, so its TOP
+                 edge lands on the baseline instead — metrics-independent,
+                 unlike an absolute offset guessed against line-height. */
+            }
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 16 16"
+              fill="none"
+              class="ml-1 inline-block translate-y-full"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M16 8L7.72093 16L6.13953 14.4776L11.814 9.13433H0V6.86567H11.814L6.13953 1.52239L7.72093 0L16 8Z"
+                fill="currentColor"
+                transform="rotate(90 8 8)"
+              />
+            </svg>
+          </a>
+        )
+      }
+    </div>
 
     <div
       class="flex flex-col gap-10 lg:flex-row lg:gap-16"

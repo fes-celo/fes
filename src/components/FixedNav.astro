@@ -1,0 +1,115 @@
+---
+/**
+ * Fixed Menu trigger, pinned over the page rather than sitting in flow at
+ * the top of a hero. Piloted on the homepage — mobile only (`lg:hidden`).
+ *
+ * The logo is deliberately NOT here. It was, in an earlier pass of this
+ * pilot, pinned alongside the trigger — per user decision it was pulled
+ * back out: the logo lives in Hero.astro's own in-flow nav instead, scrolls
+ * away with the sticky hero, and does not reappear on scroll-up the way the
+ * trigger does. Only the trigger gets the pinned/declared-ink/auto-hide
+ * treatment. See docs/parked-decisions.md.
+ *
+ * Two things happen here that BaseLayout's bordered header never had to
+ * deal with:
+ *
+ * - Declared ink. Every page section states whether the trigger should read
+ *   light or dark ink over it via `data-nav-ink`; see lib/fixedNav.ts for
+ *   why that beat a `mix-blend-mode: difference` auto-invert (muddy over
+ *   photography and the brand's saturated purple) and how the homepage's
+ *   own dynamic invert-zone hooks in via setNavInk() instead of the static
+ *   attribute.
+ *
+ * - Auto-hide on scroll, reveal on a small upward movement.
+ *
+ * --dark-progress defaults to 1 (light ink) here rather than 0: the
+ * homepage's hero is dark from the very first frame, so painting the
+ * trigger dark-ink-on-dark before JS measures anything would be a flash of
+ * the wrong color. That default will need to become a prop once this rolls
+ * out to a page whose top section isn't dark.
+ */
+---
+
+<div id="fixed-nav">
+  <button
+    type="button"
+    id="fixed-nav-trigger"
+    aria-label="Open menu"
+    aria-expanded="false"
+    aria-controls="mobile-menu"
+    data-nav-toggle
+    class="fixed right-[var(--space-gutter)] top-[var(--space-gutter)] z-50 inline-flex h-[var(--nav-logo-h)] shrink-0 items-center rounded-[var(--radius-button)] px-3.5 text-body-sm font-medium leading-none lg:hidden"
+  >
+    Menu
+  </button>
+</div>
+
+<style>
+  #fixed-nav {
+    --dark-progress: 1;
+    --nav-ink: color-mix(in srgb, var(--color-white) calc(var(--dark-progress) * 100%), var(--color-neutral-950));
+    --nav-ink-inverse: color-mix(
+      in srgb,
+      var(--color-neutral-950) calc(var(--dark-progress) * 100%),
+      var(--color-white)
+    );
+  }
+
+  #fixed-nav-trigger {
+    transition-property: transform, color, background-color, border-color;
+    transition-duration: 180ms, 200ms, 200ms, 200ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1), ease-out, ease-out, ease-out;
+  }
+
+  /* Filled: box painted in the declared ink, label in its inverse — a white
+     chip with dark text over a dark section, flipping to a dark chip with
+     white text the moment the page behind it goes light. */
+  #fixed-nav-trigger {
+    background: var(--nav-ink);
+    color: var(--nav-ink-inverse);
+    border: 1px solid var(--nav-ink);
+  }
+
+  /* ---------- Auto-hide on scroll down, reveal on scroll up ----------
+     Asymmetric on purpose: hiding uses a slower ease-IN curve (it's
+     leaving, so it can accelerate away), while revealing uses the faster
+     decelerating curve in the base rule above — a reveal answers a
+     deliberate gesture, so it should feel like it got there first. */
+  #fixed-nav[data-hidden='true'] #fixed-nav-trigger {
+    transform: translateY(calc(-100% - var(--space-gutter) - 0.25rem));
+    transition-duration: 250ms, 200ms, 200ms, 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 1, 1), ease-out, ease-out, ease-out;
+  }
+
+  /* A keyboard user tabbing to the trigger must not be focusing an element
+     parked off-screen. */
+  #fixed-nav[data-hidden='true'] #fixed-nav-trigger:focus-visible {
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #fixed-nav-trigger,
+    #fixed-nav[data-hidden='true'] #fixed-nav-trigger {
+      transition-duration: 1ms;
+    }
+  }
+</style>
+
+<script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
+  import { setupFixedNav } from '../lib/fixedNav'
+
+  let cleanup: (() => void) | null = null
+
+  function init() {
+    cleanup = setupFixedNav()
+  }
+
+  function teardown() {
+    cleanup?.()
+    cleanup = null
+  }
+
+  onPageLoad(init)
+  onPageUnload(teardown)
+</script>

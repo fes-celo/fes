@@ -175,7 +175,14 @@ const TitleTag = titleAs
 {
   variant === 'featured' ? (
     <FeaturedTag href={href} class:list={['group flex flex-col gap-4', className]}>
-      <div class:list={['relative overflow-hidden rounded-[var(--radius-card)] bg-accent-tint', imageAspect]}>
+      <div
+        class:list={[
+          'relative overflow-hidden rounded-[var(--radius-card)] bg-accent-tint',
+          imageAspect,
+          href && 'cursor-none',
+        ]}
+        data-cursor-media={href ? true : undefined}
+      >
         {
           /* No cover shot yet → a LABELLED placeholder, not an unannotated
              empty box. Several Systems pages list more projects than there
@@ -196,7 +203,7 @@ const TitleTag = titleAs
             height={imageHeight * 2}
             widths={imageWidths}
             sizes={imageSizes}
-            class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            class="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.01]"
           />
         ) : (
           <PlaceholderBlock
@@ -209,6 +216,34 @@ const TitleTag = titleAs
           <Tag tone="overlay" class="absolute left-4 top-4 z-10">
             {tag}
           </Tag>
+        )}
+        {
+          /* Cursor-following "View project" pill — mouse only (the setup
+             script below gates on pointerType === 'mouse'), so touch/pen
+             never sees a stray label with nothing to dismiss it. Position is
+             pure JS (data-cursor-label, set on pointermove); visibility is a
+             plain group-hover so it still respects keyboard/touch by simply
+             never appearing there. 4px radius matches --radius-card exactly
+             — the pill borrows the card's own corner, not a fully-rounded
+             capsule.
+
+             bg-neutral-950/text-white, NOT bg-ink/text-ink-inverse: row 2 of
+             this grid sits inside the homepage's .invert-zone, which
+             redefines --color-ink to flip white as the section goes dark
+             (see index.astro) but leaves --color-ink-inverse a static
+             #FFFFFF — bg-ink would have turned this pill white right as its
+             own text stayed white, going invisible exactly when the section
+             behind it went dark. This pill is a fixed dark chip regardless
+             of section theme, so it needs literal colors, not the zone's
+             reactive ink tokens. */
+        }
+        {href && (
+          <span class="pointer-events-none absolute left-0 top-0 z-10 will-change-transform" data-cursor-label>
+            <span class="flex -translate-x-1/2 -translate-y-1/2 scale-75 items-center gap-1 whitespace-nowrap rounded-[var(--radius-card)] bg-neutral-950 px-3 py-1.5 text-[length:var(--text-meta)] font-medium text-white opacity-0 transition-[opacity,transform] duration-200 group-hover:scale-100 group-hover:opacity-100">
+              View project
+              <span class="chip-arrow size-2.5 bg-white" />
+            </span>
+          </span>
         )}
       </div>
       {
@@ -329,3 +364,37 @@ const TitleTag = titleAs
     -webkit-mask-size: contain;
   }
 </style>
+
+<script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
+
+  let cleanups: Array<() => void> = []
+
+  // variant="featured" only: the "View project" pill trails the pointer
+  // inside its card's image. Position is set directly (no GSAP) since it
+  // has to track every pointermove 1:1 — a tween here would just be lag,
+  // not the deliberate trailing-lag a quickTo would give it later.
+  function setupCursorLabels() {
+    document.querySelectorAll<HTMLElement>('[data-cursor-media]').forEach((media) => {
+      const label = media.querySelector<HTMLElement>('[data-cursor-label]')
+      if (!label) return
+
+      const onMove = (e: PointerEvent) => {
+        if (e.pointerType !== 'mouse') return
+        const rect = media.getBoundingClientRect()
+        label.style.transform = `translate3d(${e.clientX - rect.left}px, ${e.clientY - rect.top}px, 0)`
+      }
+
+      media.addEventListener('pointermove', onMove)
+      cleanups.push(() => media.removeEventListener('pointermove', onMove))
+    })
+  }
+
+  function teardownCursorLabels() {
+    cleanups.forEach((fn) => fn())
+    cleanups = []
+  }
+
+  onPageLoad(setupCursorLabels)
+  onPageUnload(teardownCursorLabels)
+</script>

@@ -54,6 +54,7 @@ const cards = [
 ---
 
 <section
+  data-nav-ink={isDark ? 'light' : 'dark'}
   class:list={[
     isDark ? 'bg-neutral-950' : 'bg-white',
     'px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[var(--space-section-y)]',
@@ -74,10 +75,7 @@ const cards = [
             href="/systems/"
             variant="tint"
             arrow={false}
-            class:list={[
-              'w-fit !text-body',
-              isDark && '!bg-neutral-900 !text-white hover:!bg-white hover:!text-accent-default',
-            ]}
+            class:list={['w-fit', isDark && '!bg-neutral-900 !text-white hover:!bg-white hover:!text-accent-default']}
           >
             Our systems
           </Button>

@@ -1032,3 +1032,103 @@ re-check the card's `min-h`), or a design pass wants title/description
 distinguished by size again — then the two need a size *gap* wide enough
 that neither tier's title and the other tier's description can land on the
 same computed pixel value at any viewport between 375 and 1920.
+
+### 44. FixedNav: pinned mobile Menu trigger only, homepage-only, declared ink over `mix-blend-mode`
+
+**Decided:** a new `<FixedNav />` component (`src/components/FixedNav.astro`
++ `src/lib/fixedNav.ts`) replaces the homepage's mobile Menu trigger. The
+logo is deliberately NOT part of it — by explicit user decision after an
+earlier version of this pilot pinned both together. The logo stays in
+`Hero.astro`'s own in-flow `<nav>`, scrolling away with the sticky hero
+exactly as it always did, and does not reappear on scroll-up; only the
+trigger gets the treatment below.
+
+- The trigger is `position: fixed` (pinned over the whole page, not just
+  the hero), instead of scrolling away with `Hero.astro`'s sticky section
+  as it did before.
+- Its color is **declared per section**, not computed from the pixels
+  underneath. Each section carries `data-nav-ink="light"|"dark"`; a thin
+  1px probe line at the trigger's own vertical centre — not a band the
+  height of the trigger — picks up whichever section is actually behind it
+  via `IntersectionObserver`. The homepage's `.invert-zone` (Selected
+  Projects + Impact, see #14 in this doc's era for the original inversion)
+  carries no static attribute at all: it's read live off its own
+  `--dark-progress` instead, both on its internal flip and on re-entering it
+  from either edge, because a static "entering" value gets scrolling back UP
+  from "What we do" into the zone's bottom wrong (see the comment on
+  `[data-invert-zone]` in `index.astro` and on `zoneUnderNav` in the same
+  file for the two bugs this caught: `onRefresh` firing from unrelated
+  sitewide ScrollTrigger refreshes and pushing stale ink, and a loose
+  rootMargin flipping the ink ~90px before the zone's edge actually reached
+  the trigger).
+- The trigger renders as a **filled chip** — solid box in the declared ink,
+  label in its inverse — rather than the frosted `bg-neutral-950/60
+  backdrop-blur-lg` pill every other page's header still uses, and auto-hides
+  past 10px of downward scroll, reveals on 7px of upward movement.
+
+Scoped to **mobile only** (`lg:hidden`) and the **homepage only**. Desktop's
+nav is untouched — still `Hero.astro`'s own inline `<nav>`, unpinned,
+scrolling away with the sticky hero exactly as before.
+
+**Why:** this followed a working session that prototyped four alternatives
+on a standalone comparison page (`src/pages/styleguide/nav-experiments.astro`
+— kept as a live reference) — `mix-blend-mode: difference`, a hybrid
+transparent/blend-then-solid, an outlined declared-ink chip, and this filled
+one. Blend-mode measured muddy over both the site's own case-study
+photography and the brand's saturated accent purple (`#4A40F2` differenced
+against white came out an odd olive tint, not a clean invert); the declared
+mechanism doesn't have that failure mode because nothing is computed from
+the pixels — the tradeoff, accepted here, is that every section needs an
+explicit opinion. Mobile-only and homepage-only because the entire
+prompting session was scoped to mobile, and every other page still
+duplicates BaseLayout's header markup inline (18 copies) rather than
+importing a shared component — extending this further is real work per
+page, not a flag flip. Trigger-only (not the logo) is a brand-legibility
+call, not a technical one: the wordmark reads as identity and is fine
+disappearing with the hero the way it always has, while the trigger is a
+control the visitor may want reachable at any scroll position.
+
+**Reopen if:** rolling this out to another page, or to the logo. Two things
+don't generalize yet and will need to: `FixedNav.astro`'s `--dark-progress: 1`
+default (light ink) is hardcoded on the assumption that page's top section
+is dark, exactly true for the homepage hero and not necessarily true
+anywhere else — it needs to become a prop. And `lib/fixedNav.ts`'s generic
+observer assumes every `[data-nav-ink]` section is a plain, static,
+non-`position:sticky` block; a second sticky section on a future page would
+need the same "only push when actually under the nav" guard `zoneUnderNav`
+gives the homepage's invert-zone, not a bare `data-nav-ink` attribute (a
+sticky element's `getBoundingClientRect()` reports its pinned viewport
+position forever, so a generic boundary-crossing observer treats it as
+permanently intersecting once first read).
+
+### 45. Button type stays `text-body-sm`; padding carries the emphasis instead
+
+**Decided:** `Button.astro`'s no-arrow path went from `py-1.5` to `py-3`, and
+the two callers that had bumped it to `!text-body` (`index.astro`'s "Meet the
+Agency" and `SystemsWhatWeDo.astro`'s "Our systems") had that override
+removed, reverting both to the component's default `text-body-sm`. Also
+added: an explicit `duration-150 ease-out` on the press/hover transitions
+(previously relying on Tailwind's un-stated defaults), a `group-hover`
+nudge (`translate-x-0.5`) on the arrow chip, and the `active:scale-[0.97]`
+press feedback `Button.astro` already had, now matched on `ScrollCta`'s
+"Book a call" pill, which was missing it entirely.
+
+**Why:** requested directly, comparing "Book a call" (`ScrollCta.astro`,
+`text-body-sm` + `py-3`) against "Meet the Agency" / "Our systems"
+(`Button.astro`, arrow removed but padding never re-tuned for the lost
+chip, then compensated with a larger type override). The chip's own 28px
+height was carrying the arrow variant's presence; strip the chip and 6px of
+vertical padding reads thin next to everything else on the page. Sizing the
+label up masked that but broke consistency with both the arrow variant and
+"Book a call" — three CTAs, three different type sizes doing the same job.
+14–15px is already this site's established UI/button size (it's what the
+arrow variant and "Book a call" both ship with, and it's the size Stripe,
+Linear, and Vercel converge on for buttons generally); the fix restores it
+everywhere and gives the no-arrow path the same generous padding "Book a
+call" already had, rather than growing type to compensate for cramped
+padding.
+
+**Reopen if:** a genuine primary/secondary two-tier button system gets
+built — at that point the primary tier may deliberately want more visual
+weight than `text-body-sm` + `font-medium` gives it, and that weight should
+come from a real second variant, not a per-instance override.
