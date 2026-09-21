@@ -545,12 +545,28 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
   }
   /* :global() because the elements that have to cross-fade — project card
      titles, descriptions, the section background inside ProjectCard.astro —
-     belong to other components and never get this page's scope hash. */
-  .invert-zone :global(*) {
-    transition:
-      color 200ms ease-out,
-      background-color 200ms ease-out,
-      border-color 200ms ease-out;
+     belong to other components and never get this page's scope hash.
+
+     @layer components: this sets `transition` (the full shorthand, which
+     resets transition-property to exactly color/background-color/
+     border-color) on literally every descendant. Left unlayered, that
+     shorthand silently overrides any element's OWN Tailwind transition
+     utility — transform/opacity utilities live in Tailwind's `utilities`
+     layer, and an unlayered rule beats every layer regardless of
+     specificity. That's what was making ProjectCard's featured-image hover
+     zoom and the cursor-following pill snap instantly instead of easing,
+     anywhere inside this zone. Layering this into `components` — lower
+     priority than `utilities` in Tailwind's own `theme, base, components,
+     utilities` order — lets a component's own transition utility win where
+     it declares one, and only falls back to this blanket color/bg/border
+     fade for elements that don't. */
+  @layer components {
+    .invert-zone :global(*) {
+      transition:
+        color 200ms ease-out,
+        background-color 200ms ease-out,
+        border-color 200ms ease-out;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     .invert-zone,

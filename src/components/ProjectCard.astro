@@ -239,7 +239,7 @@ const TitleTag = titleAs
         }
         {href && (
           <span class="pointer-events-none absolute left-0 top-0 z-10 will-change-transform" data-cursor-label>
-            <span class="flex -translate-x-1/2 -translate-y-1/2 scale-75 items-center gap-1 whitespace-nowrap rounded-[var(--radius-card)] bg-neutral-950 px-3 py-1.5 text-[length:var(--text-meta)] font-medium text-white opacity-0 transition-[opacity,transform] duration-200 group-hover:scale-100 group-hover:opacity-100">
+            <span class="cursor-pill flex items-center gap-1 whitespace-nowrap rounded-[var(--radius-card)] bg-neutral-950 px-3 py-1.5 text-[length:var(--text-meta)] font-medium text-white">
               View project
               <span class="chip-arrow size-2.5 bg-white" />
             </span>
@@ -362,6 +362,46 @@ const TitleTag = titleAs
     -webkit-mask-position: center;
     mask-size: contain;
     -webkit-mask-size: contain;
+  }
+
+  /* Cursor-pill in/out: a hover-driven state toggle, so a CSS transition is
+     the right tool (no JS animation library needed for this). Both states
+     write the FULL transform (translate + scale) in one declaration rather
+     than composing with the -translate-x/y-1/2 Tailwind utilities, since
+     mixing a plain `transform` override with Tailwind's variable-composed
+     transform would drop whichever half isn't restated.
+
+     The reveal only exists inside the hover-capable media query — not
+     `opacity-0 group-hover:opacity-100` in the markup — so a touch tap that
+     briefly triggers :hover can never pop the pill up at its default
+     untracked (0,0) position; the JS in the script block below separately
+     skips positioning it for any pointerType other than "mouse".
+
+     0.95, not 0.75 (the value this shipped with): nothing appears from
+     nothing, but this is a tens-of-times-a-day hover affordance, not a
+     modal — the pop should read as barely-there. Entrance (150ms) sits in
+     the tooltip/small-popover range; exit is quicker (100ms), which is the
+     usual tooltip asymmetry — arriving can take a beat, leaving should feel
+     immediate. Both ease-out (var(--ease-out), the site's existing token —
+     never ease-in on an entrance/exit). */
+  .cursor-pill {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+    transition-property: opacity, transform;
+    transition-duration: 100ms;
+    transition-timing-function: var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .group:hover .cursor-pill {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      transition-duration: 150ms;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cursor-pill {
+      transition-duration: 1ms;
+    }
   }
 </style>
 

@@ -1132,3 +1132,32 @@ padding.
 built — at that point the primary tier may deliberately want more visual
 weight than `text-body-sm` + `font-medium` gives it, and that weight should
 come from a real second variant, not a per-instance override.
+
+### 46. `horizontalLoop`'s drag responds to trackpad two-finger swipes, not just click-drag
+
+**Decided:** `src/lib/horizontalLoop.ts`'s `draggable: true` path (the
+Addons carousel/marquee on Systems and Blueprint pages, and `LogoMarquee`)
+now also attaches a `wheel` listener on the same trigger element. GSAP's
+`Draggable` only ever sees pointer/touch input — a trackpad two-finger swipe
+fires `wheel` events instead, which `Draggable` has no notion of, so the
+strip sat dead under a trackpad even with dragging "on." The listener only
+acts when a gesture is horizontally dominant (`|deltaX| > |deltaY|`, so a
+vertical page-scroll wins over the strip), scrubs the same timeline
+`Draggable`'s own `align()` does (shared `ratio = 1/totalWidth`, same sign),
+and — since `wheel` has no down/up pair, just a burst of deltas — settles
+with its own 120ms-idle debounce that tweens to the nearest card via
+`tl.tweenTo` and resumes autoplay if the gesture paused it. Cleaned up
+alongside the rest of the draggable setup in `destroy()`.
+
+**Why:** reported directly — trackpad dragging "not working like that" on
+the addons strips. `dragCarousel.ts`'s rows (Testimonials, Careers, Agency
+team) never had this gap because they're real `overflow-x: auto` elements,
+where a trackpad swipe is native browser scrolling the OS already handles;
+`horizontalLoop.ts` has no scroll container at all — every card position is
+a transform driven by `Draggable`'s proxy — so trackpad support had to be
+built by hand.
+
+**Reopen if:** GSAP's `Observer` plugin (bundled with core since 3.10, not
+currently used anywhere in this repo) becomes the project's general answer
+to input normalization for some other reason — at that point this
+hand-rolled listener could fold into it instead of staying a one-off.

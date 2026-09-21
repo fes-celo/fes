@@ -69,6 +69,7 @@ export function horizontalLoop(
   let timeWrap: (value: number) => number = (v) => v
   let proxy: HTMLDivElement | undefined
   let draggable: Draggable | undefined
+  let cleanupWheel: (() => void) | undefined
 
   const tl = gsap.timeline({
     repeat: -1,
@@ -216,6 +217,66 @@ export function horizontalLoop(
 
     const align = () => tl.progress(wrapProgress(startProgress + (draggable!.startX - draggable!.x) * ratio))
 
+    // Draggable only listens for pointer/touch input — a trackpad two-finger
+    // swipe fires `wheel` events instead, which GSAP's Draggable never sees,
+    // so the strip sat dead under a trackpad even with `draggable: true`.
+    // Handled separately here rather than by feeding synthetic pointer
+    // events into Draggable: `wheel` has no down/up pair, just a burst of
+    // deltas, so it needs its own start/settle bookkeeping instead of
+    // Draggable's press/release lifecycle.
+    //
+    // Sign check: `deltaX > 0` is the browser's normalized "content should
+    // move left" direction (already corrected for macOS "natural scrolling"),
+    // which is the same direction a mouse-drag to the left produces above —
+    // so the two gestures can share one `ratio`.
+    let wheelActive = false
+    let wheelWasPlaying = false
+    let wheelSettleTimer = 0
+
+    const wheelStart = () => {
+      gsap.killTweensOf(tl)
+      wheelWasPlaying = !tl.paused()
+      tl.pause()
+      refresh()
+      ratio = 1 / totalWidth
+      wheelActive = true
+    }
+
+    const wheelSettle = () => {
+      wheelActive = false
+      const time = tl.time()
+      const wrappedTime = timeWrap(time)
+      const snapTime = times[getClosest(times, wrappedTime, tl.duration())]!
+      let dif = snapTime - wrappedTime
+      if (Math.abs(dif) > tl.duration() / 2) dif += dif < 0 ? tl.duration() : -tl.duration()
+      tl.tweenTo(time + dif, {
+        duration: 0.3,
+        ease: 'power2.out',
+        overwrite: true,
+        onComplete: () => {
+          if (wheelWasPlaying) tl.play()
+        },
+      })
+    }
+
+    const onWheel = (e: WheelEvent) => {
+      // Vertical intent (page scroll) wins — only a horizontally-dominant
+      // gesture is treated as steering the strip.
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return
+      e.preventDefault()
+      if (!wheelActive) wheelStart()
+      tl.progress(wrapProgress(tl.progress() + e.deltaX * ratio))
+      window.clearTimeout(wheelSettleTimer)
+      wheelSettleTimer = window.setTimeout(wheelSettle, 120)
+    }
+
+    const wheelTrigger = items[0]!.parentNode as HTMLElement
+    wheelTrigger.addEventListener('wheel', onWheel, { passive: false })
+    cleanupWheel = () => {
+      wheelTrigger.removeEventListener('wheel', onWheel)
+      window.clearTimeout(wheelSettleTimer)
+    }
+
     draggable = Draggable.create(proxy, {
       trigger: items[0]!.parentNode as HTMLElement,
       type: 'x',
@@ -259,6 +320,7 @@ export function horizontalLoop(
     next,
     destroy() {
       window.removeEventListener('resize', onResize)
+      cleanupWheel?.()
       draggable?.kill()
       proxy?.remove()
       tl.kill()
