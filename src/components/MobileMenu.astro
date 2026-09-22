@@ -121,6 +121,7 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
   import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import { gsap } from '../lib/sectionMotion'
   import { getLenis } from '../lib/lenis'
+  import { EASE_OUT } from '../lib/ease'
 
   let cleanup: (() => void) | null = null
 
@@ -186,15 +187,15 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
       // leave focus on the trigger behind the overlay.
       gsap.set(panel, { visibility: 'inherit' })
       const tl = gsap.timeline()
-      tl.to(panel, { opacity: 1, duration: reduceMotion ? 0 : 0.35, ease: 'power2.out' })
+      tl.to(panel, { opacity: 1, duration: reduceMotion ? 0 : 0.3, ease: EASE_OUT })
       tl.to(
         items,
         {
           autoAlpha: 1,
           y: 0,
-          duration: reduceMotion ? 0 : 0.5,
+          duration: reduceMotion ? 0 : 0.45,
           stagger: reduceMotion ? 0 : 0.04,
-          ease: 'power3.out',
+          ease: EASE_OUT,
         },
         reduceMotion ? 0 : '-=0.15',
       )
@@ -229,11 +230,14 @@ const secondaryItems = footerItems.filter((item) => item.label !== 'Contact')
       tl.to(items, {
         autoAlpha: 0,
         y: reduceMotion ? 0 : 10,
-        duration: reduceMotion ? 0 : 0.2,
-        stagger: reduceMotion ? 0 : 0.02,
-        ease: 'power2.in',
+        duration: reduceMotion ? 0 : 0.15,
+        stagger: reduceMotion ? 0 : 0.015,
+        ease: EASE_OUT,
       })
-      tl.to(panel, { autoAlpha: 0, duration: reduceMotion ? 0 : 0.3, ease: 'power2.in' }, reduceMotion ? 0 : '-=0.1')
+      // Closing is a dismissal: the visitor has already decided, so the
+      // panel gets out of the way fast and front-loaded rather than
+      // winding up with an ease-in (see src/lib/ease.ts).
+      tl.to(panel, { autoAlpha: 0, duration: reduceMotion ? 0 : 0.2, ease: EASE_OUT }, reduceMotion ? 0 : '-=0.1')
 
       // Focus goes back to whichever button opened the panel, if it is still
       // inside the panel (Escape, the Close button, or a link click — the

@@ -199,6 +199,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
     <section
       class="relative z-10 bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)]"
       data-anim="reveal"
+      data-reveal="items"
     >
       <div>
         <Heading as="h2" indent={false} class="text-h2 text-ink">Selected projects</Heading>
@@ -210,7 +211,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
              separated by the grid itself, so gap-x stays at 7. */
         }
         <div class="mt-[var(--space-heading-gap)] flex flex-col gap-12">
-          <div class="grid grid-cols-1 gap-x-7 gap-y-12 lg:grid-cols-2">
+          <div class="grid grid-cols-1 gap-x-7 gap-y-12 lg:grid-cols-2" data-reveal-each>
             {
               featuredRow1.map((p) => (
                 <ProjectCard
@@ -229,7 +230,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
               ))
             }
           </div>
-          <div class="grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 lg:grid-cols-4" data-featured-row-2>
+          <div class="grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 lg:grid-cols-4" data-featured-row-2 data-reveal-each>
             {
               featuredRow2.map((p, i) => (
                 <div data-last-project={i === featuredRow2.length - 1 ? '' : undefined}>
@@ -260,11 +261,12 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
       class="relative z-10 px-[var(--space-gutter)] py-[var(--space-section-y)]"
       data-stats-section
       data-anim="reveal"
+      data-reveal="items"
     >
       <div>
         <SectionLabel>Our Impact</SectionLabel>
-        <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-7">
-          <dl class="grid grid-cols-2 gap-x-7 lg:col-span-4" data-stats-cycle>
+        <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-7" data-reveal-each>
+          <dl class="grid grid-cols-2 gap-x-7 lg:col-span-4" data-stats-cycle data-paused>
             {stats.map((s, i) => <StatBlock variant="minimal" value={s.value} label={s.label} active={i === 0} />)}
           </dl>
           <div class="flex flex-col items-start gap-10 lg:col-span-8">
@@ -297,13 +299,14 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
   }
   <ScrollCta showSelector="[data-last-project]" hideSelector="[data-testimonials-section]" />
 
-  <SystemsWhatWeDo theme="dark" class="relative z-10" />
+  <SystemsWhatWeDo theme="dark" revealItems class="relative z-10" />
 
   <section
     data-nav-ink="light"
     class="relative z-10 overflow-hidden bg-accent-950 pt-[var(--space-section-y)] pb-[var(--space-section-y-lg)]"
     data-testimonials-section
     data-anim="reveal"
+    data-reveal="items"
   >
     {
       /* Symmetric padding, no max-width: the heading's content box has to be
@@ -394,6 +397,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
     data-nav-ink="dark"
     class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]"
     data-anim="reveal"
+    data-reveal="items"
   >
     <div>
       <SectionLabel>Trusted by</SectionLabel>
@@ -411,6 +415,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
     data-nav-ink="dark"
     class="relative z-10 bg-surface px-[var(--space-gutter)] pb-[var(--space-section-y)]"
     data-anim="reveal"
+    data-reveal="items"
   >
     <div class="grid grid-cols-1 gap-7 lg:grid-cols-12 lg:items-stretch">
       <a
@@ -718,13 +723,49 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
     // `stat-fill` keyframes duration (see that file): the progress bar is
     // meant to finish filling exactly when the timer advances to the next
     // stat.
-    let timer = prefersReducedMotion ? 0 : window.setInterval(tick, 1800)
+    //
+    // The cycle only runs while the section is on screen. It used to start
+    // at page load, a full viewport-and-a-half above the section, so a
+    // visitor arrived mid-lap on whichever stat the clock had reached — and
+    // it kept ticking beside the "Behind these numbers" paragraph long
+    // after they'd scrolled on. Now the first lap starts from stat 1 when
+    // the section is actually looked at, and pauses (bar and all, via
+    // `data-paused` — see StatBlock's style) whenever it isn't.
+    let timer = 0
+    let inView = false
 
     function restartTimer() {
-      if (prefersReducedMotion) return
+      if (prefersReducedMotion || !inView) return
       window.clearInterval(timer)
       timer = window.setInterval(tick, 1800)
     }
+
+    // Replays the active stat's fill from zero. Re-setting data-active to
+    // the value it already has doesn't restart a CSS animation; dropping it
+    // for one forced style recalc does.
+    function replayActive() {
+      const el = items[index]
+      el.dataset.active = 'false'
+      void el.offsetWidth
+      el.dataset.active = 'true'
+    }
+
+    const viewObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting === inView) return
+        inView = entry.isIntersecting
+        if (inView) {
+          root.removeAttribute('data-paused')
+          replayActive()
+          restartTimer()
+        } else {
+          root.setAttribute('data-paused', '')
+          window.clearInterval(timer)
+        }
+      },
+      { threshold: 0.5 }
+    )
+    viewObserver.observe(root)
 
     const listeners = items.map((el, i) => {
       const onEnter = () => {
@@ -744,6 +785,8 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
 
     return () => {
       window.clearInterval(timer)
+      viewObserver.disconnect()
+      root.setAttribute('data-paused', '')
       listeners.forEach(({ el, onEnter, onLeave }) => {
         el.removeEventListener('mouseenter', onEnter)
         el.removeEventListener('mouseleave', onLeave)

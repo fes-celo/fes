@@ -462,6 +462,12 @@
   --radius-button: 0.375rem;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.06);
   --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.10);
+
+  /* The house curve — overrides Tailwind's stock `ease-out`
+     (cubic-bezier(0, 0, 0.2, 1), too soft to feel deliberate), so every
+     `ease-out` utility and every var(--ease-out) picks it up. GSAP code uses
+     its twin, EASE_OUT in src/lib/ease.ts. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /*

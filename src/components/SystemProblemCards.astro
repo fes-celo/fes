@@ -19,17 +19,16 @@
  * press-scale + magnetic-snap mechanic as the testimonial carousels (see
  * src/lib/dragCarousel.ts) — no scroll distance required to reach every
  * card.
+ *
+ * Text-only cards on every Systems page: no photography slot (Influence &
+ * Reputation's four photos were removed — see parked decision 47). Each
+ * card is a flat neutral-900 with one eased top scrim.
  */
-import type { ImageMetadata } from 'astro'
-import { Image } from 'astro:assets'
-
 export interface ProblemCard {
   title: string
   /** Lead-in above the statement, e.g. "Ideal for those who want to:". */
   label: string
   statement: string
-  /** Optional so a page can ship layout-complete ahead of final photography — same convention as ProjectCard's own no-image state. */
-  image?: ImageMetadata
 }
 
 interface Props {
@@ -79,21 +78,6 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
         {
           cards.map((card) => (
             <article class="problem-card" data-card>
-              <div class="problem-card__media" data-card-media>
-                {card.image ? (
-                  <Image
-                    src={card.image}
-                    alt=""
-                    width={860}
-                    height={916}
-                    widths={[430, 860]}
-                    sizes="(min-width: 1024px) 28vw, 80vw"
-                    class="problem-card__img"
-                  />
-                ) : (
-                  <div class="problem-card__img-placeholder" aria-hidden="true" />
-                )}
-              </div>
               <div class="problem-card__scrim" />
               <div class="relative flex h-full flex-col justify-between gap-10">
                 <h3 class="text-h3 text-neutral-50">{card.title}</h3>
@@ -190,43 +174,55 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
     }
   }
 
-  .problem-card__media {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-  }
-
-  .problem-card__img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    /* Tailwind's preflight sets `img { max-width: 100% }`, which is exactly
-       right here now (no oversized/offset crop to fight — see git history
-       for the parallax version this replaced), but stated explicitly since
-       this class also drives the `<div>` placeholder variant, which has no
-       preflight rule of its own to inherit. */
-    max-width: none;
-  }
-
-  /* Stand-in for photography not shot yet. A fixed neutral-700, not
-     --color-accent-tint: the card itself is always a literal neutral-900
-     (see .problem-card above, not page-themed), and a page whose dark-zone
-     redefines --color-accent-tint to that same neutral-900 would make the
-     placeholder invisible against its own card — this stays visible on
-     every consuming page regardless of how it themes that token. */
-  .problem-card__img-placeholder {
-    position: absolute;
-    inset: 0;
-    background-color: var(--color-neutral-700);
-  }
-
+  /* Same top-down black-to-transparent scrim the photo cards had, at a
+     lower peak (0.3, was 0.5) and EASED rather than linear. A two-stop
+     linear gradient has a hard "shelf" where the alpha stops changing —
+     visible as a band on a flat card with no photo to hide it. These
+     stops trace an ease-in-out curve (the classic "scrim gradient"
+     sampling), each alpha = --scrim-peak × eased value, so the fade
+     starts and ends with zero slope and reads as a soft vignette. */
   .problem-card__scrim {
+    --scrim-peak: 0.3;
+    --scrim: var(--color-black);
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: linear-gradient(to bottom, rgb(from var(--color-black) r g b / 0.5), transparent);
+    background: linear-gradient(
+      to bottom,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 1)) 0%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.987)) 8.1%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.951)) 15.5%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.896)) 22.5%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.825)) 29%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.741)) 35.3%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.648)) 41.2%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.55)) 47.1%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.45)) 52.9%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.352)) 58.8%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.259)) 64.7%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.175)) 71%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.104)) 77.5%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.049)) 84.5%,
+      rgb(from var(--scrim) r g b / calc(var(--scrim-peak) * 0.013)) 91.9%,
+      rgb(from var(--scrim) r g b / 0) 100%
+    );
+  }
+
+  /* Dither. On a neutral-900 card a 0–0.3 black fade spans only ~6–7 of
+     the display's 8-bit grey levels over the full card height, so each
+     level renders as its own visible horizontal band — easing the curve
+     can't fix that, there simply aren't enough steps. A faint static
+     grain breaks the step edges up. `overlay` keeps it mean-neutral
+     (mid-grey noise leaves the base unchanged), so it dithers without
+     lightening the card. */
+  .problem-card__scrim::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.18;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
   }
 </style>
 
@@ -303,16 +299,23 @@ const { heading = 'Sound familiar?', cards, class: className } = Astro.props as 
       const progressCleanup = bindProgress()
 
       // Suspended HERE, at creation — not in the tween's own `onStart`.
-      // `gsap.from` renders its start state immediately (immediateRender),
-      // so the cards sit at x:160 from page load, long before the trigger
-      // plays them: that single jump is enough for a mandatory snap
-      // container to re-snap and leave the row already scrolled off the
-      // first card while it waits to be scrolled into view.
+      // The cards are parked at x:160 from page load (below), long before
+      // the trigger plays them: that single jump is enough for a mandatory
+      // snap container to re-snap and leave the row already scrolled off
+      // the first card while it waits to be scrolled into view.
       let restoreSnap: (() => void) | null = withoutSnap()
 
-      const tween = gsap.from(cards, {
-        opacity: 0,
-        x: ENTRANCE.x,
+      // Start state set EXPLICITLY, then a plain `to`. This used to be a
+      // `gsap.from` trusting immediateRender to park the cards hidden and
+      // offset up front — measured, it didn't: with the tween's `delay`
+      // the start state was never written, so the cards scrolled into view
+      // sitting at rest, then snapped to x:160/opacity:0 when the trigger
+      // fired and slid back — reading as "fixed, jump right, come back".
+      gsap.set(cards, { opacity: 0, x: ENTRANCE.x })
+
+      const tween = gsap.to(cards, {
+        opacity: 1,
+        x: 0,
         duration: ENTRANCE.duration,
         delay: ENTRANCE.delay,
         stagger: ENTRANCE.stagger,

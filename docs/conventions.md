@@ -36,6 +36,31 @@ independently of the content's own layout box:
 Don't add `data-anim-wrapper` speculatively — only where a mask/clip effect
 is actually planned. Most `data-anim="reveal"` elements don't need one.
 
+## Per-item reveals: `data-reveal="items"`
+
+A `data-anim="reveal"` section fires once, when its top reaches 85% of the
+viewport — for a tall section that means everything below the first screen
+finishes its entrance out of sight. Add `data-reveal="items"` to have each
+item enter on its own scroll position instead, and mark a card grid with
+`data-reveal-each` so every card is its own item:
+
+```html
+<section data-anim="reveal" data-reveal="items">
+  <h2>Selected projects</h2>
+  <div class="grid ..." data-reveal-each>
+    <a>card</a><a>card</a>
+  </div>
+</section>
+```
+
+An item carrying its own `data-anim` (a `split-text` paragraph) is skipped
+by the item reveal — it already has an entrance.
+
+Opted in on the homepage so far (parked-decisions §48); everywhere else
+still uses the section-level reveal. GSAP code takes its easing from
+`EASE_OUT` in `src/lib/ease.ts`, the twin of the `--ease-out` CSS token —
+for entrances and exits alike.
+
 ## Clean text nodes for SplitText
 
 `data-anim="split-text"` elements must contain a single text node — no

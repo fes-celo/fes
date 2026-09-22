@@ -246,7 +246,7 @@ import Logo from './Logo.astro'
     </div>
   </nav>
 
-  <div class="relative z-10">
+  <div class="relative z-10" data-hero-copy>
     {
       /* No max-width: the headline wraps at the gutter, per brand direction
          that hero titles run the full measure of the page. It previously
@@ -264,10 +264,22 @@ import Logo from './Logo.astro'
     <Heading as="h1" indent={false} class="text-display text-balance text-neutral-50" data-anim="split-text">
       We make tech companies impossible to ignore
     </Heading>
-    <p class="mt-6 max-w-2xl text-lead text-neutral-50" data-anim="reveal">
+    <p class="mt-6 max-w-2xl text-lead text-neutral-50" data-anim="reveal" data-reveal="items">
       We help startups, tech companies and disruptive businesses effectively communicate their brand and their
       people.
     </p>
+  </div>
+
+  {
+    /* Depth cue for the sticky hero: the page slides up over it, and this
+       layer darkens it as it goes, so the content reads as a sheet laid on
+       top rather than the hero being pushed off. Same move as the footer
+       reveal at the other end of the page (BaseLayout's
+       footer[data-reveal='on']::after) — a flat neutral-950 layer, not a
+       filter, so nothing underneath repaints. Driven by the script below;
+       at rest (and without JS) it's fully transparent. */
+  }
+  <div data-hero-dim aria-hidden="true" class="pointer-events-none absolute inset-0 z-20 bg-neutral-950 opacity-0">
   </div>
 </section>
 
@@ -608,4 +620,51 @@ import Logo from './Logo.astro'
     start()
   })
   onPageUnload(teardown)
+</script>
+
+<script>
+  // Scroll-linked recede for the sticky hero (see the data-hero-dim note in
+  // the markup). Progress runs from scroll 0 to the hero's own height — the
+  // exact distance the page travels to cover it — as plain numbers rather
+  // than 'top top' / 'bottom top', because a sticky element's measured
+  // position depends on the scroll it was measured at.
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
+  import { gsap } from '../lib/sectionMotion'
+
+  /** Darkness at full cover. The footer caps at 0.85 on its way in; the hero
+   *  is leaving rather than arriving, so it stops well short of that — by
+   *  the time it would matter, the hero is almost entirely covered. */
+  const DIM_MAX = 0.6
+  /** The copy drifts up by this share of the hero's height while covered —
+   *  the footer's -6% drift, mirrored — so it recedes rather than sits
+   *  pinned under the incoming sheet. */
+  const DRIFT = 0.06
+
+  let tween: gsap.core.Timeline | null = null
+
+  onPageLoad(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const section = document.querySelector<HTMLElement>('[data-hero-dim]')?.parentElement
+    const dim = section?.querySelector<HTMLElement>('[data-hero-dim]')
+    const copy = section?.querySelector<HTMLElement>('[data-hero-copy]')
+    if (!section || !dim || !copy) return
+
+    tween = gsap
+      .timeline({
+        scrollTrigger: {
+          start: 0,
+          end: () => section.offsetHeight,
+          scrub: true,
+          invalidateOnRefresh: true,
+        },
+      })
+      .to(dim, { opacity: DIM_MAX, ease: 'none' }, 0)
+      .to(copy, { y: () => -section.offsetHeight * DRIFT, ease: 'none' }, 0)
+  })
+
+  onPageUnload(() => {
+    tween?.scrollTrigger?.kill()
+    tween?.revert()
+    tween = null
+  })
 </script>

@@ -1161,3 +1161,159 @@ built by hand.
 currently used anywhere in this repo) becomes the project's general answer
 to input normalization for some other reason — at that point this
 hand-rolled listener could fold into it instead of staying a one-off.
+
+### 47. "Sound familiar?" cards are text-only on every Systems page, with an eased scrim
+
+**Decided:** `SystemProblemCards` no longer has an image slot. Influence &
+Reputation was the only page passing photos (`card-1-experts.jpg` …
+`card-4-narrative.jpg`); those imports are gone, and the other Systems pages
+lose their neutral-700 "photo not shot yet" placeholder, so every page now
+renders the same flat neutral-900 card. The top scrim stays black-to-
+transparent but peaks at 0.3 alpha (was 0.5) and follows an ease-in-out
+curve (16 sampled stops) instead of a two-stop linear fade, which on a flat
+card showed a visible band where the alpha stopped changing. A faint
+static SVG-noise grain (`overlay`, 0.18) sits over the scrim as a dither:
+the fade only spans ~6–7 8-bit grey levels on neutral-900, so without it
+each level renders as its own horizontal band.
+
+**Why:** requested directly — one treatment across all Systems pages, same
+gradient, subtler, eased.
+
+**Reopen if:** photography is commissioned for the problem cards again. The
+old `<Image>` slot (860×916, `sizes="(min-width: 1024px) 28vw, 80vw"`) is in
+git history; the source JPGs are still in
+`src/assets/systems/influence-reputation/`.
+
+## Motion tuning pass (2026-09-22)
+
+### 48. Reveals fire per item on the homepage, on one house curve, and the stats wait to be seen
+
+**Decided:** a motion audit direction of "quiet & editorial", trialled on the
+homepage before a sitewide rollout:
+
+- **Per-item reveals.** `motion.ts` gained `data-reveal="items"`, an opt-in
+  on a `data-anim="reveal"` section. Each item enters on its own scroll
+  position (`ScrollTrigger.batch`, `top 90%`) instead of the whole section
+  going off at once; a grid marked `data-reveal-each` breaks into its
+  children. Tuning is quieter than the section reveal — y 16 (was 24),
+  0.6s (was 0.8), 60ms stagger, the house curve. Every homepage reveal,
+  the hero paragraph and `SystemsWhatWeDo` (via its new `revealItems` prop)
+  opt in; every other page still runs the old section-level reveal.
+- **One house curve.** `--ease-out` is now `cubic-bezier(0.23, 1, 0.32, 1)`
+  in `@theme`, overriding Tailwind's stock `(0, 0, 0.2, 1)` — so every
+  `ease-out` utility sitewide picks it up (tokens can't be page-scoped).
+  GSAP code imports its twin, `EASE_OUT` (`power4.out`, same quint-out
+  shape, no CustomEase bytes), from `src/lib/ease.ts`. FixedNav's
+  hand-typed `cubic-bezier(0.22, 1, 0.36, 1)` points at the token now.
+- **Exits start fast.** UnderlineLink, MobileMenu and ScrollCta exits went
+  from `power2.in`/`power3.in` to `EASE_OUT`, and shorter (underline
+  retract 0.35→0.2s, menu close 0.3→0.2s, CTA hide 0.3→0.2s). The underline
+  draws in 0.3s (was 0.45) — it's a hover, hit constantly.
+- **Stats cycle waits to be seen.** The homepage stats rotation (1800ms,
+  unchanged — user decision) starts from stat 1 when the list is half in
+  view and pauses, progress bar included (`data-paused`), when it isn't.
+- **Project card hover zoom** `scale(1.01)`/700ms → `scale(1.03)`/500ms.
+
+**Why:** measured at 1440×900, a section's single `top 85%` trigger fired
+with only 12–27% of the section on screen, so the project cards and system
+cards finished their entrance below the fold — visitors scrolled onto
+content that was already still, and the only visible motion was a whole
+grid sliding as one slab. With per-item triggers, entrances start with the
+item 77–87% down the viewport. The stock ease-out made everything drift
+rather than arrive, and the ease-in exits lingered at the exact moment the
+visitor wanted the thing gone. The stats cycle started at page load, a
+viewport and a half above the section, so visitors arrived mid-lap, and it
+kept ticking beside the "Behind these numbers" paragraph indefinitely.
+
+**Settled decisions left alone:** pinned choreography stays desktop-only
+(§1), the approach stepper keeps its snap (§4), the invert zone's flip
+stays unscrubbed, testimonials keep `slide-right` (§34), no page
+transitions (§30), the 1800ms stat timer.
+
+**Rollout:** add `data-reveal="items"` (and `data-reveal-each` on card
+grids) to the other pages' reveal sections — or, once every page has it,
+make it the default and delete the section-level path in `setupReveals`.
+The Systems components' own GSAP eases (`SystemProblemCards`,
+`PhasesScroll`, `BuiltForRotator`, `SelectedProjectsRotator`) still use
+their own `power*` strings and should move to `EASE_OUT` in the same pass.
+
+**Reopen if:** the per-item cadence reads busy on a long page (raise
+`REVEAL_ITEMS.stagger` or drop `data-reveal-each` from that grid), or the
+client wants a more expressive motion personality than "quiet & editorial".
+
+### 49. The hero recedes under the page (the lead-project unveil was tried and dropped)
+
+**Decided:** two additions on top of §48, both homepage-only:
+
+- **Hero depth.** `Hero.astro` gained a `data-hero-dim` layer (flat
+  neutral-950, above everything in the hero) scrubbed from 0 to 0.6 opacity
+  over the hero's own height of scroll, while the copy block
+  (`data-hero-copy`) drifts up 6% of that height. Plain numeric start/end
+  (0 → `section.offsetHeight`) because the hero is sticky, and a sticky
+  element's measured position depends on when it's measured. Skipped
+  entirely under reduced motion.
+- **Unveil.** `ProjectCard` takes `reveal="unveil"` (featured variant),
+  used on the two large cards in the homepage's first Selected Projects
+  row. Inside a `data-reveal="items"` section, the cover opens from the
+  bottom edge up (`clip-path: inset(100% 0 0 0)` → `inset(0)`, 1s) while
+  the photo settles from `scale(1.08)` (1.4s), and the caption follows
+  0.2s later with the ordinary item fade-and-rise. The <img>'s own CSS
+  hover transition is switched off inline for the length of the entrance
+  and handed back on complete, with the clip and transform.
+
+**Why:** the sticky hero was being covered with no cue that the page is a
+layer sliding over it — the footer reveal already says this at the other
+end of the page, with the same dark layer and drift. The unveil is kept to
+two cards on purpose: the direction is "quiet & editorial", and six
+curtains in a row would be busy; the two large covers are what the section
+is built around.
+
+**Update, same day — unveil removed.** Reviewed as "maybe too much", and
+it was: once the manifesto beat (§50) became the homepage's signature
+moment, a second theatrical reveal three sections above it diluted both.
+One signature per page. The `reveal="unveil"` prop and motion.ts's unveil
+code were deleted rather than left unused; the description above is the
+spec if it's ever wanted again.
+
+**Reopen if:** the dim reads heavy against the white sheet on a real
+display (lower `DIM_MAX` in Hero.astro).
+
+### 50. The Our Impact section stays quiet: no manifesto beat, no stats rise
+
+**Decided:** tried and reverted the same day. Two additions were built for
+the homepage's Our Impact section — the "Behind these numbers" paragraph
+entering line by line and then lighting "PR", "brand", "digital" and
+"events" one at a time before joining them on "one system"; and the six
+stat numbers rising out of masks, with the stats cycle waiting for them to
+land. Both came out. The section keeps §48's per-item fade-and-rise, and the
+stats cycle stays its only ongoing motion.
+
+**Why:** reviewed on the page as too much. The section already carries a
+cycling highlight next to a large block of display text; a second and third
+layer of motion made it confusing rather than meaningful, and the reading
+suffered. The lesson generalises: a section with continuous motion gets no
+additional entrance choreography.
+
+**Kept from the attempt:** two generic rules in `setupItemReveals` — an item
+carrying its own `data-anim` is skipped (it has its own entrance), and a
+marked group nested inside a `data-reveal-each` grid opens up too.
+
+**Reopen if:** the stats cycle goes, freeing the section's motion budget —
+the beat was the only option mocked up where the motion carried the
+sentence, so it's the one to revisit.
+
+### 51. "What we do" heading caps in em, and balances
+
+**Decided:** `SystemsWhatWeDo`'s "Strategic systems built around the
+business challenges that matter most" went from `max-w-[50.8125rem]` to
+`max-w-[18em] text-balance`.
+
+**Why:** `text-h1` grows with the viewport but a rem cap doesn't, so at 1440
+the balanced second line (~16.7em) stopped fitting in 813px and "most"
+dropped to a line of its own. Capped in em, the ratio holds at every width:
+two lines breaking after "the" at 1920, 1440, 1024 and 768 (measured), and
+four balanced lines on a 375 phone, where two can't fit. Applies on
+`/systems/` too — same component.
+
+**Reopen if:** the copy changes length; 18em assumes a sentence of roughly
+this size (it needs ~32em on one line).

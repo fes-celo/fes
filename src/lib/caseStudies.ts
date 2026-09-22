@@ -97,7 +97,7 @@ export const caseStudies: CaseStudy[] = [
     ],
     systems: ['Branding Blueprint', 'Digital Communication System'],
     seoDescription:
-      'An employer branding campaign built to attract talent to Natixis in Portugal — concept, visual identity, website, events and paid media.',
+      'An employer branding campaign built to attract talent to Natixis in Portugal: concept, visual identity, website, events and paid media.',
     blocks: [
       {
         type: 'media',
@@ -251,7 +251,7 @@ export const caseStudies: CaseStudy[] = [
       'FES Agency implemented its Influence & Reputation System to represent Shamir in the Portuguese media, building an ongoing communication presence around the brand, its expertise and key moments.',
     ],
     systems: ['Influence & Reputation System'],
-    seoDescription: 'PR and content to bring Shamir Portugal closer to its audiences — media relations, expertise content and brand milestones.',
+    seoDescription: 'PR and content to bring Shamir Portugal closer to its audiences: media relations, expertise content and brand milestones.',
     blocks: [
       {
         type: 'media',
@@ -361,7 +361,7 @@ export const caseStudies: CaseStudy[] = [
       'FES Agency implemented two complementary systems, combining digital communication and PR to build awareness around the event, engage its community and extend its reach before, during and after Data Makers Fest.',
     ],
     systems: ['Digital Communication System', 'Influence & Reputation System'],
-    seoDescription: 'Digital communication and PR for Data Makers Fest — media relations, social media and a Reddit Ads campaign.',
+    seoDescription: 'Digital communication and PR for Data Makers Fest: media relations, social media and a Reddit Ads campaign.',
     blocks: [
       {
         type: 'media',
@@ -446,7 +446,7 @@ export const caseStudies: CaseStudy[] = [
       'FES Agency ran a brand activation campaign for Blip, including outdoor advertising (mupis) and paid media.',
     ],
     systems: ['Creative Projects Blueprint'],
-    seoDescription: 'A brand activation campaign for Blip — outdoor advertising, paid media and more.',
+    seoDescription: 'A brand activation campaign for Blip: outdoor advertising, paid media and more.',
     blocks: [
       {
         type: 'media',

@@ -95,6 +95,7 @@ const { showSelector, hideSelector } = Astro.props as Props
 <script>
   import { onPageLoad, onPageUnload } from '../lib/lifecycle'
   import { gsap } from 'gsap'
+  import { EASE_OUT } from '../lib/ease'
 
   // Slide-up reveal instead of a plain CSS fade: the chip starts offset
   // below its resting position (translateY, set once on init) and GSAP
@@ -123,8 +124,8 @@ const { showSelector, hideSelector } = Astro.props as Props
       gsap.to(root, {
         y: 0,
         opacity: 1,
-        duration: reduceMotion ? 0 : 0.45,
-        ease: 'power3.out',
+        duration: reduceMotion ? 0 : 0.4,
+        ease: EASE_OUT,
         overwrite: true,
         onStart: () => root.classList.add('is-visible'),
       })
@@ -132,8 +133,8 @@ const { showSelector, hideSelector } = Astro.props as Props
       gsap.to(root, {
         y: OFFSET_PX,
         opacity: 0,
-        duration: reduceMotion ? 0 : 0.3,
-        ease: 'power3.in',
+        duration: reduceMotion ? 0 : 0.2,
+        ease: EASE_OUT,
         overwrite: true,
         onComplete: () => root.classList.remove('is-visible'),
       })

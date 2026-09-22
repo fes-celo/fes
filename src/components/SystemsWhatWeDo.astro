@@ -22,10 +22,12 @@ interface Props {
   theme?: 'light' | 'dark'
   /** Hide the "Our systems" CTA — it's redundant on /systems/ itself, since that's where this section already lives. */
   showCta?: boolean
+  /** Reveal each card on its own scroll position (motion.ts `data-reveal="items"`) instead of the section as one block. */
+  revealItems?: boolean
   class?: string
 }
 
-const { theme = 'light', showCta = true, class: className } = Astro.props
+const { theme = 'light', showCta = true, revealItems = false, class: className } = Astro.props
 const isDark = theme === 'dark'
 
 const cards = [
@@ -61,12 +63,23 @@ const cards = [
     className,
   ]}
   data-anim="reveal"
+  data-reveal={revealItems ? 'items' : undefined}
 >
   <div class="flex flex-col gap-14 lg:gap-20">
     <SectionLabel dark={isDark}>What we do</SectionLabel>
 
     <div class="flex flex-col gap-7">
-      <p class:list={['max-w-[50.8125rem] text-h1 font-medium', isDark ? 'text-neutral-100' : 'text-neutral-950']}>
+      {
+        /* Two balanced lines at every desktop width. The cap is in em, not
+           the old fixed 50.8125rem (813px): text-h1 grows with the viewport
+           but a rem cap doesn't, so at 1440 the balanced second line
+           ("business challenges that matter most", ~16.7em) no longer fit
+           and "most" dropped to a line of its own. 18em clears that line
+           with room to spare yet is far short of the ~32em the sentence
+           needs on one line, so it always breaks after "the"; text-balance
+           keeps narrower screens free of widows too. */
+      }
+      <p class:list={['max-w-[18em] text-balance text-h1 font-medium', isDark ? 'text-neutral-100' : 'text-neutral-950']}>
         Strategic systems built around the business challenges that matter most
       </p>
       {
@@ -82,7 +95,7 @@ const cards = [
         )
       }
 
-      <div class="mt-7 grid grid-cols-1 gap-7 lg:grid-cols-3">
+      <div class="mt-7 grid grid-cols-1 gap-7 lg:grid-cols-3" data-reveal-each>
         {
           cards.map((c) => (
             <SystemCard

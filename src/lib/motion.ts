@@ -28,6 +28,7 @@
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { SplitText } from 'gsap/SplitText'
+import { EASE_OUT } from './ease'
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
 
@@ -41,15 +42,29 @@ ScrollTrigger.config({ ignoreMobileResize: true })
 
 // Tuning surface — the taste knobs live here rather than scattered inline.
 const REVEAL = { y: 24, duration: 0.8, stagger: 0.08, ease: 'power2.out', start: 'top 85%' }
+/**
+ * `data-reveal="items"` (see setupItemReveals). Quieter than REVEAL on
+ * purpose — two-thirds the travel, a shorter run on the house curve — because
+ * it fires once per card instead of once per section, so a visitor sees it
+ * many more times. `top 90%` lets an item start while it's still low in the
+ * viewport: with the curve front-loaded it has settled by the time the eye
+ * reaches it, so fast scrolling never lands on content that's still moving.
+ */
+const REVEAL_ITEMS = { y: 16, duration: 0.6, stagger: 0.06, start: 'top 90%' }
 const SLIDE_RIGHT = {
-  /** Travel as a share of the card's own width, so the entrance reads the
-   *  same on a 45rem desktop card and a full-bleed phone one. */
-  xRatio: 0.72,
-  xMax: 560,
-  duration: 0.9,
-  stagger: 0.12,
-  ease: 'power3.out',
+  /** Travel as a share of the card's own width, so it reads the same on a
+   *  45rem desktop card and a full-bleed phone one — kept small on purpose,
+   *  this is a nudge into place, not a cross-screen entrance. */
+  xRatio: 0.06,
+  xMax: 40,
+  duration: 0.6,
+  ease: EASE_OUT,
   start: 'top 85%',
+  /** Extra px of scroll between one card's ScrollTrigger start and the
+   *  next's (see setupSlideRight) — each card fires off the user's own
+   *  continued scrolling rather than off a JS timer, so the sequence never
+   *  reads as a delayed batch replaying after the fact. */
+  triggerOffsetPx: 60,
 }
 const SPLIT = { y: '110%', duration: 0.9, stagger: 0.07, ease: 'power3.out', start: 'top 85%' }
 /** How far the per-line clip box extends below the line box to clear descenders. */
@@ -157,7 +172,7 @@ function revealTargets(el: HTMLElement): HTMLElement[] {
 function setupReveals(reduced: boolean): Cleanup[] {
   const cleanups: Cleanup[] = []
 
-  document.querySelectorAll<HTMLElement>('[data-anim="reveal"]').forEach((el) => {
+  document.querySelectorAll<HTMLElement>('[data-anim="reveal"]:not([data-reveal="items"])').forEach((el) => {
     const targets = revealTargets(el)
     if (targets.length === 0) return
 
@@ -196,29 +211,132 @@ function setupReveals(reduced: boolean): Cleanup[] {
 }
 
 /**
+ * A reveal target, broken down into the items that should each enter on
+ * their own. A container marked `data-reveal-each` (a card grid) is replaced
+ * by its children; a container that merely holds one somewhere below is
+ * opened up one level at a time until it's reached, so its unmarked siblings
+ * (a heading, a button) stay single items too. Anything else is an item.
+ */
+// Astro hoists a component's inline <script> next to its markup, so a
+// section or card grid can hold one between its cards — never an item.
+function isRendered(el: Element): el is HTMLElement {
+  return el instanceof HTMLElement && !['SCRIPT', 'STYLE', 'TEMPLATE'].includes(el.tagName)
+}
+
+function expandItems(el: HTMLElement): HTMLElement[] {
+  const children = () => Array.from(el.children).filter(isRendered)
+  const opensFurther = (c: HTMLElement) => c.hasAttribute('data-reveal-each') || !!c.querySelector('[data-reveal-each]')
+  // A marked grid's children are items — unless one of them holds a marked
+  // group of its own, which opens up too.
+  if (el.hasAttribute('data-reveal-each')) return children().flatMap((c) => (opensFurther(c) ? expandItems(c) : [c]))
+  if (opensFurther(el)) return children().flatMap(expandItems)
+  return [el]
+}
+
+/**
+ * `data-anim="reveal"` + `data-reveal="items"`: the same fade-and-rise as a
+ * plain reveal, but every item enters on its OWN scroll position instead of
+ * the whole section going off at once.
+ *
+ * Why this exists: a section's single trigger fires at `top 85%`, when only
+ * the top 12–27% of it is on screen (measured on the homepage at 1440×900).
+ * Everything below — the project cards, the system cards — finished its
+ * entrance below the fold, so the visitor scrolled onto content that was
+ * already still, while the one thing they did see move was a whole grid
+ * sliding as a slab. Per-item triggers put the motion where the eye is.
+ *
+ * ScrollTrigger.batch groups items that cross the line in the same moment
+ * (a row of cards) so they stagger left to right rather than all popping at
+ * once. Items already on screen at init play immediately, same as
+ * `schedule()`, including its skip when an entrance would flash.
+ *
+ * `gsap.set` + `gsap.to` rather than `gsap.from`: a `from` tween re-reads the
+ * element's natural values on every ScrollTrigger.refresh(), which is what
+ * the CSS-transition trap in global.css's project-card note is about. And
+ * `clearProps` on completion hands transform back to the stylesheet —
+ * otherwise GSAP's leftover inline `translate(0, 0)` would override a
+ * Button's own `active:scale-[0.97]` press feedback forever after.
+ *
+ * Opt-in per section while it's trialled on the homepage; the plain
+ * section-level reveal above stays the default everywhere else.
+ */
+function setupItemReveals(reduced: boolean): Cleanup[] {
+  const cleanups: Cleanup[] = []
+
+  document.querySelectorAll<HTMLElement>('[data-anim="reveal"][data-reveal="items"]').forEach((el) => {
+    // An item that carries its own `data-anim` (a split-text paragraph)
+    // runs its own entrance — fading it here too would double it up.
+    const items = revealTargets(el)
+      .filter(isRendered)
+      .flatMap(expandItems)
+      .filter((item) => item === el || !item.dataset.anim)
+    if (items.length === 0) return
+
+    const hidden = reduced ? { opacity: 0 } : { opacity: 0, y: REVEAL_ITEMS.y }
+    const shown: gsap.TweenVars = {
+      opacity: 1,
+      y: 0,
+      duration: reduced ? 0.4 : REVEAL_ITEMS.duration,
+      stagger: reduced ? 0 : REVEAL_ITEMS.stagger,
+      ease: EASE_OUT,
+      overwrite: true,
+      clearProps: 'opacity,transform',
+    }
+
+    const onScreen = items.filter(isInView)
+    const later = items.filter((item) => !isInView(item))
+
+    if (onScreen.length > 0 && !entranceWouldFlash()) {
+      gsap.set(onScreen, hidden)
+      gsap.to(onScreen, { ...shown, delay: 0.15 })
+    }
+
+    let triggers: ScrollTrigger[] = []
+    if (later.length > 0) {
+      gsap.set(later, hidden)
+      triggers = ScrollTrigger.batch(later, {
+        start: REVEAL_ITEMS.start,
+        once: true,
+        onEnter: (batch) => gsap.to(batch, shown),
+      })
+    }
+    arm(el)
+
+    cleanups.push(() => {
+      triggers.forEach((t) => t.kill())
+      gsap.killTweensOf(items)
+      gsap.set(items, { clearProps: 'opacity,transform' })
+      disarm(el)
+    })
+  })
+
+  return cleanups
+}
+
+/**
  * `data-anim="slide-right"` — the testimonial/feedback card tracks. Each
- * direct child (one `TestimonialCard` figure) slides in from the right and
- * settles into its resting position, staggered, the first time the track
- * scrolls into view. Kept separate from `setupReveals` because it targets
- * individual cards rather than section-level blocks, and moves on x instead
- * of y.
+ * direct child (one `TestimonialCard` figure) gets its own tween and its own
+ * ScrollTrigger, nudging in from the right into its resting position as the
+ * page scroll that reveals it keeps going. Kept separate from `setupReveals`
+ * because it targets individual cards rather than section-level blocks, and
+ * moves on x instead of y.
  *
- * Travel is a share of the card's own width rather than a flat 100px. At
- * 100px against a 720px card the card is already sitting in its slot when
- * the tween starts and merely drifts the last few percent — it read as a
- * nudge-and-return, not an entrance. Both tracks are clipped (the track's
- * own `overflow-x`, plus `overflow-hidden` on the section), so a card that
- * starts most of its width to the right genuinely enters from the edge.
+ * Deliberately per-card rather than one `gsap.from(targets, {stagger})` call:
+ * a shared tween is driven by a JS timer once a single trigger point fires,
+ * so a fast scroll (or a slow frame) lands the visitor already looking at
+ * the section before the stagger has finished playing out — it reads as a
+ * delayed reflex rather than something the scroll itself caused. Giving each
+ * card its own trigger, offset a little further down the scroll than the
+ * last (`triggerOffsetPx`), ties the sequence directly to the user's own
+ * scrolling instead of to a clock: keep scrolling and the next card goes,
+ * stop and it waits.
  *
- * Position only, no opacity fade: the cards carry their own
- * `transition-opacity` (the carousel's active/inactive dimming), and a CSS
- * transition on a property fights a JS tween on that same property — the
- * transition's generated value outranks GSAP's inline write in the cascade,
- * so the fade never actually reached the resting opacity. Sliding position
- * doesn't have a competing transition, so it's left as the only motion.
+ * Position only — no opacity. Travel is small on purpose (a share of the
+ * card's own width, capped at `xMax`) so it reads as a settle into place
+ * that the scroll nudged loose, not an entrance from off-screen.
  *
  * Reduced motion: skipped entirely rather than swapped for a cross-fade —
- * the same clash would apply, and no motion is the correct outcome anyway.
+ * a visitor who asked for no motion shouldn't get one anyway.
  */
 function setupSlideRight(reduced: boolean): Cleanup[] {
   if (reduced) return []
@@ -226,44 +344,48 @@ function setupSlideRight(reduced: boolean): Cleanup[] {
   const cleanups: Cleanup[] = []
 
   document.querySelectorAll<HTMLElement>('[data-anim="slide-right"]').forEach((track) => {
-    const targets = Array.from(track.children).filter((c): c is HTMLElement => c instanceof HTMLElement)
-    if (targets.length === 0) return
+    const cards = Array.from(track.children).filter((c): c is HTMLElement => c instanceof HTMLElement)
+    if (cards.length === 0) return
 
-    const vars = schedule(
-      track,
-      {
-        x: (_i: number, el: HTMLElement) => Math.min(el.offsetWidth * SLIDE_RIGHT.xRatio, SLIDE_RIGHT.xMax),
-        duration: SLIDE_RIGHT.duration,
-        stagger: SLIDE_RIGHT.stagger,
-        ease: SLIDE_RIGHT.ease,
-      },
-      SLIDE_RIGHT.start
-    )
-    if (!vars) {
-      arm(track)
-      cleanups.push(() => disarm(track))
-      return
+    // Snap off for the length of any card's entrance. A scroll-snap area is
+    // the target's *transformed* border box, so under `snap-mandatory` the
+    // scrollport chases a card while it tweens and drags the track along
+    // behind it — the travel cancels itself out and reads as a rubber band
+    // rather than a settle. Ref-counted because cards now animate
+    // independently and their entrances can overlap.
+    let suspended = 0
+    const suspendSnap = () => {
+      if (suspended === 0) track.style.scrollSnapType = 'none'
+      suspended++
+    }
+    const releaseSnap = () => {
+      suspended = Math.max(0, suspended - 1)
+      if (suspended === 0) track.style.removeProperty('scroll-snap-type')
     }
 
-    // Snap off for the length of the entrance. A scroll-snap area is the
-    // target's *transformed* border box, so under `snap-mandatory` the
-    // scrollport chases the cards while they tween and drags the track along
-    // behind them — the travel cancels itself out and the whole thing reads as
-    // a rubber band rather than an arrival. `gsap.from` writes its start state
-    // on creation, so the suspend has to happen here, not in `onStart`.
-    const restoreSnap = () => track.style.removeProperty('scroll-snap-type')
-    track.style.scrollSnapType = 'none'
+    cards.forEach((card, i) => {
+      // `gsap.from` writes its start state on creation, so the snap suspend
+      // has to happen before that call, not in `onStart`.
+      const vars = schedule(
+        card,
+        { x: Math.min(card.offsetWidth * SLIDE_RIGHT.xRatio, SLIDE_RIGHT.xMax), duration: SLIDE_RIGHT.duration, ease: SLIDE_RIGHT.ease },
+        i === 0 ? SLIDE_RIGHT.start : `${SLIDE_RIGHT.start}-=${i * SLIDE_RIGHT.triggerOffsetPx}`
+      )
+      if (!vars) return
 
-    const tween = gsap.from(targets, { ...vars, onComplete: restoreSnap })
-    arm(track)
+      suspendSnap()
+      const tween = gsap.from(card, { ...vars, onComplete: releaseSnap })
 
-    cleanups.push(() => {
-      tween.scrollTrigger?.kill()
-      tween.kill()
-      gsap.set(targets, { clearProps: 'transform' })
-      restoreSnap()
-      disarm(track)
+      cleanups.push(() => {
+        tween.scrollTrigger?.kill()
+        tween.kill()
+        gsap.set(card, { clearProps: 'transform' })
+        releaseSnap()
+      })
     })
+
+    arm(track)
+    cleanups.push(() => disarm(track))
   })
 
   return cleanups
@@ -524,7 +646,7 @@ export async function initMotion() {
   // whole page stayed at `visibility: hidden` until the font resolved and
   // then released at once. That single held-then-dumped frame is most of
   // what read as "the page pops" rather than "the page arrives".
-  cleanups = [...setupReveals(reduced), ...setupSlideRight(reduced)]
+  cleanups = [...setupReveals(reduced), ...setupItemReveals(reduced), ...setupSlideRight(reduced)]
 
   // Split-text does measure: Aeonik is swap-loaded, and line breaks taken
   // against the fallback metrics get baked in permanently (nothing
