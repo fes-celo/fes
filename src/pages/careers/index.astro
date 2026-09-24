@@ -48,13 +48,11 @@ import Logo from '../../components/Logo.astro'
 // public/images/careers-trail/ (see the file-level comment above).
 const trailImages = Array.from({ length: 20 }, (_, i) => `/images/careers-trail/FES-team-${i + 1}.webp`)
 
-// "Join us if you:" is the closing line of the same paragraph in Figma
-// (node 951:1145), not a separate heading — kept as one block here too.
 const joinPoints = [
-  'Want to do meaningful work',
-  'Are both autonomous and collaborative',
-  'Are eager to continue learning',
-  'Share our values',
+  'Care about the work you put out',
+  'Work well independently and with others',
+  'Stay curious and keep learning',
+  'Care about how you work, not just what you deliver',
 ]
 
 // Same 3-card, tinted-background pattern as the Agency page's "Behaviours"
@@ -64,41 +62,38 @@ const joinPoints = [
 const values = [
   {
     title: 'Autonomy',
-    body: "We anticipate what's needed. No hand-holding, no micromanagement.",
+    body: "We anticipate what's needed and take ownership of our work. No micromanagement required.",
   },
   {
     title: 'Collaboration',
-    body: 'All hands on deck. We solve problems together, across every discipline.',
+    body: 'We work across disciplines, bringing the right people together to solve each challenge.',
   },
   {
     title: 'Agility',
-    body: 'Remote, mobile, always adapting. We find opportunity in the unexpected.',
+    body: 'Remote, mobile and ready to adapt. We respond quickly when plans, priorities or circumstances change.',
   },
 ]
 
-// Figma's Perks grid (node 951:1174) has 4 of these 8 cards titled "Team
-// Outings" verbatim (951:1192, :1313, :1320, :1327) even though every card's
-// description is unique — a copy-pasted instance whose title layer was never
-// renamed, same class of issue as the homepage testimonials' duplicated tag
-// (see src/pages/index.astro). The first four titles below are Figma's
-// actual text; the rest are inferred from each card's (unique) description.
 const perks = [
-  { title: 'Continuous Training', body: 'We invest in your knowledge and skill development.' },
+  { title: 'Continuous training', body: 'Time and support to keep learning and developing new skills.' },
+  { title: 'Welcome kit', body: 'A FES welcome kit to get you started.' },
   {
-    title: 'Welcome Kit',
-    body: "We'll greet you with a warm welcome kit full of goodies to kick start your journey with us.",
+    title: 'Team outings',
+    body: "Team get-togethers throughout the year, because remote work shouldn't mean never meeting in person.",
   },
-  { title: 'Team Outings', body: 'We sponsor exciting team outings to unwind and have fun.' },
-  { title: 'Tech Equipment', body: 'We provide the tools and the equipment you need to shine.' },
+  { title: 'Tech equipment', body: 'The equipment and tools you need to do your job properly.' },
+  { title: 'Entertainment vouchers', body: 'Occasional Spotify and Netflix vouchers, on us.' },
   {
-    title: 'Entertainment Vouchers',
-    body: 'Your favourite music and shows are on us with occasional Spotify and Netflix vouchers.',
+    title: 'Flexible schedule',
+    body: 'Flexibility to organise your working day around your responsibilities and personal life.',
   },
-  { title: 'Flexible Schedule', body: 'Life is diverse, and so are your needs. Embrace work-life harmony.' },
-  { title: 'Travel Opportunities', body: 'We thrive by allowing you to explore the world.' },
   {
-    title: 'Open Culture',
-    body: 'Enjoy the friendly atmosphere of our culture. We promote open conversations and camaraderie.',
+    title: 'Work from anywhere',
+    body: "Work remotely from wherever you are, whether that's home or somewhere else in the world.",
+  },
+  {
+    title: 'Open culture',
+    body: 'A team where questions, ideas and different points of view are welcome.',
   },
 ]
 
@@ -207,10 +202,13 @@ const alumniFeedback = [
       We're a comms agency wired into Portugal's tech scene, PR, digital, design, and events running as one.
       <Fragment slot="aside">
         <p class="max-w-[var(--measure-prose)] text-lead text-ink" data-anim="reveal">
-          FES is a Communication agency that provides Public Relations, Digital Marketing and Multimedia services.
-          We're a small team of smart, kind people that help startups, tech companies, and disruptive businesses grow
-          faster and better. We work with national and innovative companies that want to shine in the tech business –
-          and we have a great time together. Join us if you:
+          FES is a communications agency working across Public Relations, Digital Marketing and Multimedia. We're a
+          small team working with startups, tech companies and established organisations in Portugal and beyond. We
+          bring different skills and perspectives to the same table, working closely across projects instead of
+          treating each area as a separate service.
+        </p>
+        <p class="max-w-[var(--measure-prose)] text-lead font-medium text-ink" data-anim="reveal">
+          You might fit right in if you:
         </p>
         <ul class="flex flex-col gap-3">
           {
