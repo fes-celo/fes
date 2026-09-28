@@ -36,7 +36,7 @@ import marcelo from '../../assets/people/FES_Marcelo.png'
 import claudia from '../../assets/people/FES_Cláudia.png'
 import diana from '../../assets/people/FES_Diana.png'
 import maria from '../../assets/people/FES_Maria.png'
-import Logo from '../../components/Logo.astro'
+import AnimatedLogo from '../../components/AnimatedLogo.astro'
 
 const team = [
   { name: 'Liliana Castro', role: 'Founder & CEO', src: liliana },
@@ -111,10 +111,15 @@ const pillars = [
       class="pointer-events-none absolute inset-0 size-full object-cover"
     />
 
-    <nav aria-label="Primary" class="relative z-10">
+    {
+      /* No z-index on this nav: it would make it a stacking context, and
+         AnimatedLogo's multiply blend would composite against transparency
+         instead of the photo. DOM order already paints it above the image. */
+    }
+    <nav aria-label="Primary" class="relative">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
-          <Logo class="h-[var(--nav-logo-h)] w-auto" />
+          <AnimatedLogo />
         </a>
         <ul class="hidden items-center lg:flex lg:gap-[var(--space-nav-gap)]">
           {

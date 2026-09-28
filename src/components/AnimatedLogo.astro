@@ -1,0 +1,214 @@
+---
+/**
+ * The FES wordmark that spells itself out once — "FES" opens into "FILLING
+ * EMPTY SPACES agency" and closes back — then settles on the static logo.
+ * Homepage and Agency page, desktop only, once per browser session across
+ * both — whichever of the two is opened first plays it. See
+ * docs/parked-decisions.md §52 and §53.
+ *
+ * The SVG `<Logo>` stays the real content: it is what the link carries for
+ * assistive tech, what no-JS / reduced-motion / mobile / a refused autoplay
+ * all see, and the state every playback ends on. The video only ever sits on
+ * top of it, `aria-hidden`, for the few seconds it runs, and hands back to
+ * the vector on `ended` — so the resting logo is never a video frame.
+ *
+ * That hand-off is invisible because the clip's first and last frames ARE
+ * the logo: the offsets below place the video so its "FES" lands on the
+ * SVG's, derived by fitting the SVG's coordinate frame onto frame 0 of the
+ * source (F stem's left edge, top bar, stem foot, bar end — ~206.6 source px
+ * per logo height). They are ratios of `--nav-logo-h`, so they hold at every
+ * size the nav logo takes.
+ *
+ * The clips are not transparent, so each is blended to drop its ground:
+ *
+ * - `dark` (Agency, light photo): black on white, `multiply` — white drops
+ *   out, ink stays. The encode lifts pure black to #101010 so the ink
+ *   matches the SVG's `dark` fill at the swap.
+ * - `light` (homepage, dark shader): the same clip inverted in RGB, white on
+ *   black, `screen` — black drops out, white stays #ffffff like the SVG's
+ *   `light` fill.
+ *
+ * Either blend only works inside the hero's own stacking context: nothing
+ * between the video and the hero <section> may create one (no z-index,
+ * opacity, transform or filter on the nav), or the blend composites against
+ * transparency and the clip's ground shows as a box.
+ *
+ * Assets: src/assets/motion/fes-logo-motion{,-light}.mp4, cut from the 10s master
+ * (site_fes-logo-motion.mp4, 3000×420, 50fps) — the held full name shortened
+ * from ~5.7s to ~2.5s by cutting between identical frames 210 and 376,
+ * cropped to the union of every frame's ink, halved to 1302×196 (~2× its
+ * largest on-screen size), H.264 CRF 30, ~80KB each. Only the page's own
+ * variant is ever fetched.
+ */
+import Logo from './Logo.astro'
+import logoMotionDark from '../assets/motion/fes-logo-motion.mp4'
+import logoMotionLight from '../assets/motion/fes-logo-motion-light.mp4'
+
+interface Props {
+  /** Same meaning as Logo's: `dark` ink for light grounds, `light` for dark ones. */
+  variant?: 'dark' | 'light'
+  /**
+   * ms from the moment the page is visible and its fonts are ready. Lets a
+   * page hold the logo back until its own headline entrance has finished.
+   */
+  delay?: number
+}
+
+const { variant = 'dark', delay = 600 } = Astro.props
+const src = variant === 'light' ? logoMotionLight : logoMotionDark
+---
+
+<span class="animated-logo" data-animated-logo data-src={src} data-delay={delay} data-variant={variant}>
+  <Logo variant={variant} class="h-[var(--nav-logo-h)] w-auto" />
+  <video
+    class="animated-logo__video"
+    muted
+    playsinline
+    preload="none"
+    disablepictureinpicture
+    disableRemotePlayback
+    aria-hidden="true"
+    tabindex="-1"></video>
+</span>
+
+<style>
+  .animated-logo {
+    position: relative;
+    display: block;
+  }
+
+  .animated-logo__video {
+    position: absolute;
+    left: calc(var(--nav-logo-h) * -0.0442);
+    top: calc(var(--nav-logo-h) * -0.579);
+    height: calc(var(--nav-logo-h) * 1.8972);
+    width: auto;
+    max-width: none;
+    aspect-ratio: 1302 / 196;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  .animated-logo[data-variant='light'] .animated-logo__video {
+    mix-blend-mode: screen;
+  }
+
+  .animated-logo[data-state='playing'] .animated-logo__video {
+    visibility: visible;
+  }
+
+  .animated-logo[data-state='playing'] > :global(svg) {
+    visibility: hidden;
+  }
+</style>
+
+<script>
+  import { onPageLoad, onPageUnload } from '../lib/lifecycle'
+  import { whenActivated } from '../lib/motion'
+
+  const PLAYED_KEY = 'fes:logo-motion-played'
+  /** A clip that is not ready by now would start while the visitor is already reading; skip it. */
+  const LOAD_BUDGET = 3000
+  // Tailwind's `lg` — below it the opened name (~7× the logo's width) does not fit the nav.
+  const CAN_PLAY = '(min-width: 64rem) and (prefers-reduced-motion: no-preference)'
+
+  function hasPlayed() {
+    try {
+      return sessionStorage.getItem(PLAYED_KEY) === '1'
+    } catch {
+      return false
+    }
+  }
+
+  function markPlayed() {
+    try {
+      sessionStorage.setItem(PLAYED_KEY, '1')
+    } catch {
+      // Storage refused: it simply plays again next load.
+    }
+  }
+
+  function whenVisible(): Promise<void> {
+    if (document.visibilityState === 'visible') return Promise.resolve()
+    return new Promise((resolve) => {
+      const onChange = () => {
+        if (document.visibilityState !== 'visible') return
+        document.removeEventListener('visibilitychange', onChange)
+        resolve()
+      }
+      document.addEventListener('visibilitychange', onChange)
+    })
+  }
+
+  function whenReady(video: HTMLVideoElement): Promise<boolean> {
+    if (video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) return Promise.resolve(true)
+    return new Promise((resolve) => {
+      const timer = window.setTimeout(() => resolve(false), LOAD_BUDGET)
+      video.addEventListener('canplaythrough', () => (window.clearTimeout(timer), resolve(true)), { once: true })
+      video.addEventListener('error', () => (window.clearTimeout(timer), resolve(false)), { once: true })
+    })
+  }
+
+  // Invalidates an init still suspended in an await when the page is torn
+  // down (bfcache) or never activated, same pattern as motion.ts.
+  let generation = 0
+  let cleanup: (() => void) | null = null
+
+  async function init({ restored }: { restored: boolean }) {
+    const mine = ++generation
+    const root = document.querySelector<HTMLElement>('[data-animated-logo]')
+    const video = root?.querySelector('video')
+    if (!root || !video || !root.dataset.src) return
+    // A bfcache restore is the page the visitor just left; never replay on it.
+    if (restored || hasPlayed() || !window.matchMedia(CAN_PLAY).matches) return
+
+    await whenActivated()
+    await whenVisible()
+    try {
+      await document.fonts.ready
+    } catch {
+      // No Font Loading API: count the delay from now.
+    }
+    if (mine !== generation) return
+
+    const started = performance.now()
+    video.src = root.dataset.src
+    video.load()
+    const ready = await whenReady(video)
+    if (mine !== generation || !ready) return
+
+    // The delay lets the logo register at rest (and a page's headline land) before it opens.
+    const wait = Number(root.dataset.delay ?? 0) - (performance.now() - started)
+    if (wait > 0) await new Promise((r) => window.setTimeout(r, wait))
+    if (mine !== generation) return
+
+    const onPlaying = () => {
+      root.dataset.state = 'playing'
+      markPlayed()
+    }
+    const onEnded = () => {
+      delete root.dataset.state
+    }
+    video.addEventListener('playing', onPlaying, { once: true })
+    video.addEventListener('ended', onEnded, { once: true })
+    cleanup = () => {
+      video.removeEventListener('playing', onPlaying)
+      video.removeEventListener('ended', onEnded)
+      video.pause()
+      delete root.dataset.state
+    }
+
+    // A refused autoplay (iOS Low Power Mode, a browser policy) just leaves the static logo.
+    video.play().catch(() => cleanup?.())
+  }
+
+  function teardown() {
+    generation++
+    cleanup?.()
+    cleanup = null
+  }
+
+  onPageLoad(init)
+  onPageUnload(teardown)
+</script>

@@ -1318,6 +1318,77 @@ four balanced lines on a 375 phone, where two can't fit. Applies on
 **Reopen if:** the copy changes length; 18em assumes a sentence of roughly
 this size (it needs ~32em on one line).
 
+### 52. The Agency nav logo spells itself out once per session, desktop only
+
+**Decided:** on `/agency/` only, the nav's `<Logo>` became
+`AnimatedLogo.astro`: the motion master (`site_fes-logo-motion.mp4`, "FES"
+→ "FILLING EMPTY SPACES agency" → "FES") plays once, ~600ms after the page
+is visible, then hands back to the static SVG. It is multiply-blended over
+the hero photo (the clip is black on white, not transparent), and the
+Agency hero `<nav>` lost its `z-10` so the blend has the photo to blend with.
+
+- **Once per browser session** (`sessionStorage`), marked on `playing`, so a
+  visit that saw it never sees it again that session; a bfcache restore
+  never replays it; a hidden tab or an unactivated prerender waits until
+  someone is looking instead of spending the one play.
+- **Desktop only** (`lg`, 64rem+). Opened, the name is ~7× the logo's width
+  (~555px at the 44px logo) — it clears the nav links at 1024 and up, but on
+  a phone it would be cut off by the hero's `overflow-hidden`. Scaling it
+  down doesn't work: the opening "FES" would no longer land on the static
+  logo.
+- **Held name shortened from ~5.7s to ~2.5s** (10s → 6.7s total): three
+  words read in under two seconds, and the hold was competing with the h1.
+  The cut is between frames 210 and 376, which are identical, so it's
+  invisible.
+- **Not played** under `prefers-reduced-motion`, without JS, if autoplay is
+  refused, or if the 80KB clip isn't ready within 3s. All of these leave the
+  static logo in place, which is what the link carries for assistive tech in
+  every case.
+
+**Why:** user request — the animation's first and last frames are the logo,
+so a single run that settles back onto it reads as the mark introducing
+itself rather than as a looping ornament. Video over Lottie: one animation
+doesn't justify a 40–60KB player, and the hand-off to the vector SVG at the
+end means the resting state is always crisp anyway.
+
+**Reopen if:** the motion designer delivers a mobile cut (e.g. stacked) or
+an alpha-channel export (WebM/HEVC) — alpha would drop the multiply trick
+and its light-ground-only constraint; or the logo goes anywhere else,
+which needs its own width check against that page's nav.
+
+### 53. The homepage gets the logo motion too, sharing §52's one play per session
+
+**Decided:** the homepage hero's `<Logo variant="light">` became
+`<AnimatedLogo variant="light" delay={1400} />`, and its `<nav>` lost its
+`z-10` for the same stacking-context reason as §52. One `sessionStorage`
+key covers both pages: whichever the visitor opens first plays it, and the
+other shows the static logo.
+
+- **Its own clip, `fes-logo-motion-light.mp4`**: the master inverted in RGB
+  (white on black), `screen`-blended over the shader. No new export needed —
+  the master is pure black on white, so inverting it loses nothing.
+- **Both clips now clamp their grounds** (≥240 → pure white/black before
+  encoding). The master's white decodes at 253, not 255, which inverted to a
+  2/255 ground, and `screen` over the dark gradient showed that as a visible
+  box. The Agency clip had the same 1% error under `multiply`, fainter; both
+  are now exactly Y=235/16.
+- **1400ms after fonts are ready**, not §52's 600ms: the h1's line entrance
+  (motion.ts SPLIT: 0.15s delay + 0.9s + 0.07s stagger per line) lands
+  first, so the headline and the logo never move at once. The delay
+  counts from `document.fonts.ready` on both pages now.
+
+**Why:** the homepage is most visitors' first contact and where "FES" is
+least explained — the motion spells the name out without a word of copy.
+The hero already runs a shader and a split-text entrance (the §50 lesson:
+don't stack entrance motion on top of continuous motion), hence the
+sequencing; a separate once-per-page key would show it twice in one visit
+(home → Agency), and the second time it's just decoration.
+
+**Reopen if:** the h1 entrance is retimed (the 1400ms follows SPLIT by
+hand), or analytics show most sessions starting on Agency, in which case
+the shared key already does the right thing, but the Agency delay may want
+the same headline-first sequencing.
+
 ### 54. `/api/contact` and `/go/booking` are a plain Worker, not the Cloudflare adapter; leads land in KV
 
 **Decided:** `wrangler.jsonc` gained `main: "./worker/index.ts"` and a

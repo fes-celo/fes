@@ -1,11 +1,11 @@
-// Nav is four items per the confirmed brief (Agency · Systems · Projects ·
-// Contact) — this drops Resources from earlier plan/brief versions, which
-// still has 72 redirect-map rows pointing at /resources/. Flagged upstream;
-// Resources + Tech Refresh get a footer-only home until that's resolved.
+// Nav is four items (Systems · Projects · Agency · Contact) — this drops
+// Resources from earlier plan/brief versions, which still has 72
+// redirect-map rows pointing at /resources/. Flagged upstream; Resources +
+// Tech Refresh get a footer-only home until that's resolved.
 export const navItems = [
-  { label: 'Agency', href: '/agency/' },
   { label: 'Systems', href: '/systems/' },
   { label: 'Projects', href: '/projects/' },
+  { label: 'Agency', href: '/agency/' },
   { label: 'Contact', href: '/contact/' },
 ]
 

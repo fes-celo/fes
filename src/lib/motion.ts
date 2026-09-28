@@ -617,7 +617,7 @@ let cleanups: Cleanup[] = []
  * skipping the entrance outright (`entranceWouldFlash`), not by parking
  * here: an init suspended behind the CSS pre-hide is a blank page.
  */
-function whenActivated(): Promise<void> {
+export function whenActivated(): Promise<void> {
   if (!document.prerendering) return Promise.resolve()
   return new Promise((resolve) => {
     document.addEventListener('prerenderingchange', () => resolve(), { once: true })

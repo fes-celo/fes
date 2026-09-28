@@ -220,10 +220,11 @@ const TitleTag = titleAs
         {
           /* Cursor-following "View project" pill — mouse only (the setup
              script below gates on pointerType === 'mouse'), so touch/pen
-             never sees a stray label with nothing to dismiss it. Position is
-             pure JS (data-cursor-label, set on pointermove); visibility is a
-             plain group-hover so it still respects keyboard/touch by simply
-             never appearing there. 4px radius matches --radius-card exactly
+             never sees a stray label with nothing to dismiss it. Position
+             and visibility are both JS (data-cursor-label placed from the
+             last cursor point, data-cursor-active on the card under it —
+             re-run on scroll as well as pointermove), so keyboard/touch
+             simply never see it. 4px radius matches --radius-card exactly
              — the pill borrows the card's own corner, not a fully-rounded
              capsule.
 
@@ -371,11 +372,9 @@ const TitleTag = titleAs
      mixing a plain `transform` override with Tailwind's variable-composed
      transform would drop whichever half isn't restated.
 
-     The reveal only exists inside the hover-capable media query — not
-     `opacity-0 group-hover:opacity-100` in the markup — so a touch tap that
-     briefly triggers :hover can never pop the pill up at its default
-     untracked (0,0) position; the JS in the script block below separately
-     skips positioning it for any pointerType other than "mouse".
+     The reveal only exists inside the hover-capable media query, as a
+     second guard on top of the script, which never activates a card for
+     any pointerType other than "mouse".
 
      0.95, not 0.75 (the value this shipped with): nothing appears from
      nothing, but this is a tens-of-times-a-day hover affordance, not a
@@ -391,8 +390,14 @@ const TitleTag = titleAs
     transition-duration: 100ms;
     transition-timing-function: var(--ease-out);
   }
+  /* [data-cursor-active], not .group:hover: :hover is only re-evaluated
+     when the MOUSE moves, so scrolling (wheel or Lenis) a card under a
+     stationary cursor left the pill frozen — shown on a card the cursor had
+     already left, or missing on the one it had scrolled onto, and parked at
+     its last pointermove position either way. The script below re-hit-tests
+     the last known cursor point on every scroll frame and owns this flag. */
   @media (hover: hover) and (pointer: fine) {
-    .group:hover .cursor-pill {
+    [data-cursor-active] .cursor-pill {
       opacity: 1;
       transform: translate(-50%, -50%) scale(1);
       transition-duration: 150ms;
@@ -412,21 +417,70 @@ const TitleTag = titleAs
 
   // variant="featured" only: the "View project" pill trails the pointer
   // inside its card's image. Position is set directly (no GSAP) since it
-  // has to track every pointermove 1:1 — a tween here would just be lag,
-  // not the deliberate trailing-lag a quickTo would give it later.
+  // has to track the pointer 1:1 — a tween here would just be lag, not the
+  // deliberate trailing-lag a quickTo would give it later.
+  //
+  // Driven from the last known cursor point rather than per-card
+  // pointermove, because scrolling moves the cards under a cursor that
+  // never fires a pointermove: the pill has to be re-placed (and possibly
+  // handed to another card, or hidden) on scroll too. elementFromPoint
+  // rather than a rect test so anything painted over the card — the fixed
+  // nav, an overlay — correctly hides it (the pill itself is
+  // pointer-events-none, so it never hits itself).
   function setupCursorLabels() {
-    document.querySelectorAll<HTMLElement>('[data-cursor-media]').forEach((media) => {
-      const label = media.querySelector<HTMLElement>('[data-cursor-label]')
-      if (!label) return
+    let x = 0
+    let y = 0
+    let hasMouse = false
+    let active: HTMLElement | null = null
+    let frame = 0
 
-      const onMove = (e: PointerEvent) => {
-        if (e.pointerType !== 'mouse') return
+    const setActive = (next: HTMLElement | null) => {
+      if (next === active) return
+      active?.removeAttribute('data-cursor-active')
+      next?.setAttribute('data-cursor-active', '')
+      active = next
+    }
+
+    const update = () => {
+      frame = 0
+      const media = hasMouse
+        ? document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-cursor-media]') ?? null
+        : null
+      const label = media?.querySelector<HTMLElement>('[data-cursor-label]')
+      if (media && label) {
         const rect = media.getBoundingClientRect()
-        label.style.transform = `translate3d(${e.clientX - rect.left}px, ${e.clientY - rect.top}px, 0)`
+        label.style.transform = `translate3d(${x - rect.left}px, ${y - rect.top}px, 0)`
       }
+      // Placed before activating, so a card the pill moves onto never shows
+      // it for a frame at its previous card-relative position.
+      setActive(label ? media : null)
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
 
-      media.addEventListener('pointermove', onMove)
-      cleanups.push(() => media.removeEventListener('pointermove', onMove))
+    const onMove = (e: PointerEvent) => {
+      // Touch/pen never shows the pill; a touch after mouse use hides it.
+      hasMouse = e.pointerType === 'mouse'
+      x = e.clientX
+      y = e.clientY
+      schedule()
+    }
+    const onLeave = () => {
+      hasMouse = false
+      schedule()
+    }
+
+    const root = document.documentElement
+    window.addEventListener('pointermove', onMove, { passive: true })
+    window.addEventListener('scroll', schedule, { passive: true })
+    root.addEventListener('pointerleave', onLeave)
+    cleanups.push(() => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('scroll', schedule)
+      root.removeEventListener('pointerleave', onLeave)
+      cancelAnimationFrame(frame)
+      setActive(null)
     })
   }
 
