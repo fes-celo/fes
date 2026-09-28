@@ -1,13 +1,20 @@
 {
-  // Static-assets-only Worker: no `main`, so `wrangler deploy` just uploads
-  // `dist/` as-is. Without this file, a git-connected deploy that runs
-  // `wrangler deploy` finds no config, treats the project as unconfigured,
-  // and in non-interactive CI auto-runs `astro add cloudflare` — reinstalling
-  // an @astrojs/cloudflare version that doesn't match Astro 7's exports and
-  // failing the build. See docs/parked-decisions.md §35.
+  // Worker with static assets: `main` handles /api/contact and /go/booking
+  // (the site's only server routes — see worker/index.ts) and falls through
+  // to `env.ASSETS.fetch()` for everything else. Astro itself stays
+  // `output: 'static'`; this is deliberately NOT the `@astrojs/cloudflare`
+  // adapter — see docs/parked-decisions.md §35 for the adapter version
+  // mismatch that broke this build once already, and §54 for why a plain
+  // Worker replaces it instead of bringing the adapter back.
   "name": "fes",
   "compatibility_date": "2026-09-19",
+  "main": "./worker/index.ts",
   "assets": {
-    "directory": "./dist"
-  }
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    // Contact-form lead log (docs/measurement.md § Server-side counts).
+    { "binding": "LEADS", "id": "823ad3e3bf31431981837f5b134fef97" }
+  ]
 }

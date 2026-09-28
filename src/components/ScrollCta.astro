@@ -45,13 +45,20 @@ const { showSelector, hideSelector } = Astro.props as Props
          it needs a reply before anything is booked. The contact form is
          still the route for everything that isn't a call.
 
+         /go/booking, not the scheduler URL directly: it's the same
+         indirection /contact/thank-you gives the form, just for a click
+         instead of a submit — a pageview on it is the "booking lead" metric
+         (docs/measurement.md), and swapping providers later is a one-line
+         redirect-target edit in worker/index.ts instead of a site-wide
+         link update.
+
          target="_blank" because this leaves the site for a third-party
          scheduler: the visitor is mid-scroll through the work, and losing
          that position to pick a slot is a worse trade than a second tab.
          rel matches the convention in cookies-policy.astro. */
     }
     <a
-      href="https://calendar.app.google/GJ5i2k73FgB9p1iE9"
+      href="/go/booking"
       target="_blank"
       rel="noopener noreferrer"
       class="shrink-0 whitespace-nowrap rounded-[var(--radius-card)] bg-accent-800 px-3.5 py-3 text-body-sm font-medium text-accent-200 transition-[background-color,transform] duration-150 ease-out hover:bg-accent-700 active:scale-[0.97]"

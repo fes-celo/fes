@@ -9,7 +9,9 @@
     "dev": "astro dev",
     "build": "astro build && node tools/prune-unreferenced-assets.mjs && node tools/build-redirects.mjs",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "worker:dev": "PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
@@ -23,10 +25,13 @@
   "allowScripts": {
     "esbuild@0.28.2": true,
     "fsevents@2.3.3": true,
-    "esbuild@0.28.1": true
+    "esbuild@0.28.1": true,
+    "workerd@1.20260926.1": true
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "typescript": "^6.0.3"
+    "@cloudflare/workers-types": "^5.20260928.1",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.142.0"
   }
 }

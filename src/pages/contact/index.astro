@@ -7,9 +7,15 @@
  *
  * The form posts to /api/contact and expects a redirect to
  * /contact/thank-you on success — that's the lead-measurement contract
- * frozen in docs/measurement.md (Pages Function: validates, sends via
- * Resend, logs the record, then 302s). The Function and Turnstile don't
- * exist yet; /contact/thank-you does (src/pages/contact/thank-you/).
+ * frozen in docs/measurement.md. worker/index.ts is what actually answers
+ * that route: validates, checks Turnstile, sends via Resend, logs the
+ * record to KV, then 302s. It's a plain Worker fetch handler, not a Pages
+ * Function — see docs/parked-decisions.md §35 and §54 for why.
+ *
+ * The Turnstile site key is public by design, so the real one is the
+ * default here. `npm run worker:dev` overrides it via
+ * PUBLIC_TURNSTILE_SITE_KEY with Cloudflare's always-pass test key, because
+ * the real key only renders on the hostnames registered for the widget.
  *
  * The <script> below is progressive enhancement over that contract:
  *
@@ -31,6 +37,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 import Heading from '../../components/Heading.astro'
 import { navItems, isNavActive } from '../../lib/nav'
 import Logo from '../../components/Logo.astro'
+
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAFGJ99CUO2eR5jd9'
 ---
 
 <BaseLayout title="Contact" description="Get in touch with FES Agency: tell us about your project and we'll get back to you." hideHeader>
@@ -139,6 +147,14 @@ import Logo from '../../components/Logo.astro'
           </label>
         </div>
 
+        {
+          /* Managed widget: shows a checkbox only when it needs interaction,
+             otherwise solves silently and injects its own
+             `cf-turnstile-response` hidden input into this form. The Worker
+             (worker/index.ts) rejects a submission without a valid token. */
+        }
+        <div class="cf-turnstile self-center" data-sitekey={turnstileSiteKey}></div>
+
         {/* Submission-level status (network failure, server error). Polite,
             not assertive: it appears in response to the user's own action,
             so it doesn't need to interrupt. */}
@@ -162,6 +178,7 @@ import Logo from '../../components/Logo.astro'
           <span data-submit-label>Send message</span>
         </button>
       </form>
+      <script is:inline async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
     </div>
   </section>
 </BaseLayout>

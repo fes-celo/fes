@@ -1,0 +1,6 @@
+# Copy to .dev.vars (gitignored) for `npm run worker:dev`. Real values live as
+# Cloudflare secrets in production — `wrangler secret put <NAME>` — never here.
+RESEND_API_KEY=
+# Cloudflare's always-pass test secret; pairs with the test site key that
+# `npm run worker:dev` builds with. Don't put the real secret here.
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA

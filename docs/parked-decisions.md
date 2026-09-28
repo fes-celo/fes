@@ -1317,3 +1317,59 @@ four balanced lines on a 375 phone, where two can't fit. Applies on
 
 **Reopen if:** the copy changes length; 18em assumes a sentence of roughly
 this size (it needs ~32em on one line).
+
+### 54. `/api/contact` and `/go/booking` are a plain Worker, not the Cloudflare adapter; leads land in KV
+
+**Decided:** `wrangler.jsonc` gained `main: "./worker/index.ts"` and a
+`LEADS` KV binding. `worker/index.ts` is a hand-written Worker fetch
+handler — no `@astrojs/cloudflare`, no change to `astro.config.mjs`'s
+`output: 'static'`. It owns exactly two routes (`POST /api/contact`,
+`GET /go/booking`) and falls through to `env.ASSETS.fetch()` for
+everything else. On a valid contact submission it verifies Turnstile,
+sends via Resend to `hello@fesagency.pt`, writes a `lead:<uuid>` record to
+`LEADS` KV (timestamp, name, email, message — the fields
+docs/measurement.md §Server-side counts asks for), then 302s to
+`/contact/thank-you/`. A failed Resend send returns a 502, deliberately
+never redirecting to the thank-you URL. A same-IP submission is
+rate-limited to 5/hour via a `ratelimit:<ip>` KV key with a 1-hour TTL.
+`/go/booking` 302s to the Google Calendar link that was already live in
+`ScrollCta.astro` — open question #4 in the roadmap turns out to already
+be answered in the markup, just not routed through the indirection yet.
+
+**Why not the adapter:** §35 exists because `@astrojs/cloudflare` broke
+this exact build once (`renderForPrerender` missing from Astro 7.2's
+exports) and the project has run without it since. Re-adding it to get one
+POST route back would reintroduce that whole failure class for a handler
+that's ~150 lines of `fetch`/`Response`. A plain Worker gets the same
+`env.ASSETS.fetch()` fallback the adapter would have given, with none of
+its build-time coupling to Astro's internals.
+
+**Why KV over the alternatives:** free, already provisioned by adding one
+binding, and this form's volume (an agency contact form) never approaches
+KV's read/write limits. A flat file isn't an option (Workers have no
+filesystem); a database is more than this needs unless the roadmap's
+future Supabase migration happens anyway, at which point the log write
+moves there too.
+
+**Why the Worker is excluded from the root `tsconfig.json`:** it needs
+`@cloudflare/workers-types` (a `Request`/`Response`/`FormData` surface
+that collides with the DOM lib the Astro pages use), so it gets its own
+`worker/tsconfig.json` instead of widening the root config's ambient
+types for the whole project.
+
+**Sender is `noreply@fes.agency`, recipient `hello@fesagency.pt`:** the
+domain verified in Resend is `fes.agency`, and only the sender's domain
+needs verifying. Replies go to the visitor via `reply_to`.
+
+**Turnstile keys:** the real site key is public, so it's hardcoded as the
+default in `contact/index.astro` (no build variable to forget in CI).
+`npm run worker:dev` overrides it with Cloudflare's always-pass test site
+key, and `.dev.vars` holds the matching test secret, because the real key
+only renders on the widget's registered hostnames. `npm run deploy`
+always rebuilds, so a test key left in `dist/` can't ship.
+
+**Reopen if:** a second server route needs something the adapter would
+give for free (streaming SSR, Astro middleware) — until then this stays
+the simplest thing that answers one POST and one redirect. Also reopen the
+KV choice if lead volume or query needs ever exceed "read the log back by
+hand", and the sender if `fesagency.pt` is ever verified in Resend.
