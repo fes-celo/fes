@@ -18,12 +18,16 @@ import blipMediaRelations from '../assets/projects/Blip-media-relations.png'
 import blipTedxIcon from '../assets/projects/Blip-icon.png'
 import tenXForward from '../assets/projects/10x-forward.png'
 import tenXForwardIcon from '../assets/projects/10x-forward-icon.svg'
-import coverflexIcon from '../assets/projects/coverflex-icon.png'
+import shamirIcon from '../assets/projects/Shamir-icon.png'
 import shamirPortugal from '../assets/projects/Shamir-portugal.png'
 import startupPortugalProject from '../assets/projects/startup-portugal.png'
 import startupPortugalProjectIcon from '../assets/projects/Startup Portugal-icon.png'
 import startInsideOut from '../assets/projects/Start Inside Out.png'
 import startCampusIcon from '../assets/projects/Start Campus-icon.png'
+import anchorageDigital from '../assets/projects/Anchorage digital.png'
+import alchemyConf from '../assets/projects/Alchemy Conf.png'
+import dataMakersFest from '../assets/projects/Data Makers Fest.png'
+import blipBrandActivation from '../assets/projects/Blip-Brand Activation.png'
 
 export interface Project {
   href: string
@@ -49,7 +53,7 @@ export const projects: Project[] = [
     title: 'Shamir Portugal | Strategic PR',
     description: 'PR and content to bring the brand closer to its audiences.',
     thumbnail: shamirPortugal,
-    icon: coverflexIcon,
+    icon: shamirIcon,
     iconBg: 'var(--color-neutral-50)',
     tag: 'Influence & Reputation System',
     category: ['Enterprise'],
@@ -104,13 +108,13 @@ export const projects: Project[] = [
     tag: 'Digital Communication System',
     category: ['Startups & Scaleups'],
   },
-  // The five entries below have no thumbnail/icon yet — ProjectCard renders
-  // its labelled placeholder in place of a cover shot until real photography
-  // lands, same pattern as the case-study media blocks (see caseStudies.ts).
+  // The four entries below have a thumbnail but no icon yet — ProjectCard
+  // drops the icon chip until one lands.
   {
     href: '/projects/anchorage-digital/',
     title: 'Anchorage Digital | Portugal',
     description: 'Media relations that brought a global crypto platform into the Portuguese press.',
+    thumbnail: anchorageDigital,
     tag: 'Influence & Reputation System',
     category: ['Enterprise'],
   },
@@ -118,6 +122,7 @@ export const projects: Project[] = [
     href: '/projects/subvisual/',
     title: 'Subvisual | Alchemy Conf',
     description: 'Social media management and event promotion for a Web3 venture studio.',
+    thumbnail: alchemyConf,
     tag: 'Digital Communication System',
     category: ['Startups & Scaleups'],
   },
@@ -125,6 +130,7 @@ export const projects: Project[] = [
     href: '/projects/data-makers-fest/',
     title: 'Data Makers Fest | Reddit Ads & Event Comms',
     description: 'PR and digital communication for a three-day data and AI conference in Porto.',
+    thumbnail: dataMakersFest,
     tag: 'Digital Communication System',
     category: ['Startups & Scaleups'],
   },
@@ -132,6 +138,7 @@ export const projects: Project[] = [
     href: '/projects/blip-activation/',
     title: 'Blip | Brand Activation',
     description: 'A brand activation campaign across outdoor advertising, paid media and more.',
+    thumbnail: blipBrandActivation,
     tag: 'Creative Projects Blueprint',
     category: ['Enterprise'],
   },

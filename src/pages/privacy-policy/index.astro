@@ -55,253 +55,224 @@ import Logo from '../../components/Logo.astro'
     <div class="mx-auto flex max-w-[47.5rem] flex-col gap-10">
       <h1 class="text-h1 text-ink">Privacy Policy</h1>
 
+      {/* Every statement below describes something the site actually does
+          (worker/index.ts, contact/index.astro, the embeds, the footer
+          links). Change the code, change this page — see
+          parked-decisions §55. */}
       <div class="flex flex-col gap-10 text-body text-ink-secondary [&_a]:text-ink [&_a]:underline [&_a:hover]:text-ink-secondary">
         <div class="flex flex-col gap-4">
           <p>
-            This Privacy Policy governs the processing of the personal data of users (hereinafter "User" or
-            "Users"), collected in the context of the use of this website https://fesagency.pt/ (hereinafter
-            "Website"), by Press Play, Unipessoal, Lda. (hereinafter "FES Agency").
+            This Privacy Policy explains how personal data is processed when you use the website
+            https://fesagency.pt/ (the "Website"), in accordance with Regulation (EU) 2016/679, the General Data
+            Protection Regulation ("GDPR"), and Law no. 58/2019 of 8 August, which ensures its implementation in
+            Portugal.
           </p>
           <p>
-            This Privacy Policy applies exclusively to the processing of personal data carried out by FES Agency in
-            the context of the use of the website, in which personal information is deemed to relate to a natural
-            person, of any nature and regardless of its support, identified or identifiable.
-          </p>
-        </div>
-
-        <div class="flex flex-col gap-4">
-          <h2 class="text-h3 text-ink">Our Commitment</h2>
-          <p>
-            We ensure compliance with the obligations under Regulation (EU) 2016/679 of the European Parliament and
-            of the Council, General Data Protection Regulation (hereinafter "GDPR"), and other legislation on
-            personal data protection and privacy.
-          </p>
-          <p>
-            The respect for your privacy, the protection of your personal data and the compliance with the legal
-            obligations applicable in this area is a priority for us, which is why we are committed to only
-            processing your personal data that is strictly necessary for us to provide you with the best service,
-            ensuring respect for your privacy, transparency in information and the application of best practices in
-            the field of security and protection of personal data.
-          </p>
-          <p>
-            Where your personal data is processed by contractors, we will require them to provide the same level of
-            security and privacy safeguards in respect of the protection of personal data.
+            You can browse the Website without giving us any personal information. Personal data is only processed
+            in the situations described below.
           </p>
         </div>
 
         <div class="flex flex-col gap-4">
           <h2 class="text-h3 text-ink">Data Controller</h2>
           <p>
-            The Data Controller of the Users personal data is Press Play, Unipessoal, Lda., with the trade name FES
-            Agency, with headquarters at Praça das Flores, 91, 4.º D, 4300-401 Porto, with a share capital of € 500,
+            The controller of your personal data is Press Play, Unipessoal, Lda., trading as FES Agency, with
+            headquarters at Praça das Flores, 91, 4.º D, 4300-401 Porto, Portugal, with a share capital of € 500,
             registered at the Commercial Registry Office under the sole registration and tax identification number
-            513 906 169.
+            513 906 169 ("FES Agency", "we").
           </p>
           <p>
-            FES Agency guarantees compliance with the regulations governing the protection of personal data by
-            providing the following information regarding the processing of personal data of Users communicated or
-            otherwise collected in the context of the use of this Website.
-          </p>
-          <p>
-            If you need to contact us, you may do it via the following e-mail address: <a href="mailto:hello@fesagency.pt">hello@fesagency.pt</a>.
+            For any question about this policy or your personal data, write to
+            <a href="mailto:hello@fesagency.pt">hello@fesagency.pt</a>.
           </p>
         </div>
 
         <div class="flex flex-col gap-4">
-          <h2 class="text-h3 text-ink">Purposes, lawfulness of the processing and storage period</h2>
-          <p>
-            The User can access, navigate, and use this website without necessarily having to provide any personal
-            information, without prejudice to the navigation data necessary for the correct management of the
-            website. However, the use of certain website tools may require the provision of personal data.
+          <h2 class="text-h3 text-ink">What we process, why, and for how long</h2>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Operating and securing the Website</h3>
+            <p>
+              When you visit the Website, your browser necessarily sends technical data such as your IP address,
+              browser and device type, and the page requested. The Website is hosted on Cloudflare, which processes
+              this data to deliver pages and protect the Website against abuse. When a contact message is sent, we
+              also keep a counter linked to the sender's IP address for one hour, to limit repeated submissions.
+            </p>
+            <p>
+              <strong class="font-medium text-ink">Lawful basis:</strong> our legitimate interest in running a
+              secure and working website (Article 6(1)(f) GDPR).
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Website statistics</h3>
+            <p>
+              We use Cloudflare Web Analytics to count page views. It does not use cookies, does not store anything
+              on your device and does not track you across websites; we only see aggregated figures, such as how
+              many times a page was visited.
+            </p>
+            <p>
+              <strong class="font-medium text-ink">Lawful basis:</strong> our legitimate interest in understanding
+              how the Website is used (Article 6(1)(f) GDPR).
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2" id="contact-requests">
+            <h3 class="text-h4 text-ink">Contact requests</h3>
+            <p>
+              When you use the contact form, we process your name, e-mail address and message to reply to you.
+              Before the message is accepted, Cloudflare Turnstile checks that it was sent by a person and not an
+              automated program; this check uses technical information about your browser and does not set
+              advertising or tracking cookies. The message is delivered to our mailbox by our e-mail provider,
+              Resend, and a copy is kept in a log stored on Cloudflare.
+            </p>
+            <p>
+              <strong class="font-medium text-ink">Lawful basis:</strong> steps taken at your request before a
+              possible contract (Article 6(1)(b) GDPR) and, for the spam check, our legitimate interest in keeping
+              the form free of abuse (Article 6(1)(f) GDPR).
+            </p>
+            <p>
+              <strong class="font-medium text-ink">Retention:</strong> up to two years from the date you contact
+              us, after which the log entry is deleted automatically and the e-mail is deleted from our mailbox. If
+              the conversation leads to a working relationship, the data then follows the retention periods of
+              that relationship, including those required by tax and accounting law.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2" id="newsletter">
+            <h3 class="text-h4 text-ink">Newsletter</h3>
+            <p>
+              If you subscribe to our newsletter, we process your e-mail address (and any other details you choose
+              to give in the signup form) to send you our newsletter and news about our work. The signup form and
+              the mailing list are managed by Brevo, which also tells us whether e-mails are delivered and opened,
+              so we can improve them.
+            </p>
+            <p>
+              <strong class="font-medium text-ink">Lawful basis:</strong> your consent (Article 6(1)(a) GDPR), which
+              you can withdraw at any time through the unsubscribe link in every e-mail or by writing to us.
+              Withdrawing it does not affect the lawfulness of what was sent before.
+              <strong class="font-medium text-ink">Retention:</strong> until you unsubscribe, after which your
+              address is removed from the list and kept only on a suppression list, so that we never write to you
+              again by mistake.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Booking a call</h3>
+            <p>
+              The "book a call" links take you to a Google Calendar booking page, where you enter your name and
+              e-mail address to schedule a meeting with us. That data is processed by Google on our behalf and
+              added to our calendar.
+            </p>
+            <p>
+              <strong class="font-medium text-ink">Lawful basis:</strong> steps taken at your request before a
+              possible contract (Article 6(1)(b) GDPR). <strong class="font-medium text-ink">Retention:</strong> up
+              to two years from the meeting, under the same rule as contact requests.
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2">
+            <h3 class="text-h4 text-ink">Job applications</h3>
+            <p>
+              Applications are submitted through a Google Form linked from our Careers page. We process the
+              information you choose to send (such as your name, contact details, CV and portfolio) to assess your
+              application.
+            </p>
+            <p>
+              <strong class="font-medium text-ink">Lawful basis:</strong> steps taken at your request before a
+              possible employment contract (Article 6(1)(b) GDPR).
+              <strong class="font-medium text-ink">Retention:</strong> up to twelve months from the date of your
+              application, so we can consider you for roles that fit your profile. You can ask us to delete it
+              sooner at any time.
+            </p>
+          </div>
+
+          <p class="pt-2">
+            Apart from the newsletter you choose to subscribe to, we do not use your data for marketing. We do not sell it, and we do not make decisions about you based
+            solely on automated processing, including profiling. We do not ask for, and ask you not to send, special
+            categories of data (such as health data or data revealing racial or ethnic origin, political opinions or
+            religious beliefs).
           </p>
-          <p>
-            In this context, the processing of your personal data has the following purposes, the basis of
-            lawfulness and retention periods:
-          </p>
-
-          <div class="flex flex-col gap-2 pt-2">
-            <h3 class="text-h4 text-ink">Website Management</h3>
-            <p>
-              The computer systems and software procedures used to operate this Website acquire, during their
-              normal operation, some personal data whose transmission is implicit in the use of Internet
-              communication protocols. This data (such as for example, domain names, IP addresses, operating system
-              used, type of device and browser used for connection) is not accompanied by any additional personal
-              information.
-            </p>
-            <p>
-              The processing of this personal data is necessary to allow the use of the website, and that
-              processing is based on the execution of a contract whose terms are governed by the Terms and
-              conditions and, in the absence thereof, by the general principles of law. Your data will be stored in
-              accordance with the information provided in the cookies policy.
-            </p>
-          </div>
-
-          <div class="flex flex-col gap-2 pt-2">
-            <h3 class="text-h4 text-ink">Newsletters</h3>
-            <p>
-              The personal data provided by the user via the form are collected and processed for the periodic
-              sending, by email, of newsletters and advertising material; and to receive updates on our activities
-              and products. For the sake of complete information, we would like to point out that when sending out
-              communications, FES Agency makes use of Mailchimp Platform.
-            </p>
-            <p>
-              The processing of personal data is carried out based on your consent when you subscribe to our
-              electronic communications. You may remove your consent at any time by opt-out available in the
-              newsletters you receive by email, at which point FES Agency will no longer store your personal data
-              for this purpose.
-            </p>
-          </div>
-
-          <div class="flex flex-col gap-2 pt-2">
-            <h3 class="text-h4 text-ink">Contact and Complaints Management</h3>
-            <p>
-              The processing of this data is necessary for the reception, analysis, follow-up and response to
-              requests for information and/or complaints. This processing is based on the legitimate interest of
-              FES Agency in duly following up on your requests and in compliance with legal obligations.
-            </p>
-            <p>
-              The data is only stored for the time strictly necessary to manage and fulfill the purposes for which
-              it is collected, in compliance with the regulations in force and legal obligations.
-            </p>
-            <p>
-              In any case, FES Agency adopts procedures that prevent the storage of data indefinitely and therefore
-              limits the storage period in accordance with the principle of data minimization and storage
-              limitation. Once the defined storage period has expired, we undertake to delete, destroy, or
-              anonymize your personal data, except for the data that we are required by law to keep for a longer,
-              legally determined period.
-            </p>
-          </div>
         </div>
 
         <div class="flex flex-col gap-4">
-          <h2 class="text-h3 text-ink">Categories of Data</h2>
+          <h2 class="text-h3 text-ink">Who receives your data</h2>
           <p>
-            In the context of the mentioned purposes, we only process data that is strictly necessary for the
-            pursuit of these purposes, namely:
+            Your data is accessed only by FES Agency staff who need it for the purposes above. We use the following
+            service providers ("processors"), bound by data processing agreements that require them to protect your
+            data and use it only on our instructions:
           </p>
           <ul class="list-disc pl-6">
-            <li>Personal identification and contact data (e.g., name, email); and/or</li>
-            <li>Traffic data (via Cookies).</li>
+            <li>Cloudflare — website hosting, security, spam checks (Turnstile), statistics and storage of contact requests;</li>
+            <li>Resend — delivery of contact-form messages to our mailbox;</li>
+            <li>Brevo (Sendinblue SAS, France) — newsletter signup form, mailing list and sending;</li>
+            <li>Google — call booking (Google Calendar) and job applications (Google Forms).</li>
           </ul>
           <p>
-            FES Agency does not process sensitive data categories revealing racial or ethnic origin, political
-            opinions, religious or philosophical beliefs, or trade union membership, as well as the processing of
-            genetic data, biometric data for the purpose of uniquely identifying a natural person, data concerning
-            health or data concerning a natural person's sex life or sexual orientation.
+            Some of these providers are established in, or may access data from, the United States. Those transfers
+            rely on the EU–US Data Privacy Framework where the provider is certified under it, or otherwise on the
+            Standard Contractual Clauses approved by the European Commission (Articles 45 and 46 GDPR).
+          </p>
+          <p>
+            We may also disclose data where required by law, by a decision of the Comissão Nacional de Proteção de
+            Dados ("CNPD") or another competent authority, or by a court order.
           </p>
         </div>
 
         <div class="flex flex-col gap-4">
-          <h2 class="text-h3 text-ink">Personal Data Sharing</h2>
+          <h2 class="text-h3 text-ink">Third-party content and social networks</h2>
           <p>
-            The processing of the data collected is carried out by internal staff, identified for this purpose, and
-            authorised to process the data in accordance with specific instructions given in compliance with
-            current legislation.
+            Some pages offer videos and podcasts hosted by YouTube and Spotify. These players are not loaded until
+            you click on them; once loaded, the provider processes your data under its own privacy policy. The same
+            applies when you follow a link to our social network profiles or to other websites: we are not
+            responsible for their privacy practices and recommend that you read their policies.
           </p>
-          <p>
-            In certain cases, we may disclose your personal data, to the extent strictly necessary, to entities
-            that provide services to us ("Processors") for the purposes mentioned above, under the terms of the
-            contracts entered with them.
-          </p>
-          <p>
-            In the event that your personal data is to be shared with service providers located outside the
-            European Union, we will ensure that your personal data receives a high level of protection under
-            applicable data protection legislation by arranging for the transfer under an adequacy decision of the
-            European Commission or under the standard data protection clauses (or similar) approved by the European
-            Commission.
-          </p>
-          <p>
-            Your data may also be communicated to authorities or third parties when the transmission is carried out
-            in order to comply with a legal and/or contractual obligation, a decision of the Comissão Nacional de
-            Proteção de Dados ("CNPD") or another relevant supervisory entity, or a judicial order.
-          </p>
-          <p>In any case, personal data will never be disseminated, with other companies or brands for other commercial purposes.</p>
         </div>
 
         <div class="flex flex-col gap-4">
-          <h2 class="text-h3 text-ink">Rights of the data subject</h2>
+          <h2 class="text-h3 text-ink">Your rights</h2>
           <p>
-            In accordance with the law, and as the data subject of personal data, User may at any time request the
-            right to access, rectification, erasure of your personal data, restriction of processing, portability,
-            objection and not to be subject to automated decisions, depending on their applicability.
-          </p>
-          <p>In cases where the User has given consent for certain processing of your personal data, you may withdraw it at any time.</p>
-          <p>
-            To exercise any of these rights, you should do so by request to the following email address: <a href="mailto:hello@fesagency.pt">hello@fesagency.pt</a>
+            You have the right to access, rectify and erase your personal data, to restrict or object to its
+            processing (including processing based on our legitimate interests), and to data portability, under the
+            conditions set out in Articles 15 to 22 GDPR.
           </p>
           <p>
-            You may also contact us on all matters relating to the processing of your data and the exercise of your
-            rights under applicable law and, in particular, under this Privacy Policy, via the email address
-            indicated.
+            To exercise any of these rights, write to <a href="mailto:hello@fesagency.pt">hello@fesagency.pt</a>. We
+            will reply within one month, which may be extended by two further months for complex requests, in which
+            case we will tell you why. We may ask you to confirm your identity before acting on a request.
           </p>
           <p>
-            Without prejudice to any other administrative or judicial remedy, you may also lodge a complaint with
-            the CNPD if you believe that the processing of your personal data by us violates the legal regime in
-            force.
+            You also have the right to lodge a complaint with the Portuguese supervisory authority, the CNPD
+            (<a href="https://www.cnpd.pt/" target="_blank" rel="noopener noreferrer">www.cnpd.pt</a>), without
+            prejudice to any other administrative or judicial remedy.
           </p>
         </div>
 
         <div class="flex flex-col gap-4">
           <h2 class="text-h3 text-ink">Cookies</h2>
           <p>
-            We recommend that the User read our <a href="/cookies-policy/">Cookies Policy</a>, which is an integral
-            part of this policy, for more information on how we process your personal data through this
-            functionality.
+            This Website does not use advertising or analytics cookies. Read our <a href="/cookies-policy/">Cookies Policy</a>
+            for the details of what is, and is not, stored on your device.
           </p>
         </div>
 
         <div class="flex flex-col gap-4">
-          <h2 class="text-h3 text-ink">Security Measures</h2>
+          <h2 class="text-h3 text-ink">Security</h2>
           <p>
-            We have a variety of information security measures implemented in line with national and international
-            best practices to protect your personal data, including technological controls, administrative,
-            technical, and physical measures and procedures that ensure the protection of your personal data,
-            preventing misuse, unauthorised access to data, disclosure, loss, improper or inadvertent alteration or
-            destruction.
-          </p>
-          <p>
-            In terms of information security, we assume the same commitment to continuous improvement by which we
-            are guided in our daily activities.
-          </p>
-          <p>Among others, we highlight the following measures:</p>
-          <ul class="list-disc pl-6">
-            <li>Restricted access to your personal data;</li>
-            <li>Storage and transmission of your personal data safely;</li>
-            <li>Protection of information systems through devices that prevent unauthorised access to your personal data;</li>
-            <li>Implementation of mechanisms that guarantee the safeguarding of the integrity and quality of your personal data;</li>
-            <li>Permanent monitoring of the information systems, with the objective of preventing, detecting and avoiding the improper use of your personal data;</li>
-            <li>Protection of equipment for storage, processing, and communication of personal data, in order to avoid loss of availability.</li>
-          </ul>
-          <p>
-            It is, however, the responsibility of the Users to guarantee and ensure that the devices and equipment
-            used to access this Website are adequately protected against harmful software, computer viruses and
-            worms.
+            We apply technical and organisational measures appropriate to the risk to protect your personal data
+            against loss, misuse, unauthorised access, disclosure or alteration, including encrypted connections
+            (HTTPS) across the whole Website, access to personal data restricted to the people who need it, and the
+            automatic deletion of contact requests at the end of their retention period.
           </p>
         </div>
 
         <div class="flex flex-col gap-4">
-          <h2 class="text-h3 text-ink">Hyperlinks</h2>
+          <h2 class="text-h3 text-ink">Updates to this Privacy Policy</h2>
           <p>
-            We may provide hyperlinks to other websites of interest, but we are not responsible for the privacy
-            policy, cookie policy or terms of use of those websites.
+            We may update this Privacy Policy to reflect changes to the Website or to the law. The current version
+            is always published on this page, with the date of its last update.
           </p>
-          <p>
-            By accessing other websites through the hyperlinks provided, the operators of these websites may
-            collect information about you that will be used by them. We highly recommend that when accessing other
-            websites, Users consult all the information and conditions mentioned above.
-          </p>
-          <p>
-            When you choose to follow us on social networks, when you interact with us on them, or when you access
-            the site through them, your personal data may be processed by the organisations managing the social
-            networks or the functionalities provided, in accordance with their respective privacy policies, which
-            we recommend you to read.
-          </p>
-        </div>
-
-        <div class="flex flex-col gap-4">
-          <h2 class="text-h3 text-ink">Updates to the Privacy Policy</h2>
-          <p>This Privacy Policy may be revised and updated at any time and these changes will be duly announced on the website.</p>
-          <p class="text-ink-muted">Date of last update: 19/02/2024</p>
+          <p class="text-ink-muted">Date of last update: 28/09/2026</p>
         </div>
       </div>
     </div>

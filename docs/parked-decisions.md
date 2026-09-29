@@ -1444,3 +1444,128 @@ give for free (streaming SSR, Astro middleware) — until then this stays
 the simplest thing that answers one POST and one redirect. Also reopen the
 KV choice if lead volume or query needs ever exceed "read the log back by
 hand", and the sender if `fesagency.pt` is ever verified in Resend.
+
+### 55. No consent banner: nothing loads that needs one; the legal pages are an inventory of what the site really does
+
+**Decided:** the site ships without a cookie/consent banner, and keeps it
+that way by never loading anything that needs consent before the visitor
+asks for it:
+
+- Tech Refresh's Spotify and YouTube iframes became click-to-load facades
+  (`data-embed-facade`); the Podcast & Video Series page already had one.
+  All YouTube embeds use `youtube-nocookie.com`.
+- Cloudflare Web Analytics is cookieless; Turnstile and Cloudflare's
+  `__cf_bm` are security measures, exempt as strictly necessary.
+- The only first-party storage is `fes:logo-motion-played` in
+  sessionStorage (§52–53) — no personal data, gone when the tab closes, and
+  disclosed by name in the Cookies Policy.
+
+The Privacy and Cookies policies were rewritten from the 2024 template to
+describe this stack: the Mailchimp newsletter section, the "accept via our cookie notice" promise, the advertising
+cookie category, the `#` "Cookie Notice & Compliance" link and the Internet
+Explorer instructions are gone; Turnstile, Resend, the KV lead log, Google
+Calendar booking, the Google Forms careers application and the newsletter
+are in, each with its lawful basis and retention. The newsletter is the
+Brevo-hosted signup form (`sibforms.com`), linked from the footer in a new
+tab — not Mailchimp as the old policy said. Consent is collected on Brevo's
+form, not on this site, so the site itself still stores nothing; the
+signup form's own consent wording lives in Brevo and is checked there. Controller name is **Press Play,
+Unipessoal, Lda.** (checked against the NIF 513 906 169 registry entry —
+the cookies page said "PressPlay").
+
+**Retention periods chosen here, not in the brief:** contact requests and
+bookings 2 years; job applications 12 months. The contact one is enforced
+in code — `LEAD_RETENTION_SECONDS` in `worker/index.ts` sets a KV
+`expirationTtl`, so the log deletes itself. The mailbox copy, Google
+Calendar and Google Forms are deleted by hand; nothing automates those.
+
+The contact form gained an art. 13 notice under the submit button — a
+notice, deliberately not a consent checkbox: the basis for replying to a
+message is art. 6(1)(b), and a checkbox would imply consent is what's
+relied on.
+
+**Why:** a banner is only required for non-essential storage; a site that
+has none is both compliant and faster, and "no banner" is itself a trust
+signal for an agency. The old template described a site that didn't exist,
+which is its own GDPR problem (art. 12–13 transparency).
+
+**Reopen if:** any analytics, pixel, chat widget, or embed that loads
+without a click is added — at that point the site needs a real consent
+mechanism (prior blocking, reject as easy as accept) *and* the Cookies
+Policy inventory updated. Also reopen if the newsletter signup moves
+onto the site (an embedded Brevo form loads Brevo's scripts and may need
+click-to-load or consent), if the retention
+periods are changed (change the Privacy Policy and the Worker constant
+together), or if a lawyer's review changes the wording.
+
+### 56. Three carded projects get their case studies; Natixis's intro follows the docx
+
+**Decided:** `start-campus`, `startup-braga-10x-forward` and
+`sim-conference` were added to `caseStudies.ts` from the client-supplied
+docx copy, in the same shape as §27 (one placeholder `cover` media block,
+then one `text` block with every labelled passage, verbatim). These three
+already had cards on the homepage and `/projects/` pointing at their slugs,
+so until now those cards 404'd. The slugs follow the existing card hrefs,
+not the client names — `sim-conference` holds the Startup Portugal case
+study, whose rail reads "Startup Portugal / Social Media Boost & SIM
+Conference" as the docx titles it. The other ten docx case studies (AI
+Impact on History Study, Bridge In, Coverflex, Darede, Dashlane, New Work,
+Orla, STCP, Tech Refresh, Uphold) were deliberately left out on Marcelo's
+call.
+
+In the same pass, `we-want-you`'s two intro paragraphs were replaced with
+the Natixis docx's wording (the old copy called Natixis "a French
+investment bank" and its second paragraph was unfinished), and the Shamir
+Portugal card's icon was corrected from Coverflex's icon to
+`Shamir-icon.png`.
+
+Each of the three uses its `/projects/` card thumbnail as its `cover`
+(copied into `src/assets/case-studies/<slug>/cover.png`), so the pages
+aren't all placeholder while real case-study photography is pending. The
+Startup Portugal photo is roughly 5:4, so the 3/2 cover well crops a little
+off its top and bottom. `blip-media-relations` (from §27) got the same
+treatment from `Blip-media-relations.png`; `blip-activation` has no card
+photo, so it stays a placeholder.
+
+**Why:** the docx is the client-approved source; everywhere else the case
+studies already quote it verbatim.
+
+**Reopen if:** photography lands for these three (split the single text
+block into a media/text rhythm like `we-want-you`), or the remaining ten
+case studies are greenlit.
+
+### 57. Project image grids use a tighter, fluid column gap (12 → 16px), not Figma's 28px
+
+**Decided:** a new token, `--space-grid-gap` (12px at 375, 16px at 1440,
+restated as `1rem` in the zoom tier), now sets the column gap of every grid of
+project image tiles: both homepage Selected projects rows, the `/projects/`
+grid (`ProjectsGrid.astro`) and the podcast-video-series strip. Row gaps are
+untouched (`gap-y-12` on the homepage, `gap-y-20` on `/projects/`, 28px
+stacked on mobile).
+
+**Why:** the fixed 28px (Figma 770:947) was drawn for a fixed set of columns.
+Once the page margin went fluid (31px at 1440, 24px at 1024), the gap sat
+level with the margin, and on narrower screens wider than it, so the margin
+no longer framed the group. Compared side by side on the live pages at 1440
+and 375: at 16px the six homepage cards read as one body of work, and the
+2-up and 4-up rows still share a centre gutter because they share the token.
+The mobile strip shows enough of the next card for its title to be read,
+which is a clearer swipe cue. 12px was tried on desktop and rejected: in the
+4-up row one card's description almost runs into the next card's icon chip,
+so the captions set the floor, not the 4px corner radius.
+
+Deliberately NOT extended to: filled CTA panels (`DualCta`, the careers and
+contact cards), two-column text layouts (`lg:gap-7` beside section
+headings), or the stats grids. Those are about reading measure and separating
+choices, not grouping images.
+
+**Extended to `SystemCard` grids** (the blueprints index and
+`SystemsWhatWeDo`): they are image tiles too, and at 28px they would read as
+following a different rule from the project grids. Unlike project cards they
+use the token on BOTH axes: their text sits inside the image, so there is no
+external caption asking for a generous row gap, and when stacked on mobile a
+28px gap against a 12px margin would repeat the inversion this entry fixes.
+
+**Reopen if:** a grid's captions get longer or gain a second line of meta
+(check the homepage 4-up row first), or a `SystemCard` grid gains a caption below
+its image (then restore a separate, larger row gap for it).

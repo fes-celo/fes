@@ -9,8 +9,12 @@
  * src/pages/agency/index.astro) — same hero-light.jpg background, same
  * structure — with Tech Refresh's own copy, per direct request.
  *
- * Podcast embed is Spotify's official iframe snippet as supplied; the video
- * is YouTube's standard embed (converted from the watch URL to /embed/).
+ * Both players are click-to-load facades, not live iframes (parked-decisions
+ * §55): a Spotify or YouTube iframe sets third-party cookies the moment it
+ * loads, which under Lei 41/2004 art. 5 needs consent this site has no banner
+ * to ask for. The click on the facade is the visitor's own request for the
+ * player, and the line under each one says whose it is. YouTube goes through
+ * youtube-nocookie.com, which holds its cookies until playback starts.
  */
 import { Image } from 'astro:assets'
 import BaseLayout from '../../layouts/BaseLayout.astro'
@@ -104,17 +108,25 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
             Listen all episodes
           </a>
         </div>
-        <iframe
-          data-testid="embed-iframe"
-          style="border-radius:12px"
-          src={`https://open.spotify.com/embed/show/${SPOTIFY_SHOW_ID}?utm_source=generator`}
-          width="100%"
-          height="352"
-          frameborder="0"
-          allowfullscreen
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-        ></iframe>
+        <div class="flex w-full flex-col gap-3">
+          <button
+            type="button"
+            class="group flex h-[352px] w-full items-center justify-center rounded-[12px] bg-accent-tint"
+            data-embed-facade
+            data-embed-src={`https://open.spotify.com/embed/show/${SPOTIFY_SHOW_ID}`}
+            data-embed-title="Tech Refresh Podcast on Spotify"
+            data-embed-allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            data-embed-class="h-[352px] w-full rounded-[12px]"
+          >
+            <span class="flex size-[6.25rem] items-center justify-center rounded-full bg-neutral-100 text-body text-neutral-950 transition-transform duration-200 group-hover:scale-105">
+              Play
+            </span>
+            <span class="sr-only">Load the Tech Refresh Podcast player from Spotify</span>
+          </button>
+          <p class="text-body-sm text-ink-muted">
+            Loads Spotify's player, which may set cookies. See our <a href="/cookies-policy/" class="underline hover:text-ink">Cookies Policy</a>.
+          </p>
+        </div>
       </div>
     </div>
   </section>
@@ -123,16 +135,24 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
     <div class="flex flex-col gap-10">
       <SectionLabel>Tech Refresh Video Series</SectionLabel>
       <div class="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
-        <div class="relative w-full overflow-hidden rounded-[var(--radius-card)]" style="padding-top: 56.25%">
-          <iframe
-            class="absolute inset-0 size-full"
-            src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}`}
-            title="Tech Refresh - Video Series Teaser"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen
-            loading="lazy"
-          ></iframe>
+        <div class="flex w-full flex-col gap-3">
+          <button
+            type="button"
+            class="group flex aspect-video w-full items-center justify-center rounded-[var(--radius-card)] bg-accent-tint"
+            data-embed-facade
+            data-embed-src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0`}
+            data-embed-title="Tech Refresh - Video Series Teaser"
+            data-embed-allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            data-embed-class="aspect-video w-full rounded-[var(--radius-card)]"
+          >
+            <span class="flex size-[6.25rem] items-center justify-center rounded-full bg-neutral-100 text-body text-neutral-950 transition-transform duration-200 group-hover:scale-105">
+              Play
+            </span>
+            <span class="sr-only">Play the Tech Refresh video series teaser from YouTube</span>
+          </button>
+          <p class="text-body-sm text-ink-muted">
+            Plays from YouTube, which may set cookies once playback starts. See our <a href="/cookies-policy/" class="underline hover:text-ink">Cookies Policy</a>.
+          </p>
         </div>
         <div class="flex flex-col items-start gap-8">
           <p class="text-lead text-ink">
@@ -154,3 +174,32 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
     </div>
   </section>
 </BaseLayout>
+
+<script>
+  // Click-to-load: the third-party iframe (and its cookies) only exists once
+  // the visitor asks for the player. See the docblock and §55.
+  import { onPageLoad } from '../../lib/lifecycle'
+
+  onPageLoad(({ restored }) => {
+    // A bfcache restore keeps the listeners (and any loaded player) as left.
+    if (restored) return
+    document.querySelectorAll<HTMLButtonElement>('[data-embed-facade]').forEach((facade) => {
+      facade.addEventListener(
+        'click',
+        () => {
+          const { embedSrc, embedTitle, embedAllow, embedClass } = facade.dataset
+          if (!embedSrc) return
+          const iframe = document.createElement('iframe')
+          iframe.src = embedSrc
+          iframe.title = embedTitle ?? ''
+          iframe.allow = embedAllow ?? ''
+          iframe.allowFullscreen = true
+          iframe.className = embedClass ?? ''
+          facade.replaceWith(iframe)
+          iframe.focus()
+        },
+        { once: true },
+      )
+    })
+  })
+</script>

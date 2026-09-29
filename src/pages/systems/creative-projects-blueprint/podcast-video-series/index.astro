@@ -333,7 +333,7 @@ const selectedProjects = [
         Selected projects
       </Heading>
       <ul
-        class="projects-strip -mx-[var(--space-gutter)] flex gap-7 overflow-x-auto px-[var(--space-gutter)] lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0"
+        class="projects-strip -mx-[var(--space-gutter)] flex gap-x-[var(--space-grid-gap)] gap-y-7 overflow-x-auto px-[var(--space-gutter)] lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0"
         data-projects-row
       >
         {
@@ -395,7 +395,10 @@ const selectedProjects = [
 <script>
   // Click-to-load YouTube facade: swaps the thumbnail + custom play button
   // for an iframe on click, so the red YouTube play button/branding never
-  // shows and only the neutral-100 "Play" circle is visible up front.
+  // shows and only the neutral-100 "Play" circle is visible up front. It is
+  // also what keeps YouTube's cookies off the page until the visitor asks
+  // for playback (parked-decisions §55) — keep it a facade, and keep the
+  // -nocookie host.
   document.querySelectorAll<HTMLButtonElement>('[data-youtube-facade]').forEach((facade) => {
     facade.addEventListener(
       'click',
@@ -403,7 +406,7 @@ const selectedProjects = [
         const youtubeId = facade.dataset.youtubeId
         const title = facade.getAttribute('aria-label')?.replace(/^Play /, '') ?? ''
         const iframe = document.createElement('iframe')
-        iframe.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&controls=0&rel=0&modestbranding=1`
+        iframe.src = `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&controls=0&rel=0&modestbranding=1`
         iframe.title = title
         iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
         iframe.allowFullscreen = true

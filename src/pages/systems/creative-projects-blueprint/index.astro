@@ -160,7 +160,7 @@ const faqs = [
   <section class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
     <div class="flex flex-col gap-14">
       <h2 class="text-h3 text-ink">The blueprints</h2>
-      <div class="grid grid-cols-1 gap-7 lg:grid-cols-3">
+      <div class="grid grid-cols-1 gap-[var(--space-grid-gap)] lg:grid-cols-3">
         {
           blueprints.map((b) => (
             <SystemCard href={b.href} title={b.title} image={b.bg} variant="light" class="h-[22rem] lg:h-[26.1875rem]">

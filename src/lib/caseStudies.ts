@@ -92,8 +92,8 @@ export const caseStudies: CaseStudy[] = [
     // src/assets/case-studies/we-want-you/ and add
     // `logo: { file: 'logo', alt: 'Natixis' }` to turn the slot on.
     intro: [
-      'Natixis is a French investment bank that opened its doors in Portugal and wanted to attract new employees.',
-      'To do this, FES Agency implemented different communication activities',
+      'Natixis in Portugal is a Centre of Expertise with more than 2,000 employees in Porto, working across technology, banking and financial services.',
+      'FES Agency implemented two complementary systems, combining branding and digital communication to create and activate a new recruitment campaign.',
     ],
     systems: ['Branding Blueprint', 'Digital Communication System'],
     seoDescription:
@@ -426,6 +426,132 @@ export const caseStudies: CaseStudy[] = [
             label: 'Tech Expertise',
             body:
               'The company’s technological expertise also creates opportunities to bring Blip and its people into relevant conversations around technology and the evolution of the sector.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'start-campus',
+    clientName: 'Start Campus',
+    title: 'Start Inside Out',
+    intro: [
+      'Start Campus is the company behind SINES DC, a large scale data centre campus being developed in Sines, Portugal.',
+      'FES Agency implemented two complementary blueprints, combining branding and video to create Start Inside Out, a series designed to show Start Campus from the inside and give a face to the company.',
+    ],
+    systems: ['Branding Blueprint', 'Podcast & Video-Series Blueprint'],
+    seoDescription: 'Start Inside Out: a branded video series showing the people behind Start Campus and its SINES DC data centre campus.',
+    blocks: [
+      {
+        type: 'media',
+        items: [{ file: 'cover', alt: 'Start Campus — cover photo', aspect: '3 / 2' }],
+      },
+      {
+        type: 'text',
+        items: [
+          {
+            label: 'Concept & Branding',
+            body:
+              'Start Inside Out was created as a content concept with its own identity, giving the video series a distinctive look while staying connected to the Start Campus brand.',
+          },
+          {
+            label: 'Video Series',
+            body:
+              'The series goes beyond the infrastructure to show the people behind Start Campus, bringing different roles, perspectives and stories into each episode.',
+          },
+          {
+            label: 'Production',
+            body:
+              'From the concept to the final videos, the series was developed as a consistent content format that could live across Start Campus’ digital channels and communication.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'startup-braga-10x-forward',
+    clientName: 'Startup Braga',
+    title: '10X Forward',
+    intro: [
+      'Startup Braga is an innovation hub supporting startups and entrepreneurs and connecting them with a wider community of founders, companies and investors.',
+      'FES Agency implemented two complementary blueprints, combining branding and content to celebrate Startup Braga’s 10th anniversary and turn it into a platform for conversations about its ecosystem and future.',
+    ],
+    systems: ['Branding Blueprint', 'Podcast & Video-Series Blueprint'],
+    seoDescription: '10X Forward: the concept, identity and 10-episode podcast behind Startup Braga’s 10th anniversary.',
+    blocks: [
+      {
+        type: 'media',
+        items: [{ file: 'cover', alt: 'Startup Braga 10X Forward — cover photo', aspect: '3 / 2' }],
+      },
+      {
+        type: 'text',
+        items: [
+          {
+            label: 'Concept',
+            body:
+              '10X Forward condensed ten years of Startup Braga into one simple idea: celebrate what had been built while keeping the focus on what comes next.',
+          },
+          {
+            label: 'Visual Identity',
+            body:
+              'The concept became a visual language that gave the anniversary its own identity while remaining connected to Startup Braga.',
+          },
+          {
+            label: 'Podcast',
+            body:
+              'A 10 episode podcast series brought the concept to life through conversations with people connected to Startup Braga and its ecosystem, looking back at its journey and forward to what comes next.',
+          },
+          {
+            label: 'Content',
+            body:
+              'The podcast extended 10X Forward beyond the anniversary itself, creating content and conversations around entrepreneurship, innovation and the startup community.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'sim-conference',
+    clientName: 'Startup Portugal',
+    title: 'Social Media Boost & SIM Conference',
+    intro: [
+      'Startup Portugal is a non profit organisation supporting the development of Portugal’s entrepreneurial ecosystem and connecting startups, scaleups and ecosystem players.',
+      'FES Agency implemented two complementary systems, combining digital communication for Startup Portugal with branding and communication for SIM Conference.',
+    ],
+    systems: ['Digital Communication System', 'Branding Blueprint'],
+    seoDescription: 'Social media, content and paid media for Startup Portugal, plus the identity and digital communication for SIM Conference.',
+    blocks: [
+      {
+        type: 'media',
+        items: [{ file: 'cover', alt: 'Startup Portugal — cover photo', aspect: '3 / 2' }],
+      },
+      {
+        type: 'text',
+        items: [
+          {
+            label: 'Social Media',
+            body:
+              'Integrated social media management gives Startup Portugal a consistent channel to communicate its programmes, initiatives, opportunities and ecosystem activity.',
+          },
+          {
+            label: 'Content & Paid Media',
+            body:
+              'Content supports the organisation’s different projects and initiatives, while paid campaigns extend the reach of selected communications and connect them with relevant audiences.',
+          },
+          {
+            label: 'SIM Conference',
+            body:
+              'The work with Startup Portugal also extended to SIM Conference, bringing its identity and communication to life across different digital channels and formats.',
+          },
+          {
+            label: 'Visual Identity',
+            body:
+              'The conference’s visual language was built around a network of dots, representing the connections between startups, investors and the different people that make up the ecosystem.',
+          },
+          {
+            label: 'Digital Communication',
+            body:
+              'The SIM Conference identity was extended across social media, content, email campaigns and digital design, creating a consistent presence before and during the event.',
           },
         ],
       },

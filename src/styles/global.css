@@ -363,6 +363,19 @@
   --space-gutter: clamp(0.75rem, calc(0.3252rem + 1.8123vw), 3.2249rem); /* 12 → 40 */
 
   /*
+    Column gap between image tiles — every Selected projects grid and
+    strip, the /projects grid, and the SystemCard grids (where it is the
+    row gap too, since their text sits inside the image). Was a fixed 28px (gap-x-7, Figma
+    770:947), which sat level with the 31px page margin at 1440 and wider
+    than it below ~1300, so the gutter no longer framed the group. Now
+    12px at 375 → 16px at 1440: always clearly inside the margin, and on
+    the mobile strip the next card's title peeks in far enough to read.
+    Horizontal only — row gaps stay generous, since captions need them.
+    See parked decision §57.
+  */
+  --space-grid-gap: clamp(0.75rem, calc(0.662rem + 0.3756vw), 1rem); /* 12 → 16 */
+
+  /*
     Gap between the desktop nav's items. Was --space-gutter, and is pinned
     here at the pre-narrowing value: the page margin and the nav's internal
     rhythm shared one number by accident of origin rather than by design,
@@ -607,6 +620,7 @@
 
     /* Spacing — same derivation */
     --space-gutter: 1.9563rem;         /* 31.30px */
+    --space-grid-gap: 1rem;            /* 16.00px */
     --space-nav-gap: 2.8125rem;        /* 45.00px */
     --nav-logo-h: 2.75rem;             /* 44.00px */
     --space-section-y: 7.5rem;         /* 120.00px — --space-section-y-lg

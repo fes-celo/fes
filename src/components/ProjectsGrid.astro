@@ -14,10 +14,10 @@
  * featured cards. ProjectCard drops the icon column entirely when `icon`
  * is omitted.
  *
- * Grid gap verified against Figma node 770:947: 28px between columns, 80px
- * between rows (an intentionally asymmetric gap, not a copy/paste of the
- * column gap) — gap-x-7/gap-y-20 hits both exactly on Tailwind's default
- * scale. Mobile stacks with a uniform 28px gap (867:391), i.e. gap-7.
+ * Row gap verified against Figma node 770:947: 80px (gap-y-20). Figma's
+ * 28px column gap was tightened to --space-grid-gap (12 → 16px, §57), the
+ * token every Selected projects grid shares. Mobile stacks in one column
+ * with a 28px row gap (867:391), i.e. gap-7.
  *
  * Filtering itself (show/hide by data-category) is wired in the consuming
  * page's own <script>, alongside ProjectsFilter's toggle — this component
@@ -35,7 +35,7 @@ interface Props {
 const { projects, class: className } = Astro.props
 ---
 
-<div class:list={['grid grid-cols-1 gap-7 lg:grid-cols-3 lg:gap-x-7 lg:gap-y-20', className]} data-projects-grid>
+<div class:list={['grid grid-cols-1 gap-7 lg:grid-cols-3 lg:gap-x-[var(--space-grid-gap)] lg:gap-y-20', className]} data-projects-grid>
   {
     projects.map((p) => (
       <div class="transition-opacity duration-300" data-project-item data-category={p.category.join(',')}>

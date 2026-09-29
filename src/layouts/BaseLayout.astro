@@ -194,7 +194,12 @@ const ogImageUrl =
               {
                 footerItems.map((item) => (
                   <li>
-                    <a href={item.href} class="text-body text-neutral-900 transition-opacity hover:opacity-40">
+                    <a
+                      href={item.href}
+                      target={item.external ? '_blank' : undefined}
+                      rel={item.external ? 'noopener noreferrer' : undefined}
+                      class="text-body text-neutral-900 transition-opacity hover:opacity-40"
+                    >
                       {item.label}
                     </a>
                   </li>

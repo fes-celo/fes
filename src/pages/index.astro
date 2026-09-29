@@ -208,10 +208,11 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
           /* gap-y-12 against the card's own gap-4: stacked cards need ~3x the
              separation of a card's internal image-to-caption gap before the
              eye groups each caption with the image above it. Columns are
-             separated by the grid itself, so gap-x stays at 7. */
+             separated by the grid itself, on --space-grid-gap (§57) — shared by
+             both rows so their centre gutters stay aligned. */
         }
         <div class="mt-[var(--space-heading-gap)] flex flex-col gap-12">
-          <div class="grid grid-cols-1 gap-x-7 gap-y-12 lg:grid-cols-2" data-reveal-each>
+          <div class="grid grid-cols-1 gap-x-[var(--space-grid-gap)] gap-y-12 lg:grid-cols-2" data-reveal-each>
             {
               featuredRow1.map((p) => (
                 <ProjectCard
@@ -230,7 +231,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
               ))
             }
           </div>
-          <div class="grid grid-cols-1 gap-x-7 gap-y-12 sm:grid-cols-2 lg:grid-cols-4" data-featured-row-2 data-reveal-each>
+          <div class="grid grid-cols-1 gap-x-[var(--space-grid-gap)] gap-y-12 sm:grid-cols-2 lg:grid-cols-4" data-featured-row-2 data-reveal-each>
             {
               featuredRow2.map((p, i) => (
                 <div data-last-project={i === featuredRow2.length - 1 ? '' : undefined}>

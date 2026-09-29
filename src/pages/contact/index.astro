@@ -177,6 +177,15 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAA
           ></span>
           <span data-submit-label>Send message</span>
         </button>
+
+        {/* GDPR art. 13: the information is given where the data is
+            collected. Not a consent checkbox — the lawful basis for
+            answering a message is the request itself (art. 6(1)(b)), and a
+            checkbox would wrongly suggest consent is what's relied on. */}
+        <p class="text-center text-body-sm text-ink-muted">
+          We use your name, e-mail and message only to reply to you, and keep them for up to two years. The spam
+          check is run by Cloudflare. Details in our <a href="/privacy-policy/#contact-requests" class="underline hover:text-ink">Privacy Policy</a>.
+        </p>
       </form>
       <script is:inline async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
     </div>

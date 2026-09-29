@@ -27,6 +27,10 @@ const CONTACT_FROM = 'FES Agency Website <noreply@fes.agency>'
 const MESSAGE_MAX_LENGTH = 5000
 const RATE_LIMIT_MAX = 5
 const RATE_LIMIT_WINDOW_SECONDS = 60 * 60
+// GDPR art. 5(1)(e): a lead record may not live forever. Two years is the
+// period the Privacy Policy promises (§ Contact requests) — change both
+// together. KV deletes the key itself; nothing has to sweep it.
+const LEAD_RETENTION_SECONDS = 60 * 60 * 24 * 730
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -82,6 +86,7 @@ async function handleContact(request: Request, env: Env): Promise<Response> {
   await env.LEADS.put(
     `lead:${crypto.randomUUID()}`,
     JSON.stringify({ timestamp: new Date().toISOString(), name, email, message }),
+    { expirationTtl: LEAD_RETENTION_SECONDS },
   )
 
   return Response.redirect(thankYou, 302)
