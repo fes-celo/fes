@@ -447,6 +447,10 @@ export const caseStudies: CaseStudy[] = [
         items: [{ file: 'cover', alt: 'Start Campus — cover photo', aspect: '3 / 2' }],
       },
       {
+        type: 'media',
+        items: [{ file: 'thumbnail', alt: 'Start Inside Out — series thumbnail', aspect: '3 / 2' }],
+      },
+      {
         type: 'text',
         items: [
           {
@@ -579,39 +583,22 @@ export const caseStudies: CaseStudy[] = [
           {
             label: 'Context',
             body:
-              'Blip wanted to reach experienced technology professionals in a highly competitive recruitment market. Rather than relying on traditional recruitment advertising, the campaign combined digital media with outdoor placements across eight Portuguese cities.',
+              'Blip wanted to reach experienced technology professionals in a highly competitive recruitment market. The campaign combined digital media with outdoor placements across eight Portuguese cities.',
           },
           {
-            label: 'Meta',
-            body: 'Meta focused on conversion and creative testing, showing which messages moved people to apply.',
-          },
-          {
-            label: 'Reddit',
-            body: 'Reddit reached developer communities through platform-native messaging, speaking to them in their own space and tone.',
-          },
-          {
-            label: 'LinkedIn',
-            body: 'LinkedIn targeted mid and senior professionals, with separate audience structures for each level.',
-          },
-          {
-            label: 'Outdoor',
+            label: 'Strategy',
             body:
-              'Digital and physical mupis reinforced visibility in Porto, Lisbon, Braga, Coimbra, Matosinhos, Guimarães, Ovar and Espinho. QR codes connected each placement to the online application journey.',
-          },
-          {
-            label: 'Shared Learnings',
-            body:
-              'Creative learnings were shared across every channel, so successful concepts could be reused wherever they made sense.',
+              'Each platform had its own role: Meta for conversion and creative testing, Reddit for developer communities, LinkedIn for mid and senior professionals, and mupis in Porto, Lisbon, Braga, Coimbra, Matosinhos, Guimarães, Ovar and Espinho for visibility. QR codes linked the outdoor placements to the online application journey.',
           },
           {
             label: 'Key Insight',
             body:
-              'Technical messaging outperformed generic recruitment copy on every platform. The strongest Meta creative also became the best performing Reddit ad, a sign that adapting a winning concept beats reinventing one for each channel.',
+              'Technical messaging outperformed generic recruitment copy on every platform. The best Meta creative also became the best Reddit ad, so successful concepts were adapted rather than reinvented.',
           },
           {
             label: 'Performance',
             body:
-              'Across Meta, Reddit, LinkedIn and offline, the campaign reached 490,482 people and generated 8,734 clicks. It delivered 181 applications, 130 of them from digital, at a best CPC of €0.25 and a best cost per application of €14.25.',
+              'The campaign reached 490,482 people and generated 8,734 clicks and 181 applications, 130 of them digital, at a best CPC of €0.25 and a best cost per application of €14.25.',
           },
         ],
       },
