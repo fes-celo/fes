@@ -559,20 +559,15 @@ export const caseStudies: CaseStudy[] = [
   },
   {
     slug: 'blip-activation',
-    // No source copy exists yet for this one — Blip.docx only covers PR
-    // (folded into the `blip-media-relations` case study above). Marcelo
-    // asked for the card to ship now with placeholder copy and this page to
-    // stay noindexed until the real activation write-up (mupis, paid media)
-    // lands. See parked-decisions.md §27.
-    draft: true,
     clientName: 'Blip',
     title: 'Brand Activation',
     intro: [
       'Blip is a Portuguese technology company based in Porto, developing software products for the online gaming industry.',
-      'FES Agency ran a brand activation campaign for Blip, including outdoor advertising (mupis) and paid media.',
+      'FES Agency ran a tech recruitment campaign for Blip, combining paid media on Meta, Reddit and LinkedIn with outdoor placements across eight Portuguese cities.',
     ],
-    systems: ['Creative Projects Blueprint'],
-    seoDescription: 'A brand activation campaign for Blip: outdoor advertising, paid media and more.',
+    systems: ['Creative Projects Blueprint', 'Digital Communication System'],
+    seoDescription:
+      'A tech recruitment campaign for Blip: paid media on Meta, Reddit and LinkedIn plus outdoor across eight Portuguese cities, with 490,482 reach and 181 applications.',
     blocks: [
       {
         type: 'media',
@@ -580,11 +575,43 @@ export const caseStudies: CaseStudy[] = [
       },
       {
         type: 'text',
-        variant: 'full',
         items: [
           {
-            label: 'Activation Campaign',
-            body: 'TODO(marcelo): replace with the real campaign copy — outdoor (mupis), paid media placements and any results to report.',
+            label: 'Context',
+            body:
+              'Blip wanted to reach experienced technology professionals in a highly competitive recruitment market. Rather than relying on traditional recruitment advertising, the campaign combined digital media with outdoor placements across eight Portuguese cities.',
+          },
+          {
+            label: 'Meta',
+            body: 'Meta focused on conversion and creative testing, showing which messages moved people to apply.',
+          },
+          {
+            label: 'Reddit',
+            body: 'Reddit reached developer communities through platform-native messaging, speaking to them in their own space and tone.',
+          },
+          {
+            label: 'LinkedIn',
+            body: 'LinkedIn targeted mid and senior professionals, with separate audience structures for each level.',
+          },
+          {
+            label: 'Outdoor',
+            body:
+              'Digital and physical mupis reinforced visibility in Porto, Lisbon, Braga, Coimbra, Matosinhos, Guimarães, Ovar and Espinho. QR codes connected each placement to the online application journey.',
+          },
+          {
+            label: 'Shared Learnings',
+            body:
+              'Creative learnings were shared across every channel, so successful concepts could be reused wherever they made sense.',
+          },
+          {
+            label: 'Key Insight',
+            body:
+              'Technical messaging outperformed generic recruitment copy on every platform. The strongest Meta creative also became the best performing Reddit ad, a sign that adapting a winning concept beats reinventing one for each channel.',
+          },
+          {
+            label: 'Performance',
+            body:
+              'Across Meta, Reddit, LinkedIn and offline, the campaign reached 490,482 people and generated 8,734 clicks. It delivered 181 applications, 130 of them from digital, at a best CPC of €0.25 and a best cost per application of €14.25.',
           },
         ],
       },

@@ -18,7 +18,7 @@ import tailwindcss from '@tailwindcss/vite';
 // Case studies carry the same decision per entry, via `draft: true` in
 // src/lib/caseStudies.ts — an entry marked draft renders `noindex` and must
 // be added here as `/projects/<slug>` by hand. None are drafts today.
-const NOINDEX_PATHS = ['/styleguide', '/contact/thank-you', '/projects/blip-activation']
+const NOINDEX_PATHS = ['/styleguide', '/contact/thank-you']
 
 // https://astro.build/config
 export default defineConfig({

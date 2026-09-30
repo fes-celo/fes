@@ -532,6 +532,13 @@ split across multiple blocks the way `we-want-you`'s do. For
 `blip-activation`: once the real campaign copy replaces the `TODO`, drop
 `draft: true` here and its path from `NOINDEX_PATHS`.
 
+**Update:** the real `blip-activation` copy landed (tech recruitment across
+Meta, Reddit, LinkedIn and eight-city outdoor). `draft: true` and the
+`NOINDEX_PATHS` entry are gone, the `systems` field now lists Digital
+Communication System alongside Creative Projects Blueprint (paid media is
+that system elsewhere on the site), and the `/projects/` card description
+was rewritten to match. The card `tag` is unchanged.
+
 ### 28. Links are prefetched on hover, and prerendered where the browser can
 
 **Decided:** `prefetch: { prefetchAll: true, defaultStrategy: 'hover' }` and

@@ -137,7 +137,7 @@ export const projects: Project[] = [
   {
     href: '/projects/blip-activation/',
     title: 'Blip | Brand Activation',
-    description: 'A brand activation campaign across outdoor advertising, paid media and more.',
+    description: 'A tech recruitment campaign across Meta, Reddit, LinkedIn and outdoor in eight Portuguese cities.',
     thumbnail: blipBrandActivation,
     tag: 'Creative Projects Blueprint',
     category: ['Enterprise'],
