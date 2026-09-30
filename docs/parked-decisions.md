@@ -1614,3 +1614,65 @@ Framed or heavy marks (CMP, Blip, xgeeks) sit slightly under the formula.
 
 **Reopen if:** a logo is added or re-exported. Re-check the whole set side by
 side, not only the new logo.
+
+## Mobile pass (2026-09-30)
+
+### 60. The mobile menu's items enter on `power3.out`, off the house curve
+
+**Decided:** in `MobileMenu.astro` the items' entrance runs 0.55s on
+`power3.out` (was 0.45s on `EASE_OUT`, i.e. `power4.out`). The exit keeps
+`EASE_OUT`. Separately, every `[data-mobile-menu-item]` now transitions
+colour only: `transition-[color,transform]` and `active:scale-[0.97]` are
+gone from them. The Close button keeps its press scale.
+
+**Why:** the reported "elastic" settle was not the curve. Tailwind's 150ms
+CSS transition on `transform` re-animated every transform GSAP wrote, so the
+text trailed the tween. Measured at 375px: GSAP reached y=0 at ~440ms, but
+the rendered item was still 10px low and fully opaque, then caught up with a
+visible acceleration by ~750ms. Removing the transform transition fixes that
+on its own. The press scale went with it because a tap closes the panel and
+navigates, so it was never seen. The curve change is taste on top: power4.out
+covers ~80% of the travel in the first ~100ms, which on 38px type filling the
+screen reads as a jolt. power3.out lands the same 16px without the snap.
+
+**Reopen if:** the house curve changes, or the menu gains an element that
+really needs press feedback (put the scale on an inner element GSAP does not
+touch).
+
+### 61. The "Book a call" chip sits one gutter off the bottom on phones
+
+**Decided:** `ScrollCta.astro` is `bottom-[var(--space-gutter)]` below `sm`
+and keeps `bottom-12` from `sm` up.
+
+**Why:** at 375px the chip spans the column, 12px from each side, but floated
+48px off the bottom. The uneven frame read as a strip of page running under
+it rather than a deliberate float. With the same margin on three sides it
+reads as docked. On wide screens the chip is small and centred, and the
+48px still suits it.
+
+**Reopen if:** the site adopts `viewport-fit=cover` (then add
+`env(safe-area-inset-bottom)` to the offset), or the chip gains a second row.
+
+### 62. The mobile footer is laid out to fit one screen, so the reveal runs there too
+
+**Decided:** below `sm` the footer's link lists sit side by side (Nav | Social)
+with the address full width under them. Padding is 64px instead of
+`--space-section-y` (96px), the gap to the bottom bar is 48px, and below `lg`
+the bottom bar is two rows (© + back to top / the two policies). The reveal's
+fit test now compares against `100svh` (a fixed probe element) instead of
+`innerHeight`. The sticky heroes (§49) also get a 1px bottom margin.
+
+**Why:** stacked, the footer measured 932px at 375px, taller than the screen,
+so the footer reveal switched itself off on every phone and
+the three lists read as one long column with no grouping. Laid out this way,
+it measures 641px at 320–390px wide. The reveal turns on wherever the small
+viewport is at least that tall (iPhone 14/15 in Safari: 664), and on smaller
+phones (SE: 548) it stays static. `svh`, not `innerHeight`: Safari's toolbar
+changes innerHeight mid-scroll, and a footer between the two heights would
+flip sticky on and off under the thumb. The 1px hero margin fixes a hairline
+that sat on the revealed footer's top edge. The hero's bottom and the last
+section's shared a fractional pixel (y=171.16), so their two antialiased
+edges leaked the dark hero through.
+
+**Reopen if:** a line is added to the footer (re-measure at 390×664; the
+margin is 23px), or the logo motion gets a footer sign-off (§52's option).

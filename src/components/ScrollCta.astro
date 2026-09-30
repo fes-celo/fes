@@ -22,8 +22,14 @@ interface Props {
 const { showSelector, hideSelector } = Astro.props as Props
 ---
 
+{
+  /* Below sm the chip spans the column, so its bottom offset matches the
+     side gutter: framed evenly on three sides it reads as docked. The 48px
+     float that suits a small chip on a wide screen left a band of page
+     running under it on a phone (parked-decisions §61). */
+}
 <div
-  class="fixed inset-x-0 bottom-12 z-40 flex justify-center px-[var(--space-gutter)] opacity-0"
+  class="fixed inset-x-0 bottom-[var(--space-gutter)] z-40 sm:bottom-12 flex justify-center px-[var(--space-gutter)] opacity-0"
   data-scroll-cta
   data-show-selector={showSelector}
   data-hide-selector={hideSelector}

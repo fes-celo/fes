@@ -177,11 +177,19 @@ const ogImageUrl =
            cap, so the footer columns line up with the section content above
            them. */
       }
+      {
+        /* Below sm the footer is laid out to fit one screen (parked-decisions
+           §62): 64px padding instead of the section measure, the two short
+           lists side by side, the address under them at full width (its
+           lines need it), and a two-row bottom bar. Fitting is what switches
+           the reveal below on — it only pins a footer shorter than the
+           viewport. */
+      }
       <div
-        class="flex flex-col gap-16 px-[var(--space-gutter)] py-[var(--space-section-y)] lg:gap-[7.5rem]"
+        class="flex flex-col gap-12 px-[var(--space-gutter)] py-16 sm:gap-16 sm:py-[var(--space-section-y)] lg:gap-[7.5rem]"
         data-footer-inner
       >
-        <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+        <div class="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-10 lg:grid-cols-3 lg:gap-8">
           {
             /* One flat palette across the whole footer: body copy and the
                nav/legal links in neutral-900 at regular weight, contact +
@@ -208,7 +216,7 @@ const ogImageUrl =
             </ul>
           </nav>
 
-          <address class="not-italic text-body text-neutral-900">
+          <address class="order-last col-span-2 not-italic text-body text-neutral-900 sm:order-none sm:col-span-1">
             <p class="font-medium">Virtual address</p>
             <p>Av. Vasco da Gama, 774</p>
             <p>4430-247 Vila Nova de Gaia</p>
@@ -284,10 +292,11 @@ const ogImageUrl =
         </div>
 
         {
-          /* Three groups side by side don't fit until well past `sm` — they
-             stay stacked to lg rather than crowding at ~640px. */
+          /* Three groups side by side don't fit until well past `sm`, so
+             below lg they take two rows: © and "back to top" share the
+             first (both short), the two policies get the second. */
         }
-        <div class="flex flex-col gap-6 border-t border-line-subtle pt-8 lg:flex-row lg:items-center lg:justify-between">
+        <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-4 border-t border-line-subtle pt-8 lg:flex lg:items-center lg:justify-between">
           <div class="flex items-center gap-2 text-body text-neutral-900">
             <span>© {new Date().getFullYear()} FES Agency</span>
             {
@@ -305,14 +314,14 @@ const ogImageUrl =
             }
             <span class="uppercase">en</span>
           </div>
-          <div class="flex items-center gap-6 text-body">
+          <div class="col-span-2 row-start-2 flex items-center gap-6 text-body">
             <a href="/privacy-policy/" class="text-neutral-900 transition-opacity hover:opacity-40">Privacy Policy</a>
             <a href="/cookies-policy/" class="text-neutral-900 transition-opacity hover:opacity-40">Cookies Policy</a>
           </div>
           <button
             type="button"
             data-back-to-top
-            class="text-left text-body text-neutral-900 transition-opacity hover:opacity-40 lg:text-right"
+            class="col-start-2 row-start-1 text-right text-body text-neutral-900 transition-opacity hover:opacity-40"
           >
             back to top
           </button>
@@ -362,6 +371,18 @@ const ogImageUrl =
          behind there" instead of a wipe. */
       footer[data-reveal='on'] [data-footer-inner] {
         transform: translateY(calc((1 - var(--footer-reveal)) * -6%));
+      }
+
+      /* Pages whose hero is sticky (§49) push it to the very bottom of
+         <main> by the end of the scroll, where its bottom edge lands on the
+         same fractional pixel as the last section's. Two antialiased edges
+         on one pixel row leak whatever is underneath: the dark hero drew a
+         1px line across the top of the revealed footer (seen at 375px on
+         the homepage, main ending at y=171.16). Sticky keeps the margin box
+         inside the containing block, so a 1px bottom margin parks the hero
+         a pixel short and the last section covers it outright. */
+      #main > :global(section.sticky) {
+        margin-bottom: 1px;
       }
 
       /* Partner line: hovering (or focusing) either link dims the rest of
@@ -425,15 +446,26 @@ const ogImageUrl =
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         let frame = 0
 
+        // The fit test runs against the SMALL viewport (100svh: mobile
+        // browser toolbars shown), not innerHeight. On a phone innerHeight
+        // grows and shrinks as Safari's toolbar collapses mid-scroll, and a
+        // footer sized between the two would flip sticky on and off under
+        // the thumb, jumping each time. Where svh is unsupported the probe
+        // measures nothing and innerHeight stands in.
+        const probe = document.createElement('div')
+        probe.style.cssText = 'position:fixed;top:0;height:100svh;width:0;visibility:hidden;pointer-events:none'
+        document.body.appendChild(probe)
+
         function update() {
           frame = 0
 
           // A footer taller than the viewport can't be pinned to the bottom:
           // sticky would park its top permanently above the viewport, where
           // <main> covers it, and that content would never become reachable.
-          // Happens on mobile, where the three columns stack — those widths
-          // fall back to the plain in-flow footer.
-          if (footer!.offsetHeight > window.innerHeight) {
+          // Happens on the smallest phones even with the compact mobile
+          // layout — those fall back to the plain in-flow footer.
+          const viewport = probe.offsetHeight || window.innerHeight
+          if (footer!.offsetHeight > viewport) {
             footer!.dataset.reveal = 'off'
             footer!.style.removeProperty('--footer-reveal')
             return
@@ -474,6 +506,7 @@ const ogImageUrl =
           window.removeEventListener('scroll', schedule)
           window.removeEventListener('resize', schedule)
           observer.disconnect()
+          probe.remove()
         }
       }
 
