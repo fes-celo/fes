@@ -1576,3 +1576,41 @@ external caption asking for a generous row gap, and when stacked on mobile a
 **Reopen if:** a grid's captions get longer or gain a second line of meta
 (check the homepage 4-up row first), or a `SystemCard` grid gains a caption below
 its image (then restore a separate, larger row gap for it).
+
+### 58. The logo marquee is exempt from the viewport zoom above 1440
+
+**Decided:** `LogoMarquee.astro` sizes its cells, gaps, logo boxes and vertical
+padding in a new `--logo-unit` instead of rem. Below 1440 it is `1rem`; from
+1440 up it is pinned at `16px` (`global.css`, after the zoom tier), so the strip
+stays at its 1440 size while the rest of the page zooms to `--zoom-max`. Used by
+the homepage "Trusted by" and the Agency page "Some of our favourite clients".
+
+**Why:** the logos are small PNGs (native widths ~110-270px). The 1440 box
+(170×56) already uses most of their pixels, so the zoom (up to 1.4×) upscaled
+them past their source, worst on retina. Held at 1:1, the strip shows about 9
+logos on a 2560 screen instead of 6.5, with nothing blown up. The other
+marquees (`SystemAddonsMarquee`, press cards) carry photography and text, not
+logos, and keep zooming.
+
+**Reopen if:** the logos are re-exported as SVG or at 2× (then they can zoom
+freely and this exception goes), or 1:1 reads too small on a 4K. Raise
+`--logo-unit` (e.g. 18px) for a partial zoom rather than removing it.
+
+### 59. Client logos are sized optically, every one with its own `scale`
+
+**Decided:** every entry in `src/lib/clients.ts` carries a `scale` (0.8 to
+1.1) instead of only the three that had one. Infraspeak and Natixis drop from
+1.3 to 1.05 and 1.1. Shamir, xgeeks and Startup Portugal come down to
+0.82 to 0.9, and Sonae to 0.75 (its heavy letterforms stayed loud at 0.85).
+
+**Why:** fitting every PNG to the same 170×56 box only equalises the box, not
+what the eye reads. Wide wordmarks came out thin, and dense or bold marks
+(xgeeks, Startup Portugal, Sonae) read as louder, so the negative space
+between them varied along the strip. The 1.3 on Infraspeak and Natixis
+overshot: they drew about 220px wide against a 170px box. Starting values
+came from equalising each logo's inked area (transparent margins trimmed,
+weighted by ink coverage), then were adjusted by eye on a side-by-side sheet.
+Framed or heavy marks (CMP, Blip, xgeeks) sit slightly under the formula.
+
+**Reopen if:** a logo is added or re-exported. Re-check the whole set side by
+side, not only the new logo.

@@ -631,6 +631,26 @@
 }
 
 /*
+  Logo marquee exception to the zoom above. LogoMarquee sizes its cells, gaps
+  and logo boxes in --logo-unit instead of rem. Below 1440 it is 1rem (the
+  root is a flat 16px there, and a larger browser default is still honoured);
+  from 1440 up it is pinned at 16px, so the strip stays at its 1440 size while
+  everything around it zooms. Two reasons, both about pixels: the client
+  logos are small PNGs (native widths ~110-270px, see src/assets/logos) that
+  the 1440 box already uses up, so zooming to the 1.4rem cap would upscale
+  them past their source; and at 1:1 the 4K shows ~9 logos rather than ~6.5.
+  Tune here: a larger value (e.g. 18px) makes the strip zoom partially.
+*/
+:root {
+  --logo-unit: 1rem;
+}
+@media (width >= 90rem) {
+  :root {
+    --logo-unit: 16px;
+  }
+}
+
+/*
   Base element defaults go inside @layer base so Tailwind utility classes
   (layer: utilities) always win the cascade regardless of selector
   specificity — an unlayered `a { color }` rule would otherwise beat

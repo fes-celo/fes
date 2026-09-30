@@ -45,19 +45,25 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
   logos.map((logo) => ({ logo, isDuplicate: set > 0 }))
 )
 
-const cellClass = 'mr-12 flex w-[10rem] shrink-0 items-center justify-center lg:mr-20 lg:w-[12.5rem]'
+// Sized in --logo-unit, not rem: above 1440 the root font size zooms the whole
+// page (global.css §5), but these are small raster PNGs (most are 110-270px
+// wide natively) that already run out of pixels at 1:1. --logo-unit holds the
+// strip at its 1440 size so more logos fit on wide screens and none get
+// upscaled past their source. Below 1440 it is 1rem, so nothing changes there.
+const cellClass =
+  'mr-[calc(3*var(--logo-unit))] flex w-[calc(10*var(--logo-unit))] shrink-0 items-center justify-center lg:mr-[calc(5*var(--logo-unit))] lg:w-[calc(12.5*var(--logo-unit))]'
 // Fixed bounding box (not just a max-height) so every logo reads at the same
 // visual size regardless of its native aspect ratio — wordmark-shaped logos
 // like Infraspeak/Natixis/Subvisual are far wider-than-tall than the rest of
 // the set, so height-only constraints let them render 2-3x wider than the
 // squarer logos once scaled up. object-contain keeps each one's own aspect
 // ratio inside that shared box.
-const logoClass = `h-[2.5rem] w-[8.125rem] object-contain lg:h-[3.5rem] lg:w-[10.625rem]${grayscale ? ' grayscale' : ''}`
+const logoClass = `h-[calc(2.5*var(--logo-unit))] w-[calc(8.125*var(--logo-unit))] lg:w-[calc(10.625*var(--logo-unit))] lg:h-[calc(3.5*var(--logo-unit))] object-contain${grayscale ? ' grayscale' : ''}`
 ---
 
 <div
   class:list={[
-    'marquee relative overflow-hidden py-10 lg:py-14',
+    'marquee relative overflow-hidden py-[calc(2.5*var(--logo-unit))] lg:py-[calc(3.5*var(--logo-unit))]',
     rules === 'edges' && 'border-y border-line-subtle',
     className,
   ]}
@@ -73,7 +79,7 @@ const logoClass = `h-[2.5rem] w-[8.125rem] object-contain lg:h-[3.5rem] lg:w-[10
       cells.map(({ logo, isDuplicate }) => (
         <div class={cellClass}>
           {
-            // Per-logo `scale` (e.g. Blip down, Infraspeak/Natixis up) is a
+            // Per-logo `scale` (optical sizing, see clients.ts) is a
             // transform, not a change to the shared box above — it resizes
             // what's drawn without touching cell spacing, so the strip's
             // rhythm stays even while individual logos read as visually
