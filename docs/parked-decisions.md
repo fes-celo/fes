@@ -1706,3 +1706,29 @@ here were resampled from `icon-512.png` rather than hand-exported, so a
 mark change means redoing that resample too), or a real PWA `display: standalone`
 experience is prioritized (the manifest above only declares icons/theme
 color; it has no service worker or install-prompt handling behind it).
+
+### 64. Careers team photo gets an opaque section; the hero trail stops once the hero is covered
+
+**Decided:** the Careers team-photo section now carries `bg-surface`, and the
+hero cursor trail's scroll spawns (and the touch timer's spawns) are gated on
+the section after the hero not yet having reached the viewport top
+(`isHeroUncovered` in `src/pages/careers/index.astro`), replacing a check on
+the hero's own rect.
+
+**Why:** scrolling to the team photo briefly showed the hero's heading and
+trail photos where the photo should be, then snapped away. Two causes
+stacked. The `reveal` animation fades a section's *children*, not the
+section, and the photo section was the only covering section with no
+background — so mid-fade it was a hole onto the hero, which is `sticky` for
+the whole of `<main>` and still pinned behind the page. And the trail's
+"hero visible?" check read the hero's own `getBoundingClientRect()`, which
+for a sticky element never leaves the viewport, so every scroll anywhere on
+the page kept spawning trail photos behind the content — ready to show
+through that hole. The touch path's `IntersectionObserver` had the same
+blind spot. Either fix alone would have hidden the symptom; both are
+applied because the second was also wasted work on every scroll.
+
+**Reopen if:** the hero stops being sticky (the original rect check would
+then be correct again), or a later section is added directly after the hero
+that is not opaque (`isHeroUncovered` assumes the next sibling is the thing
+that covers it).
