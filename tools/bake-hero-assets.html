@@ -50,15 +50,28 @@
     getShaderColorFromString,
     ShaderFitOptions,
   } from '/node_modules/@paper-design/shaders/dist/index.js'
+  import { withViewportFrame } from '/src/lib/heatmapFrame.ts'
 
   // Keep in sync with src/components/Hero.astro.
   const SHAPE = '/src/assets/hero/hero-heatmap-shape.webp'
   const MOBILE_OFFSET_X = -0.2
-  const STILL_SIZE = 1400
+  const FRAME_STRENGTH = 1
+  const FRAGMENT_SHADER = withViewportFrame(heatmapFragmentShader)
+  // Not square any more: the virtual frame (§69) puts the edge glow on the
+  // viewport's edges, so a still only carries it at the aspect it was baked
+  // at. One typical laptop and one typical phone; `background-size: cover`
+  // crops the rest, which trims a little of the glow on other ratios.
+  const STILL_DESKTOP = [1600, 1000] // 16:10
+  const STILL_MOBILE = [720, 1560] // ~390x844
   const STILL_QUALITY = 0.88
-  // q0.95 measured at 0.13% mean channel error against the runtime-processed
-  // PNG, for a tenth of the bytes (683KB PNG -> 62KB WebP).
-  const TEXTURE_QUALITY = 0.95
+  // Lossless (Chrome encodes quality 1 losslessly: 0 max error, ~268KB). This
+  // was q0.95, which measured 0.13% *mean* error and looked free — but lossy
+  // WebP's error isn't spread evenly, it lands as 4px block edges. In the
+  // G channel (the big outer-glow blur) the true slope is ~0.13 levels/px and
+  // the blocks were up to 6 levels, which the shader's glow gain and 4-stop
+  // ramp turn into visible pixelation exactly in the glowy parts. Never ship
+  // this texture lossy. See docs/parked-decisions.md §68.
+  const TEXTURE_QUALITY = 1
 
   const log = (m) => (document.getElementById('log').textContent += m + '\n')
 
@@ -72,7 +85,7 @@
       getShaderColorFromString('#0E004D'),
     ],
     u_colorsCount: 4,
-    u_angle: 90,
+    u_angle: 270,
     u_noise: 0,
     u_innerGlow: 0.22,
     u_outerGlow: 0.29,
@@ -86,19 +99,20 @@
     u_scale: 1,
     u_worldWidth: 0,
     u_worldHeight: 0,
+    u_frameStrength: FRAME_STRENGTH,
   })
 
   // ShaderMount drives itself off requestAnimationFrame, which never fires in
   // a background/hidden tab. Driving render() by hand keeps the bake headless
   // and deterministic: speed 0 + frame 0 pins u_time to exactly 0.
-  function renderFrameZero(image, size, offsetX) {
+  function renderFrameZero(image, width, height, offsetX) {
     const host = document.createElement('div')
-    host.style.cssText = `position:fixed;top:0;left:0;width:${size}px;height:${size}px;z-index:-9999;opacity:0`
+    host.style.cssText = `position:fixed;top:0;left:0;width:${width}px;height:${height}px;z-index:-9999;opacity:0`
     document.body.appendChild(host)
 
     const mount = new ShaderMount(
       host,
-      heatmapFragmentShader,
+      FRAGMENT_SHADER,
       UNIFORMS(image, offsetX),
       { preserveDrawingBuffer: true },
       0,
@@ -106,8 +120,8 @@
       1,
     )
     mount.devicePixelsSupported = false
-    mount.parentWidth = size
-    mount.parentHeight = size
+    mount.parentWidth = width
+    mount.parentHeight = height
     mount.minPixelRatio = 1
     mount.handleResize()
     mount.render(0)
@@ -118,11 +132,11 @@
     // top-left quarter of the frame, which is silent and looks plausible.
     // The 2x downsample is a free quality win on the way past.
     const out = document.createElement('canvas')
-    out.width = size
-    out.height = size
+    out.width = width
+    out.height = height
     const ctx = out.getContext('2d')
     ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(mount.canvasElement, 0, 0, size, size)
+    ctx.drawImage(mount.canvasElement, 0, 0, width, height)
     mount.dispose()
     host.remove()
     return out
@@ -133,38 +147,40 @@
   // keeping the alpha instead would be correct but costs ~415KB against 32KB,
   // because WebP stores the alpha plane losslessly.
   // Mirrors the `background` on <section> in Hero.astro — keep in sync.
-  function bake(image, size, offsetX) {
+  function bake(image, [width, height], offsetX) {
     const out = document.createElement('canvas')
-    out.width = size
-    out.height = size
+    out.width = width
+    out.height = height
     const ctx = out.getContext('2d')
 
-    const linear = ctx.createLinearGradient(0, 0, size, 0)
+    const linear = ctx.createLinearGradient(0, 0, width, 0)
     linear.addColorStop(0, '#4A40F2')
     linear.addColorStop(1, '#0E004D')
     ctx.fillStyle = linear
-    ctx.fillRect(0, 0, size, size)
+    ctx.fillRect(0, 0, width, height)
 
-    // CSS `radial-gradient(<rx> <ry> at <cx> <cy>, rgb 0%, transparent <stop>)`.
+    // CSS `radial-gradient(<rx> <ry> at <cx> <cy>, rgb 0%, transparent <stop>)`,
+    // percentages of the box on each axis.
     // Canvas only draws circular gradients, so squash the space to get the
     // ellipse. `transparent` is rgba(colour, 0), not rgba(0,0,0,0), or the
     // ramp darkens as it fades.
     const ellipse = (cx, cy, rx, ry, rgb, stop) => {
       ctx.save()
-      ctx.translate(cx * size, cy * size)
-      ctx.scale(1, ry / rx)
-      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, rx * size)
+      ctx.translate(cx * width, cy * height)
+      ctx.scale(1, (ry * height) / (rx * width))
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, rx * width)
       gradient.addColorStop(0, `rgba(${rgb},1)`)
       gradient.addColorStop(stop, `rgba(${rgb},0)`)
       gradient.addColorStop(1, `rgba(${rgb},0)`)
       ctx.fillStyle = gradient
-      ctx.fillRect(-size * 2, -size * 2, size * 4, size * 4)
+      const reach = 4 * Math.max(width, height)
+      ctx.fillRect(-reach, -reach, 2 * reach, 2 * reach)
       ctx.restore()
     }
     ellipse(0.28, 0.38, 0.55, 0.6, '74,64,242', 0.62)
     ellipse(0.78, 0.62, 0.5, 0.55, '46,14,178', 0.68)
 
-    ctx.drawImage(renderFrameZero(image, size, offsetX), 0, 0)
+    ctx.drawImage(renderFrameZero(image, width, height, offsetX), 0, 0)
     return out
   }
 
@@ -202,9 +218,9 @@
       texture.src = flat.toDataURL('image/webp', TEXTURE_QUALITY)
     })
 
-    download(await toWebp(bake(texture, STILL_SIZE, 0), STILL_QUALITY), 'hero-still.webp')
+    download(await toWebp(bake(texture, STILL_DESKTOP, 0), STILL_QUALITY), 'hero-still.webp')
     download(
-      await toWebp(bake(texture, STILL_SIZE, MOBILE_OFFSET_X), STILL_QUALITY),
+      await toWebp(bake(texture, STILL_MOBILE, MOBILE_OFFSET_X), STILL_QUALITY),
       'hero-still-mobile.webp',
     )
     log('done — move all three into public/hero/')

@@ -40,18 +40,16 @@
  * this section's own CSS gradient composited underneath, so the very first
  * paint is already the full effect rather than a bare gradient; the canvas
  * cross-fades over the still once WebGL is up, and both ends of that fade
- * are the same image. They are square because the shader uses `cover` fit
- * about a centred origin, which `background-size: cover` reproduces exactly
- * at any aspect ratio — the shader half of the still matches a live render to
- * ~0.6% mean channel error anywhere from 390x844 to 2560x1080.
+ * are the same image.
  *
- * The gradient half doesn't match quite that well, and can't: the still bakes
- * it square-and-cropped, while the live one is sized in percentages of the
- * section box, so the lobes sit slightly differently. That puts the whole
- * still 1.5% (desktop) to 4% (phone) off the live composite — a low-frequency
- * shift in a background that is mostly behind the shader anyway, crossed in
- * 200ms. Squaring the live gradient too would make it exact; it would also
- * change how the page looks today, which is why it isn't done here.
+ * They are baked at a typical laptop (16:10) and a typical phone (~390x844)
+ * rather than square, because the virtual frame (src/lib/heatmapFrame.ts,
+ * §69) puts the edge glow on the viewport's own edges: a still only carries
+ * it at the aspect it was baked at. `background-size: cover` crops them to
+ * any other ratio, so a 16:9 or ultrawide hero opens with a little of the
+ * top/bottom glow trimmed for the 200ms before the canvas takes over. Baking
+ * at the real aspect also means the gradient half is laid out in the same
+ * box percentages as the live one, which the square stills couldn't do.
  *
  * The mobile still bakes in MOBILE_OFFSET_X, so its media query below has to
  * stay in sync with MOBILE_QUERY in the script — which gates on aspect ratio
@@ -315,6 +313,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
     getShaderColorFromString,
     ShaderFitOptions,
   } from '@paper-design/shaders'
+  import { withViewportFrame } from '../lib/heatmapFrame'
 
   // The shape asset wants to be authored 1:1. toProcessedHeatmap() (run at
   // bake time now, not here) letterboxes it into a 1000px box, surrounds that
@@ -390,6 +389,14 @@ import AnimatedLogo from './AnimatedLogo.astro'
 
   // Copied from the Paper editor, like the uniforms.
   const SPEED = 0.5
+
+  // §69: moves the heatmap's frame glow to the viewport edge on
+  // the axis `cover` crops — see src/lib/heatmapFrame.ts. 0 is the stock
+  // shader's look, 1 the full virtual frame. If the patch can't find its
+  // anchor (a library update), the stock shader runs and this does nothing.
+  // In dev, Shift+F toggles it on the live hero for comparison.
+  const FRAME_STRENGTH = 1
+  const FRAGMENT_SHADER = withViewportFrame(heatmapFragmentShader) ?? heatmapFragmentShader
 
   // Shader pixels per CSS pixel. ShaderMount defaults to a *minimum* of 2x
   // (and a phone's native 3x), which suits the crisp-edged shaders in its
@@ -481,6 +488,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
   let onQueryChange: (() => void) | null = null
   let onScroll: (() => void) | null = null
   let onContextLost: ((event: Event) => void) | null = null
+  let onFrameKey: ((event: KeyboardEvent) => void) | null = null
   let contextRetried = false
   // Bumped by every teardown so an in-flight mount (loading the shape is
   // async) can tell it was superseded and drop its result instead of
@@ -504,7 +512,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
 
     mount = new ShaderMount(
       container,
-      heatmapFragmentShader,
+      FRAGMENT_SHADER,
       {
         u_image: image,
         // Fill is set to a gradient in Paper (4A40F2 → 0E004D), and the shader
@@ -531,6 +539,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
         u_offsetY: 0,
         u_worldWidth: 0,
         u_worldHeight: 0,
+        u_frameStrength: FRAME_STRENGTH,
         ...viewParams(image, container),
       },
       undefined,
@@ -584,6 +593,18 @@ import AnimatedLogo from './AnimatedLogo.astro'
     }
     mount.canvasElement.addEventListener('webglcontextlost', onContextLost)
 
+    if (import.meta.env.DEV) {
+      let frameOn = FRAME_STRENGTH > 0
+      onFrameKey = (event) => {
+        if (!event.shiftKey || event.code !== 'KeyF') return
+        if ((event.target as HTMLElement | null)?.closest('input, textarea, [contenteditable]')) return
+        frameOn = !frameOn
+        mount?.setUniforms({ u_frameStrength: frameOn ? 1 : 0 })
+        console.info(`[hero] virtual frame ${frameOn ? 'on' : 'off'}`)
+      }
+      window.addEventListener('keydown', onFrameKey)
+    }
+
     // Cross-fades the canvas in as the still fades out. The canvas is fully
     // transparent for the first frame of the fade, which covers the gap
     // before ShaderMount's own rAF gets its first paint up.
@@ -597,6 +618,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
     showStill(mount?.parentElement ?? document.getElementById('hero-shader'))
     if (mobileQuery && onQueryChange) mobileQuery.removeEventListener('change', onQueryChange)
     if (onScroll) window.removeEventListener('scroll', onScroll)
+    if (onFrameKey) window.removeEventListener('keydown', onFrameKey)
     resizeObserver?.disconnect()
     if (mount && onContextLost) mount.canvasElement.removeEventListener('webglcontextlost', onContextLost)
     // Frees the GL program/textures and removes the canvas — without it a
@@ -609,6 +631,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
     onQueryChange = null
     onScroll = null
     onContextLost = null
+    onFrameKey = null
   }
 
   // Setup/teardown pair per feature (see docs/conventions.md): the pair is

@@ -1792,3 +1792,75 @@ rejected outright: 3.4MB at 2560, 5.7MB at 3840.
 **Reopen if:** a Lighthouse run flags this image's bytes (drop to 85, which
 keeps most of the gain at ~70% of the size), or the site moves to AVIF,
 where q-numbers don't carry over and this needs re-measuring.
+
+### 68. The hero shader texture ships lossless
+
+**Decided:** `public/hero/hero-heatmap-processed.webp` is lossless WebP
+(175KB, was 62KB lossy q0.95), and `tools/bake-hero-assets.html` now encodes
+it at quality 1, which Chrome encodes losslessly. The stills stay lossy —
+they are photographs of the result, not data the shader reads.
+
+**Why:** the glowy parts of the hero read as pixelated in motion. The cause
+was the texture, not the render resolution (§25): it packs three blur passes
+into R/G/B, and lossy WebP puts its error on 4px block edges. Measured in
+the G channel (the big blur behind the outer glow): column-to-column
+differences at every 8th pixel ran 8x those at even pixels, with errors up
+to 6 levels against a true slope of ~0.13 levels/px. The shader then
+multiplies that channel by the glow gain and spreads it over a 4-stop colour
+ramp, so the blocks surfaced as visible steps, magnified 1.6–3x by the
+texture-to-screen scale. The q0.95 "0.13% mean error" check was a mean;
+the error that mattered was structured, not large.
+
+The shipped file was regenerated outside the browser (a numpy port of
+`toProcessedHeatmap`, encoded lossless at method 6), because the browser's
+own lossless output is 268KB. Against the browser's processing it is
+within 1 level on G/B (max 3 on the contour channel, where the 2560→1000
+resample differs) — unstructured rounding, against 6–13 levels of block
+error before. The stills were rebaked shortly after, for §69.
+
+**Reopen if:** the 113KB extra shows up in a measurement that matters (the
+texture loads after first paint, under the still, so it is off the LCP
+path); or the shape is re-baked — then the bake tool's output is exact and
+can ship as-is, or be squeezed with `cwebp -lossless -z 9`.
+
+### 69. The hero heatmap gets a "virtual frame" on the axis `cover` crops
+
+**Decided:** `src/lib/heatmapFrame.ts` patches the stock heatmap fragment
+shader so that, on whichever axis `cover` crops the square shape, its frame
+glow is computed against the edge of the viewport instead of the edge of
+the texture. `Hero.astro` runs the patched shader with `FRAME_STRENGTH = 1`;
+in dev, `Shift+F` toggles it on the live hero for comparison.
+
+**Why:** the glow where the shape's dark gap meets its frame is one of the
+effect's best moments, and a square texture under `cover` threw half of it
+away — top and bottom on a laptop, the sides on a phone. Three alternatives
+were weighed: stretching the texture (`fill`) turns the circles into
+ellipses; authoring and baking one shape per aspect ratio is faithful but
+only at the ratios chosen, triples the texture bytes and needs the shader's
+fixed square un-pad patched anyway; `contain` shows the whole square but
+reads as a box inside the hero.
+
+The patch is derived from how the texture is built rather than tuned by eye:
+each channel is a box blur of the grey field with known radii (R 5px x1,
+G 150px x3, B 18px x3 in a 1000px box), so the darkness inside the frame is
+scaled by the kernel's coverage of the visible rectangle, and moving the
+edge in only changes that coverage. Where the viewport edge already is the
+frame edge, the correction is exactly 1, so the uncropped axis is untouched.
+The viewport size comes from screen-space derivatives of `v_imageUV`, so it
+follows `cover`, the mobile pan and `u_scale` without extra uniforms. No
+extra texture reads.
+
+The stills are baked through the patched shader, at 16:10 (1600x1000) and
+~390x844 (720x1560) instead of square, since a square still would carry no
+virtual frame at all; other ratios get them `cover`-cropped. The same bake
+moved the tool's `u_angle` from 90 to 270: the runtime had been changed to
+270 in a5e9d76 without a rebake, so the stills had been a different image
+from the shader's frame 0 ever since (42/255 mean channel difference at
+frame 0 between the two angles), and the cross-fade was quietly a dissolve
+between two pictures. The patch splices around an exact snippet of the
+0.0.80 shader; if a library update changes it, `withViewportFrame` returns
+null and the stock shader runs (`^0.0.80` already pins the patch release).
+
+**Reopen if:** in motion the glow at the virtual edge reads as too strong or
+too soft (lower `FRAME_STRENGTH`, or scale the sigmas); or the shape is
+re-authored per aspect ratio, which would make this redundant.
