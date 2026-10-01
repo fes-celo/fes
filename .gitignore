@@ -34,3 +34,6 @@ skills-lock.json
 
 # jetbrains setting folder
 .idea/
+
+# Figma exports waiting for `npm run images` (tools/ingest-images.mjs)
+images-inbox/

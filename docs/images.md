@@ -36,13 +36,35 @@ worry about, and is what [LogoMarquee.astro](../src/components/LogoMarquee.astro
 is built around. WebP appears in exactly one place (below) because that path
 is hand-optimized outside the normal pipeline.
 
+## From Figma to `src/assets/`
+
+Figma is fine as the cropping and review step; it just isn't a good place to
+take the master *from* as-is. Its PNG export is lossless but 15–25MB for a
+large photo (git keeps every version), and its JPG export has no quality
+control. So:
+
+1. Crop inside a frame with the slot's exact aspect ratio (table below).
+2. Export **PNG** at the slot's width typed explicitly — e.g. `3840w` — never
+   `1x`, which exports at the frame's on-canvas size. Check the dropped-in
+   original is at least that big first: Figma upscales silently, and caps
+   imports at 4096px on the long side.
+3. Drop the PNGs into `images-inbox/` (git-ignored) and run
+   `npm run images -- --slot <slot>` (`--list` shows the slots). It converts
+   each one to a JPEG q92 master in sRGB, warns if it's under the slot's
+   width or off its ratio, shrinks anything larger to that width, and keeps
+   files with transparency as PNG. `--out <folder>` overrides the
+   destination; with no `--slot` it converts without checking.
+
+The slot table in [tools/ingest-images.mjs](../tools/ingest-images.mjs)
+mirrors the "Recommended source" column below — change both together.
+
 ## Reference table
 
 | Slot | Component | Rendered as | Aspect ratio | Recommended source | Notes |
 |---|---|---|---|---|---|
 | Client logos | [LogoMarquee.astro](../src/components/LogoMarquee.astro) | `object-contain` box, 40×130px mobile → 56×170px desktop | flexible (own ratio kept) | **SVG** preferred; else transparent PNG ≥340×112px | Crop tight to the mark, no baked-in padding — the box already adds breathing room. |
 | Systems page hero background | e.g. [creative-projects-blueprint/index.astro](../src/pages/systems/creative-projects-blueprint/index.astro), digital-communication, influence-reputation | Full-bleed, `sizes="100vw"` | **16:9** | **2560×1440** JPEG | Same pattern across every Systems sub-page hero. `widths: [640, 960, 1280, 1920, 2560]`. |
-| Careers hero team photo | [careers/index.astro](../src/pages/careers/index.astro) | Full-bleed with scroll parallax | **3200:2297** (≈1.39:1) | Match this ratio exactly | The section box is sized *off the photo's own ratio* — a mismatched crop reintroduces clipping. Image renders at 128% scale for parallax drift, so keep key subjects clear of the outer ~14% margin on every edge. |
+| Careers team photo | [careers/index.astro](../src/pages/careers/index.astro) | Full-bleed (100vw) in a 7:5 section, scroll parallax | **1:1, mandatory** | **3840×3840** JPEG q90+ / PNG / TIFF master, *not* pre-compressed | The image box is square (140% of a 7:5 section's height = its width), so a non-square source gets cropped by `object-cover`. `widths: [640, 1024, 1600, 2048, 2560, 3200, 3840]`, `sizes: 100vw` — 3840 covers a 1920 screen at DPR 2; Astro caps the set at the source width, so a smaller master silently ships smaller. Encoded as WebP at `quality={90}` (Astro's default is 80 — parked-decisions §67); measured in `dist/` off the current 3840 master (2026-10-01): 47KB (640), 103KB (1024), 230KB (1600), 357KB (2048), 532KB (2560), 740KB (3200), 972KB (3840). A master that is already lossy WebP/JPEG gets compressed twice — hand over the least-compressed file there is. The section shows a sliding 71% of the image's height; only the band from ~24% to ~76% is on screen for the whole scroll, so keep faces inside it. Full width is always visible. |
 | Homepage hero | [Hero.astro](../src/components/Hero.astro) | Full-bleed | **1:1, mandatory** | **1000×1000** lossless WebP or PNG, luminance only | Not photography. The authored source is `src/assets/hero/hero-heatmap-shape.webp`; replacing it means re-running [bake-hero-assets.html](../tools/bake-hero-assets.html) and moving all three outputs into `public/hero/`. 1:1 is not a preference — the fragment shader un-pads by a fixed 1000/1750 on both axes, and a non-square source brings back a band of bare padding. 1000×1000 is a real ceiling, not a floor: `toProcessedHeatmap` draws the source into a hardcoded 1000px box, so anything larger is discarded. Colour is discarded too (converted to luminance); white is background, dark is the shape. |
 | Dual CTA card ("Get in touch" / "Our work") | [DualCta.astro](../src/components/DualCta.astro) | Full-bleed card, min-height 360–480px | **2000:1618** (≈1.24:1) | **2000×1618** JPEG | `widths: [640, 1000, 2000]`, `sizes: 50vw/100vw`. Has a hover zoom, so keep subject away from the extreme edges. |
 | System cards (Systems index, 3-col grid) | [SystemCard.astro](../src/components/SystemCard.astro) | Grid card, `sizes: 33vw/100vw` | **1200:882** (≈4:3) | **1200×882** JPEG | Optional overlay graphic (icon/badge) at 640×360, PNG with transparency. |

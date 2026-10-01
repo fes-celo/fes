@@ -9,6 +9,7 @@
     "dev": "astro dev",
     "build": "astro build && node tools/prune-unreferenced-assets.mjs && node tools/build-redirects.mjs",
     "preview": "astro preview",
+    "images": "node tools/ingest-images.mjs",
     "astro": "astro",
     "worker:dev": "PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"

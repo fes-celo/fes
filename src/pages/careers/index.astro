@@ -39,7 +39,7 @@ import Heading from '../../components/Heading.astro'
 import SectionIntro from '../../components/SectionIntro.astro'
 import TestimonialCard from '../../components/TestimonialCard.astro'
 import { navItems, isNavActive } from '../../lib/nav'
-import teamPhoto from '../../assets/careers/team-photo.webp'
+import teamPhoto from '../../assets/careers/team-photo.jpg'
 import ourWorkCta from '../../assets/systems/our-work-cta.jpg'
 import UnderlineLink from '../../components/UnderlineLink.astro'
 import Logo from '../../components/Logo.astro'
@@ -277,11 +277,22 @@ const alumniFeedback = [
   }
   <section class="relative z-10 aspect-[7/5] w-full overflow-hidden bg-surface" data-anim="reveal">
     <div class="absolute inset-0" data-parallax-wrapper>
+      {
+        /* Full-bleed, so the image is as wide as the viewport: 3840 covers
+           a 1920 screen at DPR 2. Astro drops any width above the source's
+           own and caps the set at it, so these only reach 3840 when the
+           master in src/assets does (see docs/images.md). Was a single
+           fixed 2048 file — upscaled on every Retina laptop, and oversized
+           on every phone. quality 90 over Astro's default 80: ~1.7x the
+           bytes, a quarter less encoding error, and it loads lazily well
+           below the fold (parked-decisions §67). */
+      }
       <Image
         src={teamPhoto}
         alt="The FES Agency team"
-        width={2048}
-        height={2048}
+        widths={[640, 1024, 1600, 2048, 2560, 3200, 3840]}
+        sizes="100vw"
+        quality={90}
         class="absolute left-0 top-[-20%] h-[140%] w-full object-cover"
         data-parallax-image
       />

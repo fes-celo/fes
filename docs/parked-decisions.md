@@ -1732,3 +1732,63 @@ applied because the second was also wasted work on every scroll.
 then be correct again), or a later section is added directly after the hero
 that is not opaque (`isHeroUncovered` assumes the next sibling is the thing
 that covers it).
+
+### 65. Careers team photo is responsive up to 3840w, and wants a 3840×3840 master
+
+**Decided:** the team photo's `<Image>` drops its fixed `width={2048}` for
+`widths={[640, 1024, 1600, 2048, 2560, 3200, 3840]}` with `sizes="100vw"`,
+and `docs/images.md` now asks for a square 3840×3840 master, handed over
+uncompressed (JPEG q90+ / PNG / TIFF).
+
+**Why:** the photo is full-bleed, so it renders as wide as the viewport, but
+it shipped as one 2048px file. A 1440px Retina laptop needs 2880 device
+pixels and a 1920 one needs 3840, so it was upscaled 1.4–1.9× on exactly the
+screens it is most looked at on, while phones downloaded all 2048px anyway.
+The master in `src/assets` is itself only 2560px and already lossy WebP
+(564KB), which Astro re-encodes: a second round of compression. The old
+`docs/images.md` row (3200:2297, rendered at 128% scale) described an
+earlier layout and no longer matched the component.
+
+**Reopen if:** the 3840 variant (576KB WebP at q80, measured in `dist/` once the 3840 master landed; 972KB since §67 raised it to q90) proves too heavy
+in a Lighthouse run — cap the list at 3200, or move this one image to AVIF
+(about half the bytes at equal quality, measured on the current master).
+
+### 66. Figma exports go through `npm run images` before they reach src/assets
+
+**Decided:** `tools/ingest-images.mjs` (run as `npm run images`) converts
+Figma PNG exports into JPEG q92 sRGB masters (4:4:4 chroma, metadata
+stripped), checked against a per-slot ratio and width. Drop folder is
+`images-inbox/`, git-ignored. Workflow documented in `docs/images.md`.
+
+**Why:** images are cropped and reviewed in Figma, whose two photo exports
+are both wrong for a master: PNG is lossless but 15–25MB at 3840px and
+lives in git history forever; JPG has no quality setting. q92 is visually
+lossless and a few MB (the current team photo: 731KB at 2560), and Astro
+does the real compression at build. The checks exist because the failure
+that prompted this (§65) was silent: an undersized master ships soft and
+nothing complains. Larger-than-slot files are shrunk to the slot width
+since that width is already the largest variant any component requests.
+sharp is used via Astro's own dependency rather than added to
+package.json — Astro needs it at that version anyway.
+
+**Reopen if:** a slot's `widths` change (update `SLOTS` in the script and
+the docs table together), Astro stops shipping sharp, or a photo slot needs
+transparency often enough that PNG masters stop being the exception.
+
+### 67. Careers team photo encodes at WebP quality 90, not Astro's default 80
+
+**Decided:** `quality={90}` on the team photo's `<Image>`, and only there.
+
+**Why:** asked for after the 3840 master still read as soft. Measured
+against the uncompressed master at each width (mean absolute error per
+channel): q80 1.41 / q85 1.23 / q90 1.02 / q95 0.81 at 2560, for
+311 / 387 / 532 / 852KB. A side-by-side crop at 2560 showed no visible
+difference between q80, q90 and the master, so this is a margin, not the
+fix for the softness — that sits upstream in the photo itself (see §65).
+q90 was taken because the cost lands where it hurts least: the image is
+lazy-loaded far below the fold, so it never touches LCP. Lossless was
+rejected outright: 3.4MB at 2560, 5.7MB at 3840.
+
+**Reopen if:** a Lighthouse run flags this image's bytes (drop to 85, which
+keeps most of the gain at ~70% of the size), or the site moves to AVIF,
+where q-numbers don't carry over and this needs re-measuring.
