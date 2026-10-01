@@ -1676,3 +1676,33 @@ edges leaked the dark hero through.
 
 **Reopen if:** a line is added to the footer (re-measure at 390×664; the
 margin is 23px), or the logo motion gets a footer sign-off (§52's option).
+
+### 63. Full favicon/PWA icon set added, closing the gap flagged in docs/images.md
+
+**Decided:** `BaseLayout.astro` now links `favicon.svg` (primary, any size),
+`favicon.ico` (legacy fallback, `sizes="any"`), `favicon-32x32.png` /
+`favicon-16x16.png` (PNG fallback for agents that skip SVG favicons),
+`apple-touch-icon.png` (180×180), a `site.webmanifest` referencing
+`icon-192.png` and `icon-512.png` (the 512 doubles as the manifest's
+`maskable` icon), and a `mask-icon` pointing at `safari-pinned-tab.svg`, plus
+a `theme-color` meta set to `#151617`. The default social share image
+(`og-default.jpg`, still 1200×630) was also replaced with the new artwork,
+converted from the supplied PNG to keep the existing `.jpg` reference in
+`SEO.astro` working untouched.
+
+**Why:** this was an explicitly documented gap (see the prior revision of the
+Favicon row in `docs/images.md`) rather than an oversight — there was no
+apple-touch-icon or manifest at all, so iOS home-screen adds and Android
+"install" prompts fell back to a screenshot of the page. The client-supplied
+`safari-pinned-tab.svg` had an opaque `#151617` background rect; Safari's
+mask-icon rendering uses only the alpha channel and repaints every opaque
+pixel in its own highlight color, so that file would have rendered as a solid
+colored square instead of the FES mark. The background rect was stripped
+before publishing it.
+
+**Reopen if:** the mark changes (regenerate the whole set from the new
+source, not just the pieces that visibly differ — the 16/16 and 32/32 PNGs
+here were resampled from `icon-512.png` rather than hand-exported, so a
+mark change means redoing that resample too), or a real PWA `display: standalone`
+experience is prioritized (the manifest above only declares icons/theme
+color; it has no service worker or install-prompt handling behind it).
