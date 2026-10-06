@@ -1951,3 +1951,22 @@ the numbers.
 **Reopen if:** the Web Analytics site is recreated (new token), or the
 domain moves onto Cloudflare and automatic setup injects the beacon at the
 edge, in which case one of the two should go so pages aren't counted twice.
+
+### 73. `favicon.ico` regenerated from the FES mark, and no longer marked `sizes="any"`
+
+**Decided:** `public/favicon.ico` is now 16/32/48 px frames rendered straight
+from `favicon.svg` (sharp at each size's exact density, packed with Pillow),
+and its `<link>` in `BaseLayout.astro` declares `sizes="32x32"` instead of
+`sizes="any"`.
+
+**Why:** §63 replaced every icon except this one — the ICO was still the
+scaffold's default atom glyph. On its own that would only matter to agents
+without SVG favicon support, but Chrome treats an ICO declared `sizes="any"`
+as the best candidate and picks it over the SVG, so team testers on Chrome
+with a clean cache got the atom (or nothing recognizable) in the tab. Marking
+the ICO `32x32` lets Chrome choose the SVG, and the ICO is correct anyway for
+anything that still falls back to it, including the implicit `/favicon.ico`
+request.
+
+**Reopen if:** the mark changes — regenerate the ICO with the rest of the set
+(§63's reopen condition now covers this file too).
