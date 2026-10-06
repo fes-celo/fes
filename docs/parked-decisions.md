@@ -124,6 +124,12 @@ a description to fit the step title instead.
 **Reopen if:** the client supplies the real copy. Marked `TODO(marcelo)` in
 the page.
 
+**Closed 2026-10-06:** the real copy arrived in the client's "Influence &
+Reputation System" document. Step 04 now summarises it (up to one outreach
+initiative a month: an introduction, a partnership proposal or a community
+activation). The invented text had leaned on roundtables, which the
+document lists as a paid add-on, not part of the step. See §71.
+
 ### 8. Selected projects are page-local, not in `src/lib/projects.ts`
 
 **Decided:** the four curated projects live in an array on the page. Two of
@@ -1864,3 +1870,84 @@ null and the stock shader runs (`^0.0.80` already pins the patch release).
 **Reopen if:** in motion the glow at the virtual edge reads as too strong or
 too soft (lower `FRAME_STRENGTH`, or scale the sigmas); or the shape is
 re-authored per aspect ratio, which would make this redundant.
+
+### 70. Resources redirects go to the homepage; unbuilt old projects stay unmapped for now
+
+**Decided:** the 72 `redirect-map.csv` rows that targeted `/resources/`
+now target `/` (the `notes` column still records the original bucketing).
+The ~40 old project slugs with no rebuilt case study are left as they are —
+on hold, because some of them will come back as real case studies. (Same
+day, superseded by §71: they now get a temporary 302 to `/projects/`.) The 18 `NEEDS MANUAL REVIEW` / `PENDING`
+rows are untouched.
+
+**Why:** decided by Marcelo (2026-10-06). There is no Resources section
+and none is planned before launch, so a hub redirect has nowhere to land;
+the homepage is the nearest page that exists. Old projects were held rather
+than bucketed to `/projects/` so that a 301 Google treats as permanent is
+not emitted for pages that may still get their own URL.
+
+**Reopen if:** a Resources/blog section is built (point the rows back at
+it, or at individual articles), or launch day arrives with the old project
+rows still unbuilt — they 404 at cutover unless they get at least a
+temporary (302) redirect to `/projects/`.
+
+### 71. The 18 unresolved redirect rows are decided; unbuilt case studies get a 302 to `/projects/`
+
+**Decided (Marcelo, 2026-10-06):**
+
+- Events-themed URLs (`/en/events/`, the "top 5 tech events" post,
+  "offsite team building experiences") → the Events & Activations
+  blueprint page.
+- The PT PR-tactics post, the highest-traffic content page in the dataset
+  (34 clicks, 1,720 impressions) → `/systems/influence-reputation/`, the
+  page about the same subject.
+- The PT SIM Conference post → `/projects/sim-conference/`.
+- `/en/iefp/` (an internship-related page) → `/careers/`.
+- Web Summit networking post, "let's automate your business", playbooks →
+  `/`, the same as the rest of Resources (§70).
+- The seven old `/new/projects/…` slugs → `/projects/`.
+- `ptwebsummit2019.fesagency.pt` (no longer used) and `/en/landing-page/`
+  → `RETIRE`: no redirect, left to 404. The script now reports these in
+  their own line instead of as "unresolved".
+
+`tools/build-redirects.mjs` also gained one fallback. A `/projects/<slug>/`
+target that isn't built emits a **302** to `/projects/` instead of being
+skipped, so the 53 old case-study rows no longer 404 at cutover. The CSV
+keeps the intended slug, so the row becomes a 301 to the real page on the
+first build after it exists. Coverage moved from 106/185 to 175/185.
+
+**Why 302 and not 301 for the parked rows:** a 301 tells Google the move
+is permanent and to fold the old URL into `/projects/`. Several of these
+are meant to come back with their own page, and a 302 keeps that open.
+For the Events rows the "top 5 tech events" post was sent to Events &
+Activations rather than the homepage because a topically related target
+is less likely to be read by Google as a soft 404.
+
+**Reopen if:** an old case study is rebuilt under a different slug than the
+CSV names (edit that row); Events gets its own nav section (re-point the
+three Events rows); or Search Console reports the 302s as soft 404s,
+which would argue for building those pages sooner.
+
+**Also, from the same document:** the page's add-ons carousel has an
+"Executive Photoshoot" card, and its Selected Projects lead with Shamir.
+Neither is in the client's document, so both were left as they are pending
+confirmation.
+
+### 72. The analytics token is hardcoded, and the beacon only ships in production builds
+
+**Decided:** `BaseLayout.astro` now carries the Cloudflare Web Analytics
+token (`9f42d01e…`) as a default, overridable by `PUBLIC_CF_BEACON_TOKEN`,
+and renders the beacon only when `import.meta.env.PROD`. Same day, the
+"Executive Photoshoot" card was removed from the Influence & Reputation
+add-ons (not in the client's document, §71); Shamir stays first in its
+Selected Projects (Marcelo, 2026-10-06).
+
+**Why:** the token is public by design: it is in the HTML of every page
+that uses it. A build variable would be one more thing to set in the
+Cloudflare build settings, and forgetting it fails silently: the site
+works, nothing is counted. The `PROD` gate keeps `astro dev` visits out of
+the numbers.
+
+**Reopen if:** the Web Analytics site is recreated (new token), or the
+domain moves onto Cloudflare and automatic setup injects the beacon at the
+edge, in which case one of the two should go so pages aren't counted twice.

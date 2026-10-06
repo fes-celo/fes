@@ -96,18 +96,21 @@ const ogImageUrl =
     {
       /*
         Cloudflare Web Analytics — pageviews only, no custom events (lead
-        measurement is the /contact/thank-you pattern, built in Phase 3).
-        Token depends on the Cloudflare Pages project, which isn't wired up
-        yet. Uncomment once PUBLIC_CF_BEACON_TOKEN is set.
+        measurement is the /contact/thank-you pattern). The token is public
+        (it ships in every page's HTML), so it's hardcoded as the default
+        rather than left to a build variable someone has to remember to set
+        in CI — same reasoning as the Turnstile site key (parked-decisions
+        §54). PUBLIC_CF_BEACON_TOKEN still overrides it. Production builds
+        only, so local dev never counts as a visit (§72).
       */
     }
     {
-      import.meta.env.PUBLIC_CF_BEACON_TOKEN && (
+      import.meta.env.PROD && (
         <script
           is:inline
           defer
           src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon={`{"token": "${import.meta.env.PUBLIC_CF_BEACON_TOKEN}"}`}
+          data-cf-beacon={`{"token": "${import.meta.env.PUBLIC_CF_BEACON_TOKEN || '9f42d01e9345481d822472003e6224b4'}"}`}
         />
       )
     }
