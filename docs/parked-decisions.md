@@ -2025,7 +2025,7 @@ the PT locale switcher returns (it adds width to the first item), or the
 Facebook page is revived (re-add the line in `nav.ts`; it returns to all
 three places at once).
 
-### 76. The homepage hero copy rises to the middle before the page covers it
+### 76. Sticky-hero copy rises to the middle before the page covers it
 
 **Decided:** a transparent runway (`[data-hero-runway]`, a sibling after the
 sticky hero) delays the cover by exactly the distance the copy needs to travel
@@ -2046,6 +2046,17 @@ composition). The runway is a sibling, not a wrapper, because the hero's sticky
 range is its parent. It is not a ScrollTrigger pin either, for decision #9's
 reason. The nav moves by `top`, not a transform, because a transform would
 break AnimatedLogo's blend. Decision #25's `isCovered` now adds the runway.
+
+**Extended to every sticky hero:** the logic lives in `lib/heroRunway.ts`
+(`bindHeroRunway`) and runs on the homepage, Agency, Careers, Systems,
+Creative Projects Blueprint and Tech Refresh. Only the homepage passes the dim
+and the drift; the sub-page heroes never had either, so they keep their plain
+cover. Measured at 1280×800: runways of 230–286px, with every copy block
+centred at about 400px. Careers' trail found its cover as
+`hero.nextElementSibling`, which is now the runway, so it uses `heroCover()`
+instead (§64's gate is unchanged). Cost on the sub-pages: their Menu button
+lives in the hero nav (there's no FixedNav there), so on mobile it now scrolls
+away after about 60px rather than staying until the hero is covered.
 
 **Reopen if:** the hero copy's position or size changes a lot (the runway
 derives itself, but re-check the hold on a short phone), a pause between rise
@@ -2086,3 +2097,54 @@ small viewport and the lead goes behind it. Then restore the measuring script
 from git history (`Hero.astro`, the inline `setHeroVh()` block). Also reopen
 if the straight edge between the hero and Safari's light toolbar strip is
 judged too hard. The fade used to blend the two.
+
+### 77. The pinned Menu button runs on ten more pages, and works out its ink by hit-testing
+
+**Decided:** `FixedNav` is now on Agency, Careers, Systems, Creative Projects
+Blueprint, Tech Refresh, the three Blueprint sub-pages, Digital Communication
+and Influence & Reputation. Each hero's own in-flow Menu button is removed, so
+the pinned one hides on scroll-down and comes back on scroll-up, as it does on
+the homepage. The logos stay in their heroes, in flow (the homepage rule).
+
+`FixedNav` takes two new props. `ink` is the first section's ink, painted
+before JS runs. `fallbackInk` is the ink for anything with no `data-nav-ink` of
+its own. Every new page passes `fallbackInk="dark"` (their plain sections are
+light), so only the exceptions carry marks:
+- the dark heroes: Careers, and the CPB hub (a dark photo)
+- the dark zone on Digital Communication and Influence & Reputation
+- `BuiltForRotator` (always a dark photo)
+- the dark purple CTA cards (`DualCta`, Careers' Apply card, and the homepage
+  contact card)
+
+The two reveal zones rewrite their own `data-nav-ink` and call `setNavInk`
+when they flip. The homepage passes no fallback, so its unmarked invert zone
+still owns the ink there.
+
+`lib/fixedNav.ts` no longer takes the ink from whichever observer entry fired.
+Any crossing now hit-tests the probe line, and the nearest marked ancestor of
+the topmost element decides. The observer watches every `main > *` and the
+footer, not just the marked elements.
+
+**Why:** two things broke under the old entry-based logic.
+- A sticky hero never crosses the probe. So on scroll-up, the covering
+  section leaving was the only event, and the ink stayed whatever that section
+  had been. Over Careers' dark hero that gave a dark chip on dark.
+- With a fallback, the light sections carry no marks, so the old observer
+  never woke up for them. Measured on Careers before the fix: the button
+  revealed on scroll-up showed white-on-white.
+
+Marking an inner element (a card) works because the hit-test reads
+`closest()`, so a dark card inside a light section no longer needs its own
+section.
+
+**Verified:** at 375×812, each page was swept every quarter-viewport,
+comparing the predicted ink with the background actually under the button.
+No mismatches remain on any of the eleven pages, except two known false
+positives (the shader and photo heroes, which the checker reads as their CSS
+background colour) and the small arrow icon on the CPB cards. Real-scroll
+checks on Careers and Digital Communication confirmed the observer fires and
+the reveal zone hands over correctly.
+
+**Reopen if:** a new dark element sits under the button's path on a page
+with a fallback (mark it), or a page with an unmarked script-driven zone like
+the homepage's gains a fallback (the fallback would override the zone).

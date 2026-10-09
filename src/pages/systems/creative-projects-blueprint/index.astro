@@ -25,6 +25,7 @@
  */
 import { Image } from 'astro:assets'
 import BaseLayout from '../../../layouts/BaseLayout.astro'
+import FixedNav from '../../../components/FixedNav.astro'
 import { navItems, isNavActive } from '../../../lib/nav'
 import ourWorkCta from '../../../assets/systems/our-work-cta.jpg'
 import heroBg from '../../../assets/systems/creative-projects-blueprint/hero-bg.jpg'
@@ -99,7 +100,8 @@ const faqs = [
   hideHeader
   bordered
 >
-  <section class="sticky top-0 z-0 flex h-screen min-h-[min(45rem,100svh)] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[var(--space-gutter)]">
+  <FixedNav ink="light" fallbackInk="dark" />
+  <section data-nav-ink="light" class="sticky top-0 z-0 flex h-screen min-h-[min(45rem,100svh)] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[var(--space-gutter)]">
     <Image
       src={heroBg}
       alt=""
@@ -135,20 +137,10 @@ const faqs = [
             ))
           }
         </ul>
-        <button
-          type="button"
-          aria-label="Open menu"
-          aria-expanded="false"
-          aria-controls="mobile-menu"
-          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg transition-transform active:scale-[0.97] lg:hidden"
-          data-nav-toggle
-        >
-          Menu
-        </button>
       </div>
     </nav>
 
-    <div class="relative z-10">
+    <div class="relative z-10" data-hero-copy>
       <h1 class="text-display text-balance text-neutral-50" data-anim="split-text">Not every problem needs a six-month system. Some need one project, built right.</h1>
       <p class="mt-7 max-w-[51.25rem] text-lead text-neutral-50" data-anim="reveal">
         Three creative Blueprints (branding, events, and podcast or video series), each scoped to a single outcome
@@ -156,6 +148,7 @@ const faqs = [
       </p>
     </div>
   </section>
+  <div data-hero-runway aria-hidden="true"></div>
 
   <section class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
     <div class="flex flex-col gap-14">
@@ -296,4 +289,11 @@ const faqs = [
 
   onPageLoad(init)
   onPageUnload(teardown)
+</script>
+
+<script>
+  // Copy rises to the middle before the page covers the sticky hero.
+  import { bindHeroRunway } from '../../../lib/heroRunway'
+
+  bindHeroRunway()
 </script>

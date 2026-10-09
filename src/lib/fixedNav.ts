@@ -52,26 +52,49 @@ export function setupFixedNav() {
   // ---------- Declared ink ----------
   let observer: IntersectionObserver | null = null
 
+  // What's actually behind the trigger right now, by hit-testing the probe
+  // line rather than trusting whichever entry fired: a sticky hero never
+  // crosses the probe (it's parked under it), so on scroll-up the only event
+  // is the covering section leaving — and nothing used to say what was
+  // left behind. The topmost element at the probe, outside the nav itself,
+  // decides; its nearest `[data-nav-ink]` ancestor gives the ink. Nothing
+  // marked there falls back to the page's `data-fallback-ink`, when it has
+  // one (FixedNav's `fallbackInk` prop); without it the ink is left alone,
+  // which is what the homepage's script-driven invert-zone relies on.
+  const fallback = nav.dataset.fallbackInk as NavInk | undefined
+  let probe = 34
+
+  function resolveInk() {
+    const r = trigger!.getBoundingClientRect()
+    const x = Math.round((r.left + r.right) / 2) || window.innerWidth / 2
+    for (const el of document.elementsFromPoint(x, probe)) {
+      if (nav!.contains(el)) continue
+      const marked = el.closest<HTMLElement>('[data-nav-ink]')
+      if (marked) setNavInk(marked.dataset.navInk === 'dark' ? 'dark' : 'light')
+      else if (fallback) setNavInk(fallback)
+      return
+    }
+  }
+
+  // Every top-level block of the page is watched, not only the marked
+  // ones: with a fallback, most sections carry no mark, and an unmarked
+  // section crossing the probe has to wake the hit-test too. Marked
+  // elements deeper in the tree are added on top. The hit-test decides
+  // what any crossing means, so watching extra elements is harmless.
   function setupInkObserver() {
-    const sections = document.querySelectorAll<HTMLElement>('[data-nav-ink]')
-    if (sections.length === 0) return
+    const sections = new Set<Element>([
+      ...document.querySelectorAll('[data-nav-ink]'),
+      ...document.querySelectorAll('main > *, [data-footer-reveal]'),
+    ])
+    if (sections.size === 0) return
 
     const r = trigger!.getBoundingClientRect()
-    const probe = Math.round((r.top + r.bottom) / 2) || 34
+    probe = Math.round((r.top + r.bottom) / 2) || 34
 
-    observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue
-          const ink: NavInk = (entry.target as HTMLElement).dataset.navInk === 'dark' ? 'dark' : 'light'
-          setNavInk(ink)
-        }
-      },
-      {
-        rootMargin: `-${probe}px 0px -${Math.max(0, window.innerHeight - probe - 1)}px 0px`,
-        threshold: 0,
-      },
-    )
+    observer = new IntersectionObserver(resolveInk, {
+      rootMargin: `-${probe}px 0px -${Math.max(0, window.innerHeight - probe - 1)}px 0px`,
+      threshold: 0,
+    })
     sections.forEach((s) => observer!.observe(s))
   }
 

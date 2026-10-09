@@ -22,15 +22,27 @@
  *
  * - Auto-hide on scroll, reveal on a small upward movement.
  *
- * --dark-progress defaults to 1 (light ink) here rather than 0: the
- * homepage's hero is dark from the very first frame, so painting the
- * trigger dark-ink-on-dark before JS measures anything would be a flash of
- * the wrong color. That default will need to become a prop once this rolls
- * out to a page whose top section isn't dark.
+ * `ink` is the ink for the page's first section, painted before JS measures
+ * anything so there's no flash of the wrong colour. Light (white) by
+ * default, for the homepage's dark hero; pages with a light hero pass
+ * "dark".
+ *
+ * `fallbackInk` is the ink for anything behind the trigger that carries no
+ * `data-nav-ink` of its own — on most pages that's every plain light
+ * section, so only the exceptions need marking. The homepage passes none:
+ * its unmarked invert-zone sets the ink from its own script.
  */
+import type { NavInk } from '../lib/fixedNav'
+
+interface Props {
+  ink?: NavInk
+  fallbackInk?: NavInk
+}
+
+const { ink = 'light', fallbackInk } = Astro.props
 ---
 
-<div id="fixed-nav">
+<div id="fixed-nav" style={`--dark-progress: ${ink === 'light' ? 1 : 0}`} data-fallback-ink={fallbackInk}>
   <button
     type="button"
     id="fixed-nav-trigger"

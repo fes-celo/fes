@@ -18,6 +18,7 @@
  */
 import { Image } from 'astro:assets'
 import BaseLayout from '../../../../layouts/BaseLayout.astro'
+import FixedNav from '../../../../components/FixedNav.astro'
 import { navItems, isNavActive } from '../../../../lib/nav'
 import Heading from '../../../../components/Heading.astro'
 import SectionIntro from '../../../../components/SectionIntro.astro'
@@ -166,6 +167,7 @@ const selectedProjects = [
   description="Turn expertise into influence. A Blueprint that turns knowledge into an editorial platform, produced once and repurposed into dozens of assets."
   hideHeader
 >
+  <FixedNav ink="dark" fallbackInk="dark" />
   {/* ---------- 1. Hero ---------- */}
   <section
     class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[var(--space-gutter)] supports-[height:100dvh]:min-h-dvh"
@@ -205,16 +207,6 @@ const selectedProjects = [
             ))
           }
         </ul>
-        <button
-          type="button"
-          aria-label="Open menu"
-          aria-expanded="false"
-          aria-controls="mobile-menu"
-          class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg transition-transform active:scale-[0.97] lg:hidden"
-          data-nav-toggle
-        >
-          Menu
-        </button>
       </div>
     </nav>
 

@@ -38,6 +38,7 @@
  */
 import { Image } from 'astro:assets'
 import BaseLayout from '../../../layouts/BaseLayout.astro'
+import FixedNav from '../../../components/FixedNav.astro'
 import { navItems, isNavActive } from '../../../lib/nav'
 import Heading from '../../../components/Heading.astro'
 import SectionIntro from '../../../components/SectionIntro.astro'
@@ -233,7 +234,8 @@ const selectedProjectCategories = [{ label: 'Selected projects', projects: selec
   description="Build the reputation that drives opportunities. A six-month system for companies and leaders who need the market to recognise what they are already good at."
   hideHeader
 >
-  <div class="dark-zone">
+  <FixedNav ink="light" fallbackInk="dark" />
+  <div class="dark-zone" data-nav-ink="light">
     {/* ---------- 1. Hero ---------- */}
     <section
       class="relative flex min-h-screen w-full flex-col justify-between overflow-hidden bg-surface px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[var(--space-gutter)] supports-[height:100dvh]:min-h-dvh"
@@ -282,16 +284,6 @@ const selectedProjectCategories = [{ label: 'Selected projects', projects: selec
               ))
             }
           </ul>
-          <button
-            type="button"
-            aria-label="Open menu"
-            aria-expanded="false"
-            aria-controls="mobile-menu"
-            class="inline-flex shrink-0 items-center rounded-[var(--radius-button)] bg-neutral-950/60 px-3.5 py-3 text-[1.0625rem] font-medium text-white backdrop-blur-lg transition-transform active:scale-[0.97] lg:hidden"
-            data-nav-toggle
-          >
-            Menu
-          </button>
         </div>
       </nav>
 
@@ -403,7 +395,7 @@ const selectedProjectCategories = [{ label: 'Selected projects', projects: selec
        just the other direction and with `start: 'top top'` instead of
        'top center' — see the <style>/<script> blocks below. ---------- */
   }
-  <div class="reveal-zone" data-reveal-zone>
+  <div class="reveal-zone" data-reveal-zone data-nav-ink="light">
     <section class="w-full px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
       <SectionIntro eyebrow="Impact" eyebrowSize="text-body">
         Build a reputation people recognise and trust
@@ -499,6 +491,7 @@ const selectedProjectCategories = [{ label: 'Selected projects', projects: selec
 </style>
 
 <script>
+  import { setNavInk } from '../../../lib/fixedNav'
   import { onPageLoad, onPageUnload } from '../../../lib/lifecycle'
   // Dark → light reveal on Impact + Selected Projects. Not gated through
   // sectionMotion's MOTION_FULL/MOTION_FALLBACK matchMedia pair — like the
@@ -523,7 +516,14 @@ const selectedProjectCategories = [{ label: 'Selected projects', projects: selec
     const zone = document.querySelector<HTMLElement>('[data-reveal-zone]')
     if (!zone) return
 
-    const setLight = (on: boolean) => zone.style.setProperty('--light-progress', on ? '1' : '0')
+    // The zone's declared ink follows its own flip, so FixedNav's hit-test
+    // reads the truth whenever it next looks; setNavInk covers the flip
+    // itself, which happens mid-zone where no boundary is crossed.
+    const setLight = (on: boolean) => {
+      zone.style.setProperty('--light-progress', on ? '1' : '0')
+      zone.dataset.navInk = on ? 'dark' : 'light'
+      setNavInk(on ? 'dark' : 'light')
+    }
 
     revealTrigger = ScrollTrigger.create({
       trigger: zone,
