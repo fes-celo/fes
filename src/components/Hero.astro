@@ -61,96 +61,38 @@ import AnimatedLogo from './AnimatedLogo.astro'
 ---
 
 {
-  /* CSS dvh should track the live viewport as mobile browser chrome shows
-     and hides, but in practice iOS Safari's 100dvh on the very first paint
-     doesn't reliably match what's actually visible yet (the address bar
-     hasn't "settled"), which let a strip of the next section show through
-     before any scroll happened. Measuring the viewport in JS and writing
-     it to --hero-vh is the reliable fix; the inline script below runs
-     synchronously (blocking) before the section paints, so there's no
-     flash. The 100lvh fallback only matters with JS disabled.
+  /* Sizing against iOS Safari's toolbar, in CSS alone.
 
-     Two different heights matter here, and using one for both is what
-     produced the white band under the hero on iOS Safari:
+     iOS 26 Safari floats its bottom toolbar over the page instead of
+     shrinking it, so the hero has two heights to respect:
 
-     - window.innerHeight is the *layout* viewport — everything the page
-       paints into. iOS 26 Safari floats its bottom toolbar on top of that
-       area rather than shrinking it, so painting only as far as the
-       visible area leaves the next (white) section showing through in the
-       strip around the toolbar.
-     - visualViewport.height is what's actually *visible* right now. Bottom
-       content laid out past it disappears behind the browser chrome.
+     - 100lvh, the large viewport (toolbar out of the way), is the box. The
+       background bleeds behind the toolbar instead of leaving a strip of
+       the next (white) section showing round it.
+     - 100svh, the small viewport (toolbar fully shown), is what is
+       guaranteed visible. Their difference, --hero-chrome, is added to the
+       bottom padding so the headline and lead stay above the toolbar.
 
-     So the section is sized to the layout viewport (--hero-vh) so its
-     background bleeds behind the toolbar, and the gap between the two
-     (--hero-chrome) is added to the bottom padding so the headline and
-     lead still sit above it. On touch devices the gap is clamped, because
-     an open keyboard shrinks the visual viewport dramatically, and that
-     shouldn't crush the hero's content into the top half of the screen.
+     Both units are static: unlike dvh they don't move while the toolbar
+     shows and hides, nor on the first paint before Safari has "settled"
+     (the reason a JS measurement used to write these as --hero-vh /
+     --hero-chrome on every resize). Nor do they react to an open keyboard
+     or to desktop pinch-zoom, which is what the old script needed a
+     pointer-type split and a 25% clamp to tell apart from a toolbar.
+     --hero-chrome is registered as a <length> (see <style>) so its computed
+     value is plain px, which the runway script reads back.
 
-     That clamp used to apply everywhere, which silently cut the lead off
-     in desktop Chrome: trackpad pinch-zoom and ctrl+scroll are a *visual*
-     zoom there (and on other Chromium/WebKit desktop browsers) — it's
-     invisible to window.innerHeight (Chrome intentionally keeps that tied
-     to the layout viewport) and only shrinks visualViewport.height, the
-     same signal an iOS toolbar or keyboard produces. A capped 25%
-     compensation is plenty for a toolbar but nowhere near enough once
-     someone's zoomed the page to, say, 175% — the lead ends up positioned
-     below the visible area with no on-page hint that scrolling would
-     reveal it. Coarse pointers (touch) are where on-screen keyboards
-     live, so the clamp now only applies there; a fine pointer (trackpad/
-     mouse) gets the gap compensated in full, which keeps the lead inside
-     whatever's actually visible at any zoom level.
-
-     None of that helps while a min-height sits ABOVE the viewport, which is
-     what the bare 45rem floor did. Below 1440px the root font size is a flat
-     16px (global.css section 5 only engages above the reference width), so
-     45rem is a hard 720px there — and the moment the layout viewport is
-     shorter than that, the section is taller than the screen, the
-     justify-between block is parked at 720px minus the padding, and
-     overflow-hidden eats whatever falls past the fold. Scrolling cannot
-     recover it either: the section is sticky and the next one scrolls over
-     the top of it.
-
-     720px is not an exotic viewport. iOS Safari's page zoom reflows rather
-     than magnifying, so it shrinks innerHeight — one step up from 100% on
-     any iPhone lands under 720 and clipped the lead by 12 to 125px. An
-     iPhone SE is under it at 100% zoom, as is any phone in landscape.
-
-     min(45rem, ...) is the whole fix: the floor can never exceed the box it
-     lives in. Above 1440 it stays a no-op, because the root-size guard in
-     global.css section 5 already keeps 45rem <= viewport height there — so
-     that invariant is preserved, not replaced. The content only needs about
-     420px, so nothing is squashed when the floor gives way. */
+     The floor is min(45rem, 100lvh), never a bare 45rem: below 1440px the
+     root size is a flat 16px, so 45rem is a hard 720px, and a section
+     taller than the screen parks the bottom-anchored copy past the fold,
+     where overflow-hidden eats it and no scroll recovers it (the section is
+     sticky). iOS page zoom and any phone in landscape land under 720. Above
+     1440 global.css section 5 already keeps 45rem <= viewport height. */
 }
-<script is:inline>
-  ;(function () {
-    function setHeroVh() {
-      const visible = window.visualViewport ? window.visualViewport.height : window.innerHeight
-      const layout = Math.max(window.innerHeight, visible)
-      // Only touch devices carry an on-screen keyboard, so only there does
-      // the gap need clamping — see the docblock above.
-      const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches
-      const chromeCap = isCoarsePointer ? layout * 0.25 : layout
-      const chrome = Math.min(Math.max(0, layout - visible), chromeCap)
-      const style = document.documentElement.style
-      style.setProperty('--hero-vh', layout + 'px')
-      style.setProperty('--hero-chrome', chrome + 'px')
-    }
-    setHeroVh()
-    if (!window.__fesHeroVhBound) {
-      window.__fesHeroVhBound = true
-      window.addEventListener('resize', setHeroVh)
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', setHeroVh)
-      }
-    }
-  })()
-</script>
 <section
   data-nav-ink="light"
-  class="sticky top-0 z-0 flex min-h-[min(45rem,var(--hero-vh,100svh))] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(4rem_+_var(--hero-chrome,0px))] lg:pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
-  style={`height: var(--hero-vh, 100lvh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
+  class="sticky top-0 z-0 flex min-h-[min(45rem,100lvh)] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
+  style={`height: 100lvh; --hero-chrome: calc(100lvh - 100svh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
 >
   {
     /* The section's own CSS gradient (above) stays the bottom layer: the
@@ -184,27 +126,6 @@ import AnimatedLogo from './AnimatedLogo.astro'
     id="hero-shader"
     aria-hidden="true"
     class="pointer-events-none absolute inset-0 size-full opacity-0 transition-opacity duration-200 ease-out"
-  >
-  </div>
-  {
-    /* Stops follow an ease-out curve (via larsenwork.com/easing-gradients)
-       rather than a plain 2-stop linear-gradient, whose constant alpha
-       ramp reads as a harsh band before fading to nothing.
-
-       This is 48px of near-white sitting over the bottom of the hero, and
-       the lead below it is text-neutral-50 — so it sets a FLOOR on the
-       section's mobile bottom padding, which is why that padding is 4rem
-       up to `lg` rather than the gutter the other three sides use. At the
-       gutter's 12px the lead's last two lines landed 36px inside this
-       gradient, on a ground ~64% white. The two share the `lg` breakpoint
-       deliberately: this element is `lg:hidden`, so the padding can drop
-       to the gutter at exactly the width where the gradient stops
-       painting. Move one and the other has to move with it. */
-  }
-  <div
-    aria-hidden="true"
-    class="pointer-events-none absolute inset-x-0 bottom-0 h-12 lg:hidden"
-    style="background: linear-gradient(to top, rgba(255,255,255,1) 0%, rgba(255,255,255,0.738) 19%, rgba(255,255,255,0.541) 34%, rgba(255,255,255,0.382) 47%, rgba(255,255,255,0.278) 56.5%, rgba(255,255,255,0.194) 65%, rgba(255,255,255,0.126) 73%, rgba(255,255,255,0.075) 80.2%, rgba(255,255,255,0.042) 86.1%, rgba(255,255,255,0.021) 91%, rgba(255,255,255,0.008) 95.2%, rgba(255,255,255,0.002) 98.2%, rgba(255,255,255,0) 100%)"
   >
   </div>
 
@@ -288,8 +209,26 @@ import AnimatedLogo from './AnimatedLogo.astro'
   <div data-hero-dim aria-hidden="true" class="pointer-events-none absolute inset-0 z-20 bg-neutral-950 opacity-0">
   </div>
 </section>
+{
+  /* The runway: transparent scroll distance between the hero and the first
+     section that covers it, so the copy can rise from the bottom of the hero
+     to the middle of the screen before anything slides over it. A sibling,
+     not a wrapper — the hero's sticky range is its parent, and a wrapper
+     ending would carry the hero off-screen instead of letting the page cover
+     it. Height is written by the recede script below; it stays 0 without JS
+     and under reduced motion, which is the hero as it was. */
+}
+<div data-hero-runway aria-hidden="true"></div>
 
 <style>
+  /* Registered so the computed value is resolved px rather than the
+     unevaluated calc() string — the runway script reads it back. */
+  @property --hero-chrome {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 0px;
+  }
+
   /* Query has to match MOBILE_QUERY in the script — both halves of it. The
      mobile still has MOBILE_OFFSET_X baked into it, so the two must switch
      together or the cross-fade jumps sideways; and the pan only fits inside
@@ -437,7 +376,9 @@ import AnimatedLogo from './AnimatedLogo.astro'
   // Speed 0 halts the library's rAF loop outright, so covered means no GPU
   // work at all; the frame counter simply resumes where it stopped.
   function isCovered(section: HTMLElement) {
-    return window.scrollY >= section.offsetHeight
+    // The runway (see the markup) delays the cover by its own height.
+    const runway = document.querySelector<HTMLElement>('[data-hero-runway]')?.offsetHeight ?? 0
+    return window.scrollY >= section.offsetHeight + runway
   }
 
   // Held across client-side navigations so returning to the homepage reuses
@@ -654,13 +595,31 @@ import AnimatedLogo from './AnimatedLogo.astro'
 </script>
 
 <script>
-  // Scroll-linked recede for the sticky hero (see the data-hero-dim note in
-  // the markup). Progress runs from scroll 0 to the hero's own height — the
-  // exact distance the page travels to cover it — as plain numbers rather
-  // than 'top top' / 'bottom top', because a sticky element's measured
-  // position depends on the scroll it was measured at.
+  // Scroll-linked rise-and-recede for the sticky hero, in two phases over
+  // one scroll range:
+  //
+  //   1. Runway (0 → runway): the copy moves up 1:1 with the scroll, from
+  //      the bottom of the hero to the middle of the visible screen, while
+  //      the background holds still. Reads as ordinary scrolling, so nobody
+  //      has to learn anything — it just stops being eaten. Before this the
+  //      copy sat at the bottom, exactly where the incoming section arrives,
+  //      and was covered within the first ~60px of scroll.
+  //   2. Cover (runway → runway + hero height): the copy holds at centre
+  //      (plus the small DRIFT), the next section slides over, the dim rises.
+  //
+  // The nav scrolls away 1:1 the whole time, like a header in normal flow.
+  // It moves by `top`, not a transform: a transform would make it a
+  // stacking context and break AnimatedLogo's screen blend (see its
+  // docblock). It's a relative box with nothing in flow depending on it, so
+  // the per-frame layout is that one small subtree.
+  //
+  // Driven from scrollY directly rather than a scrubbed timeline, because
+  // the phase boundary moves with the viewport and a timeline's segment
+  // durations are fixed when it's built. Plain numbers for start/end, not
+  // 'top top', because a sticky element's measured position depends on the
+  // scroll it was measured at.
   import { onPageLoad, onPageUnload } from '../lib/lifecycle'
-  import { gsap } from '../lib/sectionMotion'
+  import { gsap, ScrollTrigger } from '../lib/sectionMotion'
 
   /** Darkness at full cover. The footer caps at 0.85 on its way in; the hero
    *  is leaving rather than arriving, so it stops well short of that — by
@@ -671,31 +630,76 @@ import AnimatedLogo from './AnimatedLogo.astro'
    *  pinned under the incoming sheet. */
   const DRIFT = 0.06
 
-  let tween: gsap.core.Timeline | null = null
+  let trigger: ScrollTrigger | null = null
+  let measure: (() => void) | null = null
+  let reset: (() => void) | null = null
 
   onPageLoad(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const section = document.querySelector<HTMLElement>('[data-hero-dim]')?.parentElement
     const dim = section?.querySelector<HTMLElement>('[data-hero-dim]')
     const copy = section?.querySelector<HTMLElement>('[data-hero-copy]')
-    if (!section || !dim || !copy) return
+    const nav = section?.querySelector<HTMLElement>('nav')
+    const runwayEl = document.querySelector<HTMLElement>('[data-hero-runway]')
+    if (!section || !dim || !copy || !nav || !runwayEl) return
 
-    tween = gsap
-      .timeline({
-        scrollTrigger: {
-          start: 0,
-          end: () => section.offsetHeight,
-          scrub: true,
-          invalidateOnRefresh: true,
-        },
-      })
-      .to(dim, { opacity: DIM_MAX, ease: 'none' }, 0)
-      .to(copy, { y: () => -section.offsetHeight * DRIFT, ease: 'none' }, 0)
+    const setCopyY = gsap.quickSetter(copy, 'y', 'px')
+    const setDim = gsap.quickSetter(dim, 'opacity')
+    let runway = 0
+
+    // How far the copy travels to be centred in what's actually visible —
+    // the section minus --hero-chrome (100lvh - 100svh, set on the section),
+    // the strip a floating toolbar can cover.
+    // offsetTop/offsetHeight ignore transforms, so this measures the copy's
+    // resting place even mid-scroll. Floored at the top padding: on a short
+    // screen where the copy is taller than half the view, it stops at the
+    // gutter instead of rising past it (the nav has gone by then).
+    measure = () => {
+      const chrome = parseFloat(getComputedStyle(section).getPropertyValue('--hero-chrome')) || 0
+      const visible = section.offsetHeight - chrome
+      const floor = parseFloat(getComputedStyle(section).paddingTop) || 0
+      const target = Math.max(floor, (visible - copy.offsetHeight) / 2)
+      runway = Math.max(0, Math.round(copy.offsetTop - target))
+      runwayEl.style.height = runway + 'px'
+    }
+
+    const apply = () => {
+      const height = section.offsetHeight
+      const scroll = Math.min(Math.max(window.scrollY, 0), runway + height)
+      const cover = Math.max(0, scroll - runway) / height
+      setCopyY(-Math.min(scroll, runway) - cover * height * DRIFT)
+      setDim(cover * DIM_MAX)
+      nav.style.top = -scroll + 'px'
+    }
+
+    reset = () => {
+      runwayEl.style.height = ''
+      nav.style.top = ''
+      gsap.set([copy, dim], { clearProps: 'transform,opacity' })
+    }
+
+    // The runway changes the page's height, so it has to be in place before
+    // ScrollTrigger measures anything below it — refreshInit runs first on
+    // every refresh (resize, load, fonts). The explicit refresh covers the
+    // triggers other scripts already built against the runway-less page.
+    measure()
+    ScrollTrigger.addEventListener('refreshInit', measure)
+    trigger = ScrollTrigger.create({
+      start: 0,
+      end: () => runway + section.offsetHeight,
+      onUpdate: apply,
+      onRefresh: apply,
+    })
+    ScrollTrigger.refresh()
+    // The headline's height depends on the display face; a late font swap
+    // can rewrap it and move where the copy rests.
+    document.fonts?.ready.then(() => trigger && ScrollTrigger.refresh())
   })
 
   onPageUnload(() => {
-    tween?.scrollTrigger?.kill()
-    tween?.revert()
-    tween = null
+    if (measure) ScrollTrigger.removeEventListener('refreshInit', measure)
+    trigger?.kill()
+    reset?.()
+    trigger = measure = reset = null
   })
 </script>

@@ -270,21 +270,6 @@ const ogImageUrl =
               </a>
             </p>
             <p class="mt-1 text-body-sm">Portuguese number with regular cost</p>
-            <p class="mt-4 text-body-sm text-neutral-600" data-partner-line>
-              <span class="transition-opacity" data-partner-text>Communication Partner of </span><a
-                href="https://www.startupbraga.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-neutral-900 transition-opacity"
-                data-partner-link
-              >Startup Braga</a><span class="transition-opacity" data-partner-text> and </span><a
-                href="https://portotechhub.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-neutral-900 transition-opacity"
-                data-partner-link
-              >Porto Tech Hub</a>
-            </p>
           </address>
 
           <ul class="flex flex-col items-start gap-2 lg:items-end">
@@ -306,36 +291,62 @@ const ogImageUrl =
         </div>
 
         {
-          /* Three groups side by side don't fit until well past `sm`, so
-             below lg they take two rows: © and "back to top" share the
-             first (both short), the two policies get the second. */
-        }
-        <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-4 border-t border-line-subtle pt-8 lg:flex lg:items-center lg:justify-between">
-          <div class="flex items-center gap-2 text-body text-neutral-900">
-            <span>© {new Date().getFullYear()} FES Agency</span>
-            {
-              /* Current locale only. This used to read "EN / PT" with the
-                 inactive half at 40% opacity, which measured 2.37:1 against
-                 the footer's white — an axe failure on all 21 pages — while
-                 pointing at a PT translation that doesn't exist. Dropped
-                 rather than recoloured: a disabled-looking label for a
-                 locale you can't reach is a promise the site doesn't keep,
-                 and the contrast question only exists because of it.
+          /* Below lg the bar takes three rows: © and "back to top" share the
+             first (both short), the two policies get the second, the partner
+             line the third. From lg it is one row of four items spread with
+             equal gaps (justify-between): © + EN, the policies, the partner
+             line, "back to top". Equal gaps rather than three columns with a
+             centred middle, which left "back to top" ~380px from its
+             neighbour at 1440. The four items need ~840px, so the gaps are
+             ~46px at 1024 and ~180px at 1440.
 
-                 Restore the pair when PT lands, as a real switcher (two
-                 links, the inactive one at a colour that passes 4.5:1 —
-                 neutral-500 or darker, not an opacity). */
-            }
-            <span class="uppercase">en</span>
+             The row is the footer's footnote, so it is neutral-600 (the
+             lightest grey that still passes 4.5:1 on white); only the two
+             partner names are neutral-900. All text-body-sm. */
+        }
+        <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-4 border-t border-line-subtle pt-6 lg:flex lg:items-center lg:justify-between lg:gap-x-8">
+          <div class="contents">
+            <div class="flex items-center gap-2 whitespace-nowrap text-body-sm text-neutral-600">
+              <span>© {new Date().getFullYear()} FES Agency</span>
+              {
+                /* Current locale only. This used to read "EN / PT" with the
+                   inactive half at 40% opacity, which measured 2.37:1 against
+                   the footer's white — an axe failure on all 21 pages — while
+                   pointing at a PT translation that doesn't exist. Dropped
+                   rather than recoloured: a disabled-looking label for a
+                   locale you can't reach is a promise the site doesn't keep,
+                   and the contrast question only exists because of it.
+
+                   Restore the pair when PT lands, as a real switcher (two
+                   links, the inactive one at a colour that passes 4.5:1 —
+                   neutral-500 or darker, not an opacity). */
+              }
+              <span class="uppercase">en</span>
+            </div>
+            <div class="col-span-2 row-start-2 flex items-center gap-6 whitespace-nowrap text-body-sm lg:col-span-1 lg:row-start-auto">
+              <a href="/privacy-policy/" class="text-neutral-600 transition-opacity hover:opacity-40">Privacy Policy</a>
+              <a href="/cookies-policy/" class="text-neutral-600 transition-opacity hover:opacity-40">Cookies Policy</a>
+            </div>
           </div>
-          <div class="col-span-2 row-start-2 flex items-center gap-6 text-body">
-            <a href="/privacy-policy/" class="text-neutral-900 transition-opacity hover:opacity-40">Privacy Policy</a>
-            <a href="/cookies-policy/" class="text-neutral-900 transition-opacity hover:opacity-40">Cookies Policy</a>
-          </div>
+          <p class="col-span-2 row-start-3 text-body-sm text-neutral-600 lg:col-span-1 lg:row-start-auto lg:whitespace-nowrap" data-partner-line>
+            <span class="transition-opacity" data-partner-text>Communication Partner of </span><a
+              href="https://www.startupbraga.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="whitespace-nowrap text-neutral-900 transition-opacity"
+              data-partner-link
+            >Startup Braga</a><span class="transition-opacity" data-partner-text> and </span><a
+              href="https://portotechhub.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="whitespace-nowrap text-neutral-900 transition-opacity"
+              data-partner-link
+            >Porto Tech Hub</a>
+          </p>
           <button
             type="button"
             data-back-to-top
-            class="col-start-2 row-start-1 text-right text-body text-neutral-900 transition-opacity hover:opacity-40"
+            class="col-start-2 row-start-1 whitespace-nowrap text-right text-body-sm text-neutral-600 transition-opacity hover:opacity-40 lg:col-start-auto lg:row-start-auto"
           >
             back to top
           </button>

@@ -216,8 +216,16 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAA
 
 <script>
   import { onPageLoad } from '../../lib/lifecycle'
+  import { setAwayTitle } from '../../lib/awayTitle'
 
   type Field = HTMLInputElement | HTMLTextAreaElement
+
+  // Only true once something is typed; an empty form has no draft to mention.
+  setAwayTitle('Draft still open', () =>
+    Array.from(
+      document.querySelectorAll<Field>('[data-contact-form] :is([name="name"], [name="email"], [name="message"])'),
+    ).some((field) => field.value.trim() !== ''),
+  )
 
   const MESSAGES = {
     name: 'Please tell us your name.',

@@ -1970,3 +1970,119 @@ request.
 
 **Reopen if:** the mark changes — regenerate the ICO with the rest of the set
 (§63's reopen condition now covers this file too).
+
+### 74. Four pages change their tab title while in a background tab
+
+**Decided:** `src/lib/awayTitle.ts` swaps `document.title` while the tab is
+hidden and restores it on return, on four pages only (Marcelo, 2026-10-06):
+
+| Page | Background title |
+|---|---|
+| `/` | Right where you left it |
+| `/contact/` | Draft still open (only once a field has text) |
+| `/contact/thank-you/` | Already in our inbox |
+| `/404` | Still nowhere, apparently |
+
+**Why:** a small detail, not a retention tactic. The copy states what is
+true about the page instead of asking the visitor to come back, and avoids
+fake urgency. Systems, Blueprints and Projects keep their real
+titles: those are the pages that sell, and someone with ten tabs open finds
+FES again by reading the title. The contact line is conditional because an
+empty form has no draft, and it ignores Turnstile's hidden token input, which
+always has a value. A `pagehide` flag skips the swap during navigation, so the
+history entry being left keeps its real title.
+
+**Reopen if:** a fifth page asks for one (at that point it is a pattern, not
+a detail), or screen-reader feedback reports the title change being announced.
+
+### 75. Footer bottom bar carries the partner line, at one size and one grey; Facebook dropped
+
+**Decided:** (Marcelo, 2026-10-08) the "Communication Partner of Startup Braga
+and Porto Tech Hub" line moved out of the address column into the bottom bar.
+From `lg` the bar is one row of four items spread with equal gaps
+(`justify-between`): © + EN, the two policies, the partner line, "back to
+top". Below `lg` it is three rows: © / back to top, the policies, the partner
+line. Every item is `text-body-sm` (it was `text-body` for all but the partner
+line) and `neutral-600`; only the two partner names stay `neutral-900`. The
+gap from the divider to the text is `pt-6` (24px, was 32px). Facebook is
+removed from `socialItems`, so it is gone from the footer, the mobile menu and
+the Organization `sameAs` in the structured data.
+
+**Why:** a first pass used three columns with the partner line centred, which
+left "back to top" ~380px from its neighbour at 1440 and made the row read as
+arbitrary. Four equal gaps fix that: 180px at 1440, 51px at 1024 (measured),
+so no custom breakpoint is needed. `neutral-600` (#64666A, ~5.7:1 on white) is
+the lightest grey that passes 4.5:1; the row is a footnote to the 17px links
+above it, and the partner names being the only dark text is deliberate: they
+are the credit. Each partner name is `whitespace-nowrap` so "Hub" is never
+stranded on a phone. Footer height at 390×664 is 628px (§62 recorded 641px),
+so the mobile reveal still runs; at 320×568 it stays static, as before.
+Removing Facebook from `sameAs` too was an explicit choice: the page is no
+longer claimed as an FES profile.
+
+**Reopen if:** a fifth item joins the bar (re-measure at 1024 and at 390×664),
+the PT locale switcher returns (it adds width to the first item), or the
+Facebook page is revived (re-add the line in `nav.ts`; it returns to all
+three places at once).
+
+### 76. The homepage hero copy rises to the middle before the page covers it
+
+**Decided:** a transparent runway (`[data-hero-runway]`, a sibling after the
+sticky hero) delays the cover by exactly the distance the copy needs to travel
+from its resting place at the bottom of the hero to the centre of the visible
+viewport. Across that runway the copy moves up 1:1 with the scroll while the
+background holds. The next section then covers it as before, with no pause.
+The nav scrolls away 1:1 throughout. The copy's centre stop is floored at the
+section's top padding, for phones where the copy is taller than half the
+screen. Measured: runway 109px at 1024×768, 195px at 375×812. Under reduced
+motion and without JS the runway is 0, which is the hero as it was.
+
+**Why:** visitors reported trying to scroll the headline up to read it and
+losing it instead. The copy sat at the bottom of the hero, which is exactly
+where the incoming section arrives first, so on mobile the lead was being
+covered after about 64px of scroll. The 6% drift was nowhere near fast enough
+to outrun it. Starting the copy centred was rejected (it departs from the Figma
+composition). The runway is a sibling, not a wrapper, because the hero's sticky
+range is its parent. It is not a ScrollTrigger pin either, for decision #9's
+reason. The nav moves by `top`, not a transform, because a transform would
+break AnimatedLogo's blend. Decision #25's `isCovered` now adds the runway.
+
+**Reopen if:** the hero copy's position or size changes a lot (the runway
+derives itself, but re-check the hold on a short phone), a pause between rise
+and cover is wanted, or reduced-motion visitors report the original problem.
+They still get the old behaviour.
+
+### 77. Mobile hero: no white fade at the bottom, and Safari's toolbar is handled in CSS
+
+**Decided:** (Marcelo, 2026-10-08) two changes to the homepage hero below `lg`:
+
+1. The 48px eased white fade at the bottom of the hero is gone, with nothing
+   in its place. The seam between the hero and the sheet that covers it is a
+   plain straight edge plus the existing dim. Rounded top corners on the
+   sheet (20px, below `lg`) were tried and rejected on device the same day:
+   Selected projects must not read as a rounded card. The hero's bottom
+   padding is the gutter at every width (it was `4rem` below `lg`, a floor
+   that existed only because of the fade).
+2. The inline script that measured `innerHeight` against `visualViewport` and
+   wrote `--hero-vh` / `--hero-chrome` on every resize is replaced by CSS:
+   the hero is `height: 100lvh`, and `--hero-chrome` is
+   `calc(100lvh - 100svh)`, registered with `@property` as a `<length>` so the
+   runway script (#76) can read it back as px. Floor is
+   `min(45rem, 100lvh)`.
+
+**Why:** with #76 the copy rises away from the bottom before anything covers
+it, so the fade no longer protected anything, and it cost the mobile layout
+52px of padding. `lvh`/`svh` are static units, so they don't have the
+first-paint "unsettled" problem that ruled out `dvh`, and they ignore the
+on-screen keyboard and desktop pinch-zoom, which removes the pointer-type
+split and the 25% keyboard clamp the script needed. Desktop is unchanged
+(`lvh = svh`, chrome 0, the fade was already `lg:hidden`). Runway at 375×812
+went from 195px to 247px, exactly the padding removed. Checked on an iPhone
+with iOS 26 Safari: at rest, with the toolbar expanded, the lead's last line
+clears the toolbar.
+
+**Reopen if:** a later iOS changes how the floating toolbar counts toward the
+small viewport and the lead goes behind it. Then restore the measuring script
+from git history (`Hero.astro`, the inline `setHeroVh()` block). Also reopen
+if the straight edge between the hero and Safari's light toolbar strip is
+judged too hard. The fade used to blend the two.

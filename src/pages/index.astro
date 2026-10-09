@@ -265,7 +265,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
       data-reveal="items"
     >
       <div>
-        <SectionLabel>Our Impact</SectionLabel>
+        <SectionLabel>Our Numbers</SectionLabel>
         <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-7" data-reveal-each>
           <dl class="grid grid-cols-2 gap-x-7 lg:col-span-4" data-stats-cycle data-paused>
             {stats.map((s, i) => <StatBlock variant="minimal" value={s.value} label={s.label} active={i === 0} />)}
@@ -589,8 +589,10 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
   import { ScrollTrigger } from 'gsap/ScrollTrigger'
   import { createDragCarousel } from '../lib/dragCarousel'
   import { setNavInk } from '../lib/fixedNav'
+  import { setAwayTitle } from '../lib/awayTitle'
 
   gsap.registerPlugin(ScrollTrigger)
+  setAwayTitle('Right where you left it')
 
   function setupDarkInversion() {
     const zone = document.querySelector<HTMLElement>('[data-invert-zone]')
