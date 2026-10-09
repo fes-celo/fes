@@ -15,6 +15,7 @@
 import { Image } from 'astro:assets'
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import FixedNav from '../../components/FixedNav.astro'
+import StickyHero from '../../components/StickyHero.astro'
 import Heading from '../../components/Heading.astro'
 import SectionLabel from '../../components/SectionLabel.astro'
 import LogoMarquee from '../../components/LogoMarquee.astro'
@@ -104,7 +105,8 @@ const pillars = [
   bordered
 >
   <FixedNav ink="dark" fallbackInk="dark" />
-  <section class="sticky top-0 z-0 flex h-screen min-h-[min(45rem,100svh)] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-white px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[var(--space-gutter)]">
+  <StickyHero bgClass="bg-white">
+    <Fragment slot="background">
     <Image
       src={heroLight}
       alt=""
@@ -112,13 +114,14 @@ const pillars = [
       height={1440}
       class="pointer-events-none absolute inset-0 size-full object-cover"
     />
+    </Fragment>
 
     {
       /* No z-index on this nav: it would make it a stacking context, and
          AnimatedLogo's multiply blend would composite against transparency
          instead of the photo. DOM order already paints it above the image. */
     }
-    <nav aria-label="Primary" class="relative">
+    <nav slot="nav" aria-label="Primary" class="relative">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
           <AnimatedLogo />
@@ -144,15 +147,14 @@ const pillars = [
       </div>
     </nav>
 
-    <div class="relative z-10" data-hero-copy>
+    <Fragment>
       <Heading as="h1" indent={false} class="text-display text-balance text-ink" data-anim="split-text">We close the gaps other agencies leave open</Heading>
       <p class="mt-7 max-w-[51.25rem] text-lead text-neutral-950" data-anim="reveal">
         Ten years inside Portugal's tech ecosystem, spent making sure PR, brand, digital and events never work as
         separate pieces.
       </p>
-    </div>
-  </section>
-  <div data-hero-runway aria-hidden="true"></div>
+    </Fragment>
+  </StickyHero>
 
   <section class="relative z-10 bg-surface pt-[var(--space-gutter)]" data-anim="reveal">
     {
@@ -358,11 +360,4 @@ const pillars = [
 
   onPageLoad(init)
   onPageUnload(teardown)
-</script>
-
-<script>
-  // Copy rises to the middle before the page covers the sticky hero.
-  import { bindHeroRunway } from '../../lib/heroRunway'
-
-  bindHeroRunway()
 </script>

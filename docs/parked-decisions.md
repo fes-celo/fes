@@ -2098,7 +2098,7 @@ from git history (`Hero.astro`, the inline `setHeroVh()` block). Also reopen
 if the straight edge between the hero and Safari's light toolbar strip is
 judged too hard. The fade used to blend the two.
 
-### 77. The pinned Menu button runs on ten more pages, and works out its ink by hit-testing
+### 78. The pinned Menu button runs on ten more pages, and works out its ink by hit-testing
 
 **Decided:** `FixedNav` is now on Agency, Careers, Systems, Creative Projects
 Blueprint, Tech Refresh, the three Blueprint sub-pages, Digital Communication
@@ -2148,3 +2148,63 @@ the reveal zone hands over correctly.
 **Reopen if:** a new dark element sits under the button's path on a page
 with a fallback (mark it), or a page with an unmarked script-driven zone like
 the homepage's gains a fallback (the fallback would override the zone).
+
+### 79. The sticky-hero rise is CSS sticky, not a scroll handler
+
+**Decided:** `StickyHero.astro` now owns the layout of all six sticky heroes
+(homepage, Agency, Careers, Systems, CPB hub, Tech Refresh). It is one flex
+column, 2×H + R tall and pulled up by H:
+- the background is `sticky`
+- the nav scrolls in flow
+- the copy is `sticky` at a measured stop line
+- an empty tail of R + H keeps both stuck until the next section has covered
+  them
+
+`lib/heroRunway.ts` only measures: R and the stop line, written as
+`--hero-runway` and `--hero-copy-top` on every ScrollTrigger refresh. Nothing
+moves an element on a scroll frame, except the homepage's dim and drift during
+the cover (opacity and a small transform, both composited).
+
+This replaces §76's mechanism, a ScrollTrigger `onUpdate` that translated the
+copy and set the nav's `top` every frame. §76's behaviour is unchanged:
+measured at 375×812 and 1280×800 on all six pages, the copy rises 1:1, sticks
+centred, and the next section arrives exactly when it stops.
+
+**Why:** reported as heavy lag on mobile and in Safari. There were three
+causes:
+- **Threaded scrolling.** iOS and macOS Safari scroll on their own thread, so
+  anything JS repositions to follow the scroll lands at least a frame behind
+  it. The copy trailed the finger, and no amount of JS tuning fixes that.
+- **Forced layout every frame.** The nav's `top` write was followed by
+  `offsetHeight` reads in the next frame. The homepage shader's scroll
+  handler read `offsetHeight` too, so it forced a synchronous layout on every
+  scroll event.
+- **Expensive repaints.** Each of those layouts repainted AnimatedLogo's
+  blended video, which is costly in Safari.
+
+Sticky positioning is resolved by the compositor in step with the scroll, and
+the nav in flow costs nothing.
+
+**What it changed elsewhere:**
+- **Clipping.** The section clips with `overflow-x: clip`, never
+  `overflow: hidden`, which would make it a scroll container and stop the
+  sticky children. Without any clip, AnimatedLogo's video (to x=565 on a
+  375px phone) widened the layout viewport and pushed the fixed Menu button
+  off-screen.
+- **Careers' trail** listens for the pointer on the whole section, because
+  the copy and nav are now siblings of its layer, not children.
+- **§25's shader gate** is now the hero's height minus the background's.
+- **Reduced motion.** The rise is now ordinary scrolling, so it runs under
+  reduced motion too. That closes the gap §76 left open (those visitors used
+  to keep the original problem). The dim and drift are still skipped.
+- **Without JS**, R is 0 and `top: auto` doesn't stick, so the copy just
+  scrolls up as the hero is covered.
+
+**Not measured:** frame timings on a real iPhone or in Safari. The diagnosis
+comes from how threaded scrolling works and from the code, not from a
+profile. Check on a device before closing the report.
+
+**Reopen if:** a hero needs its copy to stop somewhere other than the centre
+(change `measure` in `heroRunway.ts`), or the sub-pages move from dvh to lvh.
+With dvh, the iOS toolbar resizing H still reflows the page as it shows and
+hides, as it did before this change.

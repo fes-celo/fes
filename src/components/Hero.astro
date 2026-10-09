@@ -58,6 +58,7 @@
 import { navItems, isNavActive } from '../lib/nav'
 import Heading from './Heading.astro'
 import AnimatedLogo from './AnimatedLogo.astro'
+import StickyHero from './StickyHero.astro'
 ---
 
 {
@@ -82,18 +83,21 @@ import AnimatedLogo from './AnimatedLogo.astro'
      --hero-chrome is registered as a <length> (see <style>) so its computed
      value is plain px, which the runway script reads back.
 
-     The floor is min(45rem, 100lvh), never a bare 45rem: below 1440px the
-     root size is a flat 16px, so 45rem is a hard 720px, and a section
-     taller than the screen parks the bottom-anchored copy past the fold,
-     where overflow-hidden eats it and no scroll recovers it (the section is
-     sticky). iOS page zoom and any phone in landscape land under 720. Above
-     1440 global.css section 5 already keeps 45rem <= viewport height. */
+     There is no min-height floor any more. It was min(45rem, 100lvh) — never
+     a bare 45rem, which parked the bottom-anchored copy past the fold on
+     short screens — and with the box now exactly 100lvh it was a no-op.
+     Layout and scroll behaviour live in StickyHero. */
 }
-<section
-  data-nav-ink="light"
-  class="sticky top-0 z-0 flex min-h-[min(45rem,100lvh)] w-full flex-col justify-between overflow-hidden px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
-  style={`height: 100lvh; --hero-chrome: calc(100lvh - 100svh); background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);`}
+<StickyHero
+  unit="lvh"
+  ink="light"
+  style="--hero-chrome: calc(100lvh - 100svh)"
+  bgStyle="background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);"
+  copyClass="mb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"
+  dimMax={0.6}
+  drift={0.06}
 >
+  <Fragment slot="background">
   {
     /* The section's own CSS gradient (above) stays the bottom layer: the
        shader's colorBack is transparent, so it composites over this rather
@@ -129,6 +133,8 @@ import AnimatedLogo from './AnimatedLogo.astro'
   >
   </div>
 
+  </Fragment>
+
   {
     /*
       The logo lives here, in flow, at every width — it scrolls away with
@@ -147,7 +153,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
        logo until the h1's line entrance (0.15s + 0.9s + stagger, after
        fonts — motion.ts SPLIT) has landed, so the two never compete. */
   }
-  <nav aria-label="Primary" class="relative">
+  <nav slot="nav" aria-label="Primary" class="relative">
     <div class="flex items-start justify-between gap-6">
       <a href="/" class="shrink-0">
         <AnimatedLogo variant="light" delay={1400} />
@@ -173,7 +179,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
     </div>
   </nav>
 
-  <div class="relative z-10" data-hero-copy>
+  <Fragment>
     {
       /* No max-width: the headline wraps at the gutter, per brand direction
          that hero titles run the full measure of the page. It previously
@@ -195,7 +201,7 @@ import AnimatedLogo from './AnimatedLogo.astro'
       We help startups, tech companies and disruptive businesses effectively communicate their brand and their
       people.
     </p>
-  </div>
+  </Fragment>
 
   {
     /* Depth cue for the sticky hero: the page slides up over it, and this
@@ -206,19 +212,8 @@ import AnimatedLogo from './AnimatedLogo.astro'
        filter, so nothing underneath repaints. Driven by the script below;
        at rest (and without JS) it's fully transparent. */
   }
-  <div data-hero-dim aria-hidden="true" class="pointer-events-none absolute inset-0 z-20 bg-neutral-950 opacity-0">
-  </div>
-</section>
-{
-  /* The runway: transparent scroll distance between the hero and the first
-     section that covers it, so the copy can rise from the bottom of the hero
-     to the middle of the screen before anything slides over it. A sibling,
-     not a wrapper — the hero's sticky range is its parent, and a wrapper
-     ending would carry the hero off-screen instead of letting the page cover
-     it. Height is written by the recede script below; it stays 0 without JS
-     and under reduced motion, which is the hero as it was. */
-}
-<div data-hero-runway aria-hidden="true"></div>
+  <div slot="overlay" data-hero-overlay aria-hidden="true" class="pointer-events-none bg-neutral-950 opacity-0"></div>
+</StickyHero>
 
 <style>
   /* Registered so the computed value is resolved px rather than the
@@ -375,10 +370,12 @@ import AnimatedLogo from './AnimatedLogo.astro'
   // every frame of the whole homepage scroll, under content that hides it.
   // Speed 0 halts the library's rAF loop outright, so covered means no GPU
   // work at all; the frame counter simply resumes where it stopped.
-  function isCovered(section: HTMLElement) {
-    // The runway (see the markup) delays the cover by its own height.
-    const runway = document.querySelector<HTMLElement>('[data-hero-runway]')?.offsetHeight ?? 0
-    return window.scrollY >= section.offsetHeight + runway
+  function isCovered(bg: HTMLElement) {
+    // Covered once the next section's top reaches the viewport top. The
+    // hero box is 2H + R tall and pulled up by H (see StickyHero), so that
+    // happens at its own height minus the background's.
+    const hero = bg.parentElement
+    return !!hero && window.scrollY >= hero.offsetHeight - bg.offsetHeight
   }
 
   // Held across client-side navigations so returning to the homepage reuses
@@ -592,20 +589,4 @@ import AnimatedLogo from './AnimatedLogo.astro'
     start()
   })
   onPageUnload(teardown)
-</script>
-
-<script>
-  // Rise-then-cover, shared with every sticky hero — see lib/heroRunway.ts.
-  // Only the homepage carries the dim layer and the drift.
-  import { bindHeroRunway } from '../lib/heroRunway'
-
-  bindHeroRunway({
-    // Darkness at full cover. The footer caps at 0.85 on its way in; the
-    // hero is leaving rather than arriving, so it stops well short of that —
-    // by the time it would matter, the hero is almost entirely covered.
-    dimMax: 0.6,
-    // The footer's -6% drift, mirrored, so the copy recedes rather than sits
-    // pinned under the incoming sheet.
-    drift: 0.06,
-  })
 </script>

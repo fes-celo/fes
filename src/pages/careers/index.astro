@@ -36,6 +36,7 @@
 import { Image } from 'astro:assets'
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import FixedNav from '../../components/FixedNav.astro'
+import StickyHero from '../../components/StickyHero.astro'
 import Heading from '../../components/Heading.astro'
 import SectionIntro from '../../components/SectionIntro.astro'
 import TestimonialCard from '../../components/TestimonialCard.astro'
@@ -134,7 +135,8 @@ const alumniFeedback = [
   bordered
 >
   <FixedNav ink="light" fallbackInk="dark" />
-  <section data-nav-ink="light" class="sticky top-0 z-0 flex h-screen min-h-[min(45rem,100svh)] supports-[height:100dvh]:h-dvh w-full flex-col justify-between overflow-hidden bg-neutral-950 px-[var(--space-gutter)] pt-[var(--space-gutter)] pb-16 lg:pb-[var(--space-gutter)]">
+  <StickyHero bgClass="bg-neutral-950" ink="light">
+    <Fragment slot="background">
     {
       /* Cursor image trail (see the file-level note above for the photo
          source and the <script> below for the animation). Sits above the
@@ -146,8 +148,9 @@ const alumniFeedback = [
       data-cursor-trail
       data-trail-images={JSON.stringify(trailImages)}
     ></div>
+    </Fragment>
 
-    <nav aria-label="Primary" class="relative z-10">
+    <nav slot="nav" aria-label="Primary" class="relative z-10">
       <div class="flex items-start justify-between gap-6">
         <a href="/" class="shrink-0">
           <Logo variant="light" class="h-[var(--nav-logo-h)] w-auto" />
@@ -173,7 +176,7 @@ const alumniFeedback = [
       </div>
     </nav>
 
-    <div class="relative z-10" data-hero-copy>
+    <Fragment>
       {
         /* Runs the full width of the gutter, like every other hero title —
            see the note in Hero.astro. Previously capped at max-w-[39.75rem],
@@ -186,9 +189,8 @@ const alumniFeedback = [
         Ten years inside Portugal's tech ecosystem, spent making sure PR, brand, digital and events never work as
         separate pieces.
       </p>
-    </div>
-  </section>
-  <div data-hero-runway aria-hidden="true"></div>
+    </Fragment>
+  </StickyHero>
 
   <section class="relative z-10 bg-surface px-[var(--space-gutter)] py-[var(--space-section-y)]" data-anim="reveal">
     <SectionIntro eyebrow="What is FES?" eyebrowSize="text-body">
@@ -458,6 +460,11 @@ const alumniFeedback = [
     // nested block.
     if (!root.parentElement) return null
     const hero: HTMLElement = root.parentElement
+    // Pointer events go to the whole StickyHero section: the nav and copy are
+    // its children, siblings of this background layer, so a cursor over the
+    // headline never reaches the layer itself. Rects still come from the
+    // layer — it's the sticky, viewport-sized box the trail is drawn in.
+    const pointerArea: HTMLElement = hero.closest<HTMLElement>('[data-sticky-hero]') ?? hero
 
     // Reduced motion gets a gentler version rather than nothing (see the
     // fade-only branch in spawn() below) — matching LogoMarquee.astro's
@@ -478,8 +485,8 @@ const alumniFeedback = [
     // leaves the viewport — it's the next section scrolling over it that
     // hides it. Once that section's top reaches the viewport top the hero is
     // fully covered, and anything spawned there would only surface through
-    // a later section mid-fade (parked-decisions §64). heroCover skips the
-    // transparent runway in between (§76).
+    // a later section mid-fade (parked-decisions §64). heroCover finds it
+    // from the StickyHero section this layer lives in (§79).
     const cover = heroCover(hero)
     function isHeroUncovered() {
       return !cover || cover.getBoundingClientRect().top > 0
@@ -635,8 +642,8 @@ const alumniFeedback = [
         accumulated = 0
       }
 
-      hero.addEventListener('mouseenter', onEnter)
-      hero.addEventListener('mousemove', onMove)
+      pointerArea.addEventListener('mouseenter', onEnter)
+      pointerArea.addEventListener('mousemove', onMove)
 
       // Scroll fallback: the hero is `position: sticky`, so its own
       // bounding rect barely moves while it's pinned — reacting to the
@@ -677,8 +684,8 @@ const alumniFeedback = [
       window.addEventListener('scroll', onScroll, { passive: true })
 
       return () => {
-        hero.removeEventListener('mouseenter', onEnter)
-        hero.removeEventListener('mousemove', onMove)
+        pointerArea.removeEventListener('mouseenter', onEnter)
+        pointerArea.removeEventListener('mousemove', onMove)
         window.removeEventListener('scroll', onScroll)
         clearActive()
       }
@@ -851,11 +858,4 @@ const alumniFeedback = [
 
   onPageLoad(init)
   onPageUnload(teardown)
-</script>
-
-<script>
-  // Copy rises to the middle before the page covers the sticky hero.
-  import { bindHeroRunway } from '../../lib/heroRunway'
-
-  bindHeroRunway()
 </script>

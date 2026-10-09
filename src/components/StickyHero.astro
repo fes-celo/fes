@@ -1,0 +1,152 @@
+---
+/**
+ * The full-viewport hero that later sections slide over (parked-decisions
+ * §76, §79). Used by the homepage, Agency, Careers, Systems, Creative
+ * Projects Blueprint and Tech Refresh.
+ *
+ * Three things happen as the page scrolls, and the browser does all three
+ * natively — nothing here moves an element from JS on a scroll frame:
+ *
+ *   1. The background holds still (`position: sticky`).
+ *   2. The nav scrolls away and the copy rises with the page, in flow, until
+ *      the copy reaches the middle of the visible screen, where it sticks.
+ *   3. The next section arrives and covers both.
+ *
+ * Phase 2 used to be a scroll handler translating the copy and moving the
+ * nav's `top` every frame. On iOS and macOS Safari the page scrolls on its
+ * own thread, so anything JS repositions to follow the scroll lands a frame
+ * or more behind it — the copy visibly trailed the finger — and the `top`
+ * write forced a layout (and a repaint of AnimatedLogo's blended video) on
+ * every frame. Sticky positioning is resolved by the compositor, in sync.
+ *
+ * Layout, as one flex column of height 2×H + R (H the hero height, R the
+ * runway the copy travels before it sticks), pulled up by H at the bottom so
+ * the next section starts at H + R and its cover begins once the copy has
+ * stopped:
+ *
+ *   bg     sticky, H tall, with -H margin so it takes no space
+ *   nav    in flow at the top, scrolls away
+ *   copy   sticky at --hero-copy-top, pushed to the bottom of the first H
+ *          by margin-top: auto against the tail
+ *   overlay  optional (the homepage dim): sticky, H tall, -H margin
+ *   tail   R + H of empty flow, which is what keeps bg and copy stuck
+ *          through the whole cover
+ *
+ * The sticky range of an element is its parent, which is why bg and copy
+ * both live in this one tall box rather than in separate wrappers: a wrapper
+ * ending early would carry them off-screen instead of letting the page cover
+ * them. The section clips with `overflow-x: clip`, never `overflow: hidden`:
+ * hidden makes an element a scroll container and sticky children stop
+ * sticking, while clip only clips. It's needed — AnimatedLogo's video runs
+ * far past the logo's own box (measured: to x=565 on a 375px phone), which
+ * the old overflow-hidden section used to swallow; unclipped, it widened
+ * the layout viewport and pushed the fixed Menu button off-screen.
+ *
+ * R and the stop line depend on the copy's own height, which CSS can't
+ * read, so lib/heroRunway.ts measures them on load, resize and font load
+ * and writes --hero-runway / --hero-copy-top. Without JS both are unset: R
+ * is 0 and `top: auto` doesn't stick, so the copy simply scrolls up as the
+ * next section covers the hero — the old cover timing, still readable.
+ *
+ * No z-index on the nav wrapper: it would make it a stacking context, and
+ * AnimatedLogo's blend would composite against transparency instead of the
+ * background. The section is the stacking context they share.
+ */
+import type { NavInk } from '../lib/fixedNav'
+
+interface Props {
+  /** Which viewport unit sizes the hero. The homepage uses lvh (see Hero.astro). */
+  unit?: 'lvh' | 'dvh'
+  /** Background colour / extra classes for the sticky background layer. */
+  bgClass?: string
+  bgStyle?: string
+  /** Bottom spacing under the copy at rest. */
+  copyClass?: string
+  /** Extra custom properties on the section (the homepage's --hero-chrome). */
+  style?: string
+  ink?: NavInk
+  /** Homepage only: dim layer opacity at full cover, and the copy's drift. */
+  dimMax?: number
+  drift?: number
+}
+
+const {
+  unit = 'dvh',
+  bgClass,
+  bgStyle,
+  copyClass = 'mb-16 lg:mb-[var(--space-gutter)]',
+  style,
+  ink,
+  dimMax,
+  drift,
+} = Astro.props
+---
+
+<section
+  data-sticky-hero
+  data-unit={unit}
+  data-nav-ink={ink}
+  data-dim-max={dimMax}
+  data-drift={drift}
+  class="sticky-hero relative z-0 flex w-full flex-col"
+  style={style}
+>
+  <div data-hero-bg class:list={['sticky-hero__bg sticky top-0 flex-none overflow-hidden', bgClass]} style={bgStyle}>
+    <slot name="background" />
+  </div>
+  <div data-hero-nav class="relative flex-none px-[var(--space-gutter)] pt-[var(--space-gutter)]">
+    <slot name="nav" />
+  </div>
+  <div data-hero-copy class:list={['sticky-hero__copy flex-none px-[var(--space-gutter)]', copyClass]}>
+    <slot />
+  </div>
+  <slot name="overlay" />
+  <div class="sticky-hero__tail flex-none" aria-hidden="true"></div>
+</section>
+
+<style>
+  .sticky-hero {
+    --hero-h: 100vh;
+    height: calc(2 * var(--hero-h) + var(--hero-runway, 0px));
+    margin-bottom: calc(-1 * var(--hero-h));
+    overflow-x: clip;
+  }
+  @supports (height: 100dvh) {
+    .sticky-hero[data-unit='dvh'] {
+      --hero-h: 100dvh;
+    }
+  }
+  .sticky-hero[data-unit='lvh'] {
+    --hero-h: 100lvh;
+  }
+
+  .sticky-hero__bg,
+  .sticky-hero :global([data-hero-overlay]) {
+    position: sticky;
+    top: 0;
+    flex: none;
+    height: var(--hero-h);
+  }
+  .sticky-hero__bg {
+    margin-bottom: calc(-1 * var(--hero-h));
+  }
+  .sticky-hero :global([data-hero-overlay]) {
+    margin-top: calc(-1 * var(--hero-h));
+  }
+
+  .sticky-hero__copy {
+    position: sticky;
+    top: var(--hero-copy-top, auto);
+    margin-top: auto;
+  }
+
+  .sticky-hero__tail {
+    height: calc(var(--hero-runway, 0px) + var(--hero-h));
+  }
+</style>
+
+<script>
+  import { bindStickyHero } from '../lib/heroRunway'
+
+  bindStickyHero()
+</script>
