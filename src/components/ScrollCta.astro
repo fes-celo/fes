@@ -1,6 +1,6 @@
 ---
 /**
- * "15 minutes. Your challenge, our take." chip — position: fixed, shown and
+ * "30 minutes. Your challenge, our take." chip — position: fixed, shown and
  * hidden by two IntersectionObservers keyed off page-specific elements
  * (originally the homepage's Selected Work → Testimonials handoff; now
  * reused on the Systems pages, keyed off "Our approach" → "Selected
@@ -43,10 +43,10 @@ const { showSelector, hideSelector } = Astro.props as Props
   }
   <div class="flex max-w-full items-center gap-2 rounded-lg bg-neutral-100 p-2 shadow-[var(--shadow-card-hover)]">
     <span class="min-w-0 px-3.5 py-3 text-body text-accent-950 sm:whitespace-nowrap">
-      15 minutes. Your challenge, our take.
+      30 minutes. Your challenge, our take.
     </span>
     {
-      /* Straight to the booking page, not /contact/: the chip promises "15
+      /* Straight to the booking page, not /contact/: the chip promises "30
          minutes", and a form that lands in an inbox can't deliver that —
          it needs a reply before anything is booked. The contact form is
          still the route for everything that isn't a call.

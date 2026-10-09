@@ -294,7 +294,7 @@ const ogImageUrl =
           /* Below lg the bar takes three rows: © and "back to top" share the
              first (both short), the two policies get the second, the partner
              line the third. From lg it is one row of four items spread with
-             equal gaps (justify-between): © + EN, the policies, the partner
+             equal gaps (justify-between): ©, the policies, the partner
              line, "back to top". Equal gaps rather than three columns with a
              centred middle, which left "back to top" ~380px from its
              neighbour at 1440. The four items need ~840px, so the gaps are
@@ -307,21 +307,13 @@ const ogImageUrl =
         <div class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-4 border-t border-line-subtle pt-6 lg:flex lg:items-center lg:justify-between lg:gap-x-8">
           <div class="contents">
             <div class="flex items-center gap-2 whitespace-nowrap text-body-sm text-neutral-600">
-              <span>© {new Date().getFullYear()} FES Agency</span>
               {
-                /* Current locale only. This used to read "EN / PT" with the
-                   inactive half at 40% opacity, which measured 2.37:1 against
-                   the footer's white — an axe failure on all 21 pages — while
-                   pointing at a PT translation that doesn't exist. Dropped
-                   rather than recoloured: a disabled-looking label for a
-                   locale you can't reach is a promise the site doesn't keep,
-                   and the contrast question only exists because of it.
-
-                   Restore the pair when PT lands, as a real switcher (two
-                   links, the inactive one at a colour that passes 4.5:1 —
-                   neutral-500 or darker, not an opacity). */
+                /* No locale label until PT exists. "EN / PT" with a dimmed PT
+                   failed contrast (2.37:1) and pointed at a missing
+                   translation. Restore as a real switcher when PT lands: two
+                   links, the inactive one neutral-500 or darker, no opacity. */
               }
-              <span class="uppercase">en</span>
+              <span>© {new Date().getFullYear()} FES Agency</span>
             </div>
             <div class="col-span-2 row-start-2 flex items-center gap-6 whitespace-nowrap text-body-sm lg:col-span-1 lg:row-start-auto">
               <a href="/privacy-policy/" class="text-neutral-600 transition-opacity hover:opacity-40">Privacy Policy</a>
