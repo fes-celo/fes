@@ -265,7 +265,7 @@ const testimonials: { quote: string; name: string; role: string; tag?: string }[
       data-reveal="items"
     >
       <div>
-        <SectionLabel>Our Numbers</SectionLabel>
+        <SectionLabel>Our numbers</SectionLabel>
         <div class="mt-[var(--space-heading-gap)] grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-7" data-reveal-each>
           <dl class="grid grid-cols-2 gap-x-7 lg:col-span-4" data-stats-cycle data-paused>
             {stats.map((s, i) => <StatBlock variant="minimal" value={s.value} label={s.label} active={i === 0} />)}
