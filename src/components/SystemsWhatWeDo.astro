@@ -37,6 +37,9 @@ const cards = [
     description: 'Communication built to generate demand, build trust, and turn attention into opportunity.',
     base: digitalCommunication,
     overlay: isDark ? digitalCommOverlayDark : null,
+    // The swirl's lower half is close to the section's own background, so the
+    // card's bottom edge dissolves into the page. Darken it there.
+    scrim: isDark,
   },
   {
     href: '/systems/influence-reputation/',
@@ -103,6 +106,7 @@ const cards = [
               title={c.title}
               image={c.base}
               overlay={c.overlay}
+              scrim={c.scrim}
               variant="dark"
               class="h-[22rem] lg:h-[26.1875rem]"
             >

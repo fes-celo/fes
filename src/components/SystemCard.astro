@@ -55,11 +55,13 @@ interface Props {
   title: string
   image: ImageMetadata
   overlay?: ImageMetadata | null
+  /** Black eased fade up from the card's bottom edge, for art whose lower half is too close to the page background. */
+  scrim?: boolean
   variant?: 'dark' | 'light'
   class?: string
 }
 
-const { href, title, image, overlay = null, variant = 'dark', class: className } = Astro.props
+const { href, title, image, overlay = null, scrim = false, variant = 'dark', class: className } = Astro.props
 const isDark = variant === 'dark'
 ---
 
@@ -102,6 +104,7 @@ const isDark = variant === 'dark'
       />
     )
   }
+  {scrim && <div class="sys-card-scrim" aria-hidden="true" />}
 
   <h3 class:list={['sys-card-title relative z-10 font-medium', isDark ? 'text-white' : 'text-ink']}>
     {title}
@@ -135,6 +138,29 @@ const isDark = variant === 'dark'
 
   .sys-card--light {
     --sys-card-rule: var(--color-ink);
+  }
+
+  /* A plain two-stop linear-gradient has a visible "start" line where the
+     slope changes abruptly. These nine stops sample an ease-in-out sine
+     curve (alpha = max × (1 − cos πt) / 2, max 0.9), so the fade eases in
+     from nothing and eases out into near-black. */
+  .sys-card-scrim {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 65%;
+    pointer-events: none;
+    background: linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0) 0%,
+      rgb(0 0 0 / 0.034) 12.5%,
+      rgb(0 0 0 / 0.132) 25%,
+      rgb(0 0 0 / 0.278) 37.5%,
+      rgb(0 0 0 / 0.45) 50%,
+      rgb(0 0 0 / 0.622) 62.5%,
+      rgb(0 0 0 / 0.768) 75%,
+      rgb(0 0 0 / 0.866) 87.5%,
+      rgb(0 0 0 / 0.9) 100%
+    );
   }
 
   .sys-card-title {
