@@ -2208,3 +2208,21 @@ profile. Check on a device before closing the report.
 (change `measure` in `heroRunway.ts`), or the sub-pages move from dvh to lvh.
 With dvh, the iOS toolbar resizing H still reflows the page as it shows and
 hides, as it did before this change.
+
+### 73. Three pages from the live WordPress sitemap added to the redirect map
+
+**Decided (Marcelo, 2026-10-14):** every URL in the old site's sitemaps
+(129, from `/en/{page,projects,articles,services,types}-sitemap.xml`) was
+requested against the `.workers.dev` preview. 125 resolved; of the four
+404s, `/en/landing-page/` was already `RETIRE` (§71) and three had never
+been in the CSV, because the GSC export the map was built from recorded no
+impressions for them. They are now rows: `/en/agencia-de-comunicacao-no-porto/`
+→ `/`, `/en/multimedia-services/` → Podcast & Video Series, and
+`/en/thank-you/` → `RETIRE`.
+
+**Why:** zero impressions is not zero inbound links; a bookmark or an old
+email signature can still point at them, and a 301 costs nothing.
+
+**Reopen if:** Search Console shows other old URLs 404ing after cutover.
+Re-run the same sweep against the live sitemap before WordPress is
+switched off, while it can still be fetched.
