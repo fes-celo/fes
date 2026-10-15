@@ -2341,3 +2341,32 @@ again: drop `edgeStrip` from `index.astro`. `--space-gutter` and the
 `StickyHero` prop are inert without it. If it holds, extend it to the other
 `FixedNav` pages (§78) with `edgeColor` on any hero whose background isn't
 a plain colour.
+
+### 82. The homepage hero copy no longer drifts during the cover
+
+**Decided (Marcelo, 2026-10-15):** `Hero.astro` drops `drift={0.06}`. The
+copy rises with the page, sticks at `--hero-copy-top`, and stays exactly
+there while Selected projects covers it. The dim layer (`dimMax={0.6}`)
+stays. `heroRunway.ts` still supports `drift`, but no page sets it.
+
+**Why:** on an iPhone the hero's title and lead jittered right where they
+stick. That is where the cover timeline begins, and `drift` was a
+GSAP-scrubbed `translateY` on the copy. Safari scrolls on its own thread
+and a JS-driven transform lands a frame or more behind it. That is §79's
+reason for moving the rise to CSS sticky, and the drift was the one
+exception left, on the same element. Before the cover the copy was moved
+only by the compositor, so the jitter began exactly at the stick point. The
+dim is opacity: a frame's lag on it doesn't read as movement. It was first
+suspected to come from §81's edge strip, but that does no DOM work and no
+writes until 450px, after the stick point.
+
+**Checked:** in the dev preview at 375×812, the copy's top stays at 259px
+(`--hero-copy-top`) from the stick point through the cover, with
+`transform: none`, and the dim still rises (0.19 at 500px, 0.34 at 700px).
+**Not checked:** an iPhone.
+
+**Reopen if:** the jitter is still there on device. Then it isn't the drift.
+Look at the sticky copy itself against Safari's collapsing toolbar,
+because `--hero-copy-top` is a px value measured once. Also reopen if the
+held copy reads as too static. A drift brought back would have to be CSS
+(`animation-timeline: scroll()`) for the reason above, not a scrub.

@@ -17,9 +17,12 @@
  * the page. Reduced motion doesn't skip this: the rise is ordinary scrolling,
  * not animation.
  *
- * The homepage's dim layer and drift (StickyHero's dimMax / drift) are the
- * only scroll-linked JS left, and only during the cover: opacity and a small
- * transform, both composited, and both skipped under reduced motion.
+ * The homepage's dim layer (StickyHero's dimMax) is the only scroll-linked
+ * JS in use, and only during the cover: opacity, composited, skipped under
+ * reduced motion. `drift` still works but no page sets it: a scrubbed
+ * transform on the copy trails Safari's threaded scroll by a frame, and on
+ * an iPhone that showed as jitter right where the copy sticks
+ * (parked-decisions §82).
  */
 import { onPageLoad, onPageUnload } from './lifecycle'
 import { gsap, ScrollTrigger } from './sectionMotion'
