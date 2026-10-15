@@ -15,9 +15,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site)
 const ogImageURL = new URL(ogImage, Astro.site)
 // Suffix the brand unless the title already carries it. The guard used to
 // be `title === 'FES Agency'`, an exact match written when the homepage's
-// title was literally that; once it became "FES Agency — Communications for
+// title was literally that; once it became "FES Agency · Communications for
 // Portuguese tech" the guard stopped matching and the homepage shipped
-// "FES Agency — Communications for Portuguese tech · FES Agency". Testing
+// "FES Agency · Communications for Portuguese tech · FES Agency". Testing
 // for containment instead fixes it for any page that leads with the brand,
 // which is the only reason a title would ever want to.
 const siteTitle = title.includes('FES Agency') ? title : `${title} · FES Agency`
