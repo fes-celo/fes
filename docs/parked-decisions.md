@@ -2254,178 +2254,32 @@ in `dist/` because `public/` is edited in Finder.
 stakeholder review. Gate the hook on an env var then, rather than shipping
 it to production again.
 
-### 81. Homepage pilot: Safari's toolbar and status bar follow the section behind them
+### 81. Tried and reverted: Safari edge tinting and the mobile hero copy changes
 
-**Decided (Marcelo, 2026-10-15):** after reading Josh Puckett's "Seamless
-Mobile Safari", the homepage gets its technique. iOS 26 Safari colours its
-floating toolbar from a solid `position: fixed` element at the bottom edge,
-and its status bar from `theme-color`. `BaseLayout` takes an `edgeStrip`
-prop that:
+**Decided (Marcelo, 2026-10-15):** six commits from that day are reverted
+in full (`3751dab` … `dd3aee6`). The homepage is back to `47fd2e8`.
 
-- renders `#edge-strip`, a `pointer-events: none`, `aria-hidden` block,
-  `height: max(12px, env(safe-area-inset-bottom))`, as a direct child of
-  `<body>` (a GSAP-transformed ancestor would make `fixed` relative to it);
-- adds `viewport-fit=cover` to that page's viewport meta, which the tint
-  needs;
-- runs `lib/edgeStrip.ts`. It measures every `section` in `<main>` up
-  front (document range and colour) on load, on resize and whenever
-  `<main>` changes height. A scroll frame is then plain arithmetic on
-  `scrollY` against that table, with no DOM reads. The section under the
-  bottom edge colours the strip. The section under the top edge colours
-  `theme-color` and the `<html>` background. A colour is written only when
-  a section boundary crosses an edge.
+What was tried, so it isn't tried again blind:
 
-At a point the section latest in document order wins. That makes it the
-innermost of nested sections, and the one that slides over the sticky
-hero. Below `<main>` is the footer. A section's colour is its
-`data-edge-color`, else the first opaque `background-color` from it up to
-`<body>`. Cards and fixed layers are never sections, so they can't take
-over. The invert-zone's flip is caught by a `background-color`
-`transitionend`, which re-reads the colours and repaints only when one
-actually changed. The homepage hero declares `edgeColor="#1A0F66"` through
-`StickyHero`, sampled from an iPhone screenshot of the live shader.
-`--space-gutter` is now
-`max(clamp(…), env(safe-area-inset-left), env(safe-area-inset-right))`
-sitewide. Without `viewport-fit=cover` the insets are 0 and nothing changes.
-With it, a phone in landscape keeps every edge clear of the notch.
+- **Edge tinting** (after Josh Puckett's "Seamless Mobile Safari"): a fixed
+  strip at the foot of the viewport, `viewport-fit=cover`, and
+  `theme-color` plus the `<html>` background synced to the section at the
+  top. It worked as a colour match: the toolbar followed the dark stats,
+  the white sections and the hero on an iPhone. **Reverted mainly because**
+  a solid strip hides the hero's own background behind Safari's floating
+  toolbar. §77's `100lvh` hero exists to let the shader show through there.
+- **The hero copy jittered on an iPhone where it sticks** (§79's rise).
+  Taking out the copy's GSAP drift did not fix it. Taking out the scrubbed
+  dim did not fix it. Holding the copy centred and stuck from the first
+  pixel on mobile did not fix it either. All three were reverted with the
+  strip.
 
-**Why:** this is the "reopen if" in §77: the hard edge between the dark hero
-and Safari's light toolbar strip. Matching the toolbar fixes it without
-bringing the white fade back. Per-frame rather than IntersectionObserver
-because the invert-zone changes colour without crossing anything.
+**Not established:** whether the jitter predates that day or came with
+`viewport-fit=cover`. All of these ran with the strip on, so that variable
+was never isolated. If the jitter is still there at `47fd2e8`, it belongs
+to §79's sticky hero. If it is gone, `viewport-fit=cover` was the likely
+cause.
 
-**First device pass (same day) found three bugs, all fixed in the second:**
-
-1. *A white hairline blinked above the hero while scrolling.* The status
-   bar was the static `theme-color` `#151617` over a `#1A0F66` hero, and the
-   light canvas showed through a sub-pixel gap between the two (`#656283`
-   in the screenshot). Fixed by syncing `theme-color` and the html
-   background to the top section, so the gap shows the same colour as both
-   sides. The first pass had left the top alone on the article's word that
-   Safari ignores `theme-color` in tabs. On iOS 26 it does not.
-2. *The strip stayed light over the dark stats.* The Book-a-call bar
-   (ScrollCta) is fixed but rendered inside `<main>`, and the probe hit it.
-   Elements in a `position: fixed` layer are now skipped.
-3. *The strip went blue under the Liliana CTA card, whose section is
-   white.* The card carries its own `data-nav-ink`, and the first pass
-   treated `data-nav-ink` marks as sections. They are the Menu button's
-   ink marks and sit on cards too, so resolution now starts at the nearest
-   `section` and the marks play no part.
-
-The first hero colour, `#3125AF`, was taken from `hero-still-mobile.webp`.
-The live shader is far darker, so a device screenshot is the reference now.
-
-**Second device pass (same day): the hero's title, lead and top edge
-stuttered on scroll.** The second pass hit-tested (`elementsFromPoint`) and
-read computed styles on every scroll frame. Through the cover it also
-rewrote `theme-color` on every frame, because the top colour was mixed
-with the hero's live dim opacity. The forced style and layout work, and
-Safari repainting its status bar each frame, showed as jumps in the hero.
-The third pass is the cached table above. The dim mix is gone: the top
-stays `#1A0F66` through the whole cover, and only the strip's own
-boundary writes happen.
-
-**Checked:** in the dev preview at 375×812. A sweep from 0 to 1300px
-through the hero makes exactly two writes: the strip turns white at 450px
-when Selected projects arrives, and `theme-color` turns white at 1300px
-when the hero leaves the top. Before, a write came on every frame. The
-other cases: hero at rest (both edges `#1a0f66`), the dark stats with the
-Book-a-call bar showing (bottom `#151617`), the Liliana CTA with the card
-and then the white margin at the probe (both `#ffffff`), and the footer
-(`#ffffff`). `npm run build` passes. **Not checked:** a real iPhone after
-the third pass.
-
-**Reopen if:** anything is still off on device after the third pass. The
-agreed fallback (Marcelo, 2026-10-15) is to remove it rather than iterate
-again: drop `edgeStrip` from `index.astro`. `--space-gutter` and the
-`StickyHero` prop are inert without it. If it holds, extend it to the other
-`FixedNav` pages (§78) with `edgeColor` on any hero whose background isn't
-a plain colour.
-
-### 82. The homepage hero copy no longer drifts during the cover
-
-**Decided (Marcelo, 2026-10-15):** `Hero.astro` drops `drift={0.06}`. The
-copy rises with the page, sticks at `--hero-copy-top`, and stays exactly
-there while Selected projects covers it. The dim layer (`dimMax={0.6}`)
-stays. `heroRunway.ts` still supports `drift`, but no page sets it.
-
-**Why:** on an iPhone the hero's title and lead jittered right where they
-stick. That is where the cover timeline begins, and `drift` was a
-GSAP-scrubbed `translateY` on the copy. Safari scrolls on its own thread
-and a JS-driven transform lands a frame or more behind it. That is §79's
-reason for moving the rise to CSS sticky, and the drift was the one
-exception left, on the same element. Before the cover the copy was moved
-only by the compositor, so the jitter began exactly at the stick point. The
-dim is opacity: a frame's lag on it doesn't read as movement. It was first
-suspected to come from §81's edge strip, but that does no DOM work and no
-writes until 450px, after the stick point.
-
-**Checked:** in the dev preview at 375×812, the copy's top stays at 259px
-(`--hero-copy-top`) from the stick point through the cover, with
-`transform: none`, and the dim still rises (0.19 at 500px, 0.34 at 700px).
-**Not checked:** an iPhone.
-
-**Reopen if:** the jitter is still there on device. Then it isn't the drift.
-Look at the sticky copy itself against Safari's collapsing toolbar,
-because `--hero-copy-top` is a px value measured once. Also reopen if the
-held copy reads as too static. A drift brought back would have to be CSS
-(`animation-timeline: scroll()`) for the reason above, not a scrub.
-
-**Test, same day: the dim is off too.** With the drift gone, the copy
-still jittered at the stick point on an iPhone. The scrubbed dim was the
-last JS writing on every frame of the cover, and the cover begins at the
-stick point. Safari resolves `position: sticky` on its scrolling thread,
-and a per-frame visual change from the main thread forces a layer sync
-each frame against a scroll position that is already behind. That fits a
-sticky element that jitters only while the dim runs. `Hero.astro` drops
-`dimMax={0.6}`. `heroRunway.ts` now starts the timeline only for a real
-`dimMax`; before, the overlay element alone was enough, and it would have
-scrubbed opacity 0 → 0 every frame. In the dev preview there are now zero
-attribute writes anywhere in the hero from 500px to 900px of scroll, and
-the copy holds at 259px with `transform: none`.
-
-**Read the result as:** jitter gone means the cause was main-thread
-writes during the cover. Then bring the dim back as CSS
-(`animation-timeline: scroll()`), with no GSAP. Jitter still there means
-it isn't JS in the hero at all. The next isolation test is §81's
-`viewport-fit=cover` (turn `edgeStrip` off), then §79's sticky copy
-itself.
-
-**Result of the test:** the jitter stayed with the dim off as well, so
-neither the drift nor the dim was the cause, and the dim is back
-(`dimMax={0.6}`). The `dimMax` guard in `heroRunway.ts` stays: it costs
-nothing and stops a pointless timeline. What's left is the stick point
-itself, the moment the copy goes from rising to stuck. §83 removes it on
-mobile.
-
-### 83. Mobile homepage hero: the copy rests centred and never moves
-
-**Decided (Marcelo, 2026-10-15):** below `lg` the homepage hero's title and
-lead start centred in the visible screen (the same stop line §79 used,
-`(H − chrome − copy) / 2`, floored at the gutter). They are held there from
-the first pixel of scroll. There is no rise and no runway, and Selected
-projects covers them straight away. Desktop keeps the rise. The opt-in is
-StickyHero's `centered` prop. `heroRunway.ts` gives the copy an inline
-`margin-bottom` that puts its resting top on the stop line, so it is
-stuck from scroll 0 and the runway works out to 0. Only the homepage sets
-the prop. The other five StickyHero pages are unchanged.
-
-**Why:** after the drift (§82) and then the dim were taken out, the copy
-still jittered on an iPhone where it sticks, with no JS writing anything
-in the hero. The hero's background is also `position: sticky` and was
-never reported jittering. The difference is that the background is stuck
-from the start, while the copy switched from moving to stuck mid-scroll.
-Making the copy behave like the background removes that switch.
-Marcelo's suggestion.
-
-**Checked:** in the dev preview at 375×812, the copy's top is 259px at
-scroll 0, 100, 250, 450 and 700, `--hero-runway` is 0, and the dim rises
-(0.07 → 0.52). At 1440×900 nothing changes: runway 308px and no inline
-margin. `npm run build` passes. **Not checked:** an iPhone.
-
-**Reopen if:** it still jitters on device. The copy is then never moving
-relative to the screen, so the cause would be Safari repositioning sticky
-layers in general (the background would show it too), or §81's
-`viewport-fit=cover`. Turning `edgeStrip` off is the next test. Also
-reopen if the other StickyHero pages show the same stick-point jitter:
-they can opt into `centered`.
+**Reopen if:** the toolbar tint is wanted again. Then it has to leave the
+hero bare (no strip while the hero is behind the toolbar), and it needs
+the jitter question above answered first.

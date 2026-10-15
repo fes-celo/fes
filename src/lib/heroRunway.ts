@@ -17,12 +17,9 @@
  * the page. Reduced motion doesn't skip this: the rise is ordinary scrolling,
  * not animation.
  *
- * The homepage's dim layer (StickyHero's dimMax) is the only scroll-linked
- * JS in use, and only during the cover: opacity, composited, skipped under
- * reduced motion. `drift` still works but no page sets it: a scrubbed
- * transform on the copy trails Safari's threaded scroll by a frame, and on
- * an iPhone that showed as jitter right where the copy sticks
- * (parked-decisions §82).
+ * The homepage's dim layer and drift (StickyHero's dimMax / drift) are the
+ * only scroll-linked JS left, and only during the cover: opacity and a small
+ * transform, both composited, and both skipped under reduced motion.
  */
 import { onPageLoad, onPageUnload } from './lifecycle'
 import { gsap, ScrollTrigger } from './sectionMotion'
@@ -45,26 +42,15 @@ export function bindStickyHero(): void {
     if (!section || !bg || !nav || !copy) return
 
     let runway = 0
-    // StickyHero's `centered` (§83): below lg the copy rests at the stop
-    // line itself, so it is stuck from the first pixel of scroll — exactly
-    // like the background — and never switches from moving to stuck. That
-    // switch is where it jittered on an iPhone, with no JS running at all.
-    const centered = section.hasAttribute('data-centered') ? window.matchMedia('(width < 64rem)') : null
 
     measure = () => {
       const height = bg.offsetHeight
       const chrome = parseFloat(getComputedStyle(section).getPropertyValue('--hero-chrome')) || 0
       const floor = parseFloat(getComputedStyle(nav).paddingTop) || 0
-      const stop = Math.round(Math.max(floor, (height - chrome - copy.offsetHeight) / 2))
-      if (centered?.matches) {
-        // Inline, so it beats the copyClass margin; rest == stop, runway 0.
-        copy.style.marginBottom = Math.max(0, height - stop - copy.offsetHeight) + 'px'
-      } else {
-        copy.style.removeProperty('margin-bottom')
-      }
       // The resting top is derived, not read: a sticky element's offsetTop
       // includes however far it is currently stuck.
       const rest = height - (parseFloat(getComputedStyle(copy).marginBottom) || 0) - copy.offsetHeight
+      const stop = Math.round(Math.max(floor, (height - chrome - copy.offsetHeight) / 2))
       runway = Math.max(0, Math.round(rest - stop))
       section.style.setProperty('--hero-copy-top', stop + 'px')
       section.style.setProperty('--hero-runway', runway + 'px')
@@ -75,10 +61,7 @@ export function bindStickyHero(): void {
 
     const dimMax = Number(section.dataset.dimMax) || 0
     const drift = Number(section.dataset.drift) || 0
-    // The overlay element alone doesn't start the timeline: without a dimMax
-    // it would still scrub opacity 0 → 0, a style write on every frame of
-    // the cover for nothing (parked-decisions §82).
-    const dim = dimMax ? section.querySelector<HTMLElement>('[data-hero-overlay]') : null
+    const dim = section.querySelector<HTMLElement>('[data-hero-overlay]')
     if ((dim || drift) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       cover = gsap.timeline({
         scrollTrigger: {
