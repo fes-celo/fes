@@ -70,6 +70,12 @@ interface Props {
   /** Homepage only: dim layer opacity at full cover, and the copy's drift. */
   dimMax?: number
   drift?: number
+  /**
+   * Below `lg`, the copy rests centred in the visible screen and is held
+   * there from the first pixel of scroll: no rise, no runway, the next
+   * section simply covers it (parked-decisions §83). Homepage only.
+   */
+  centered?: boolean
 }
 
 const {
@@ -82,6 +88,7 @@ const {
   edgeColor,
   dimMax,
   drift,
+  centered = false,
 } = Astro.props
 ---
 
@@ -92,6 +99,7 @@ const {
   data-edge-color={edgeColor}
   data-dim-max={dimMax}
   data-drift={drift}
+  data-centered={centered ? '' : undefined}
   class="sticky-hero relative z-0 flex w-full flex-col"
   style={style}
 >

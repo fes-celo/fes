@@ -45,15 +45,26 @@ export function bindStickyHero(): void {
     if (!section || !bg || !nav || !copy) return
 
     let runway = 0
+    // StickyHero's `centered` (§83): below lg the copy rests at the stop
+    // line itself, so it is stuck from the first pixel of scroll — exactly
+    // like the background — and never switches from moving to stuck. That
+    // switch is where it jittered on an iPhone, with no JS running at all.
+    const centered = section.hasAttribute('data-centered') ? window.matchMedia('(width < 64rem)') : null
 
     measure = () => {
       const height = bg.offsetHeight
       const chrome = parseFloat(getComputedStyle(section).getPropertyValue('--hero-chrome')) || 0
       const floor = parseFloat(getComputedStyle(nav).paddingTop) || 0
+      const stop = Math.round(Math.max(floor, (height - chrome - copy.offsetHeight) / 2))
+      if (centered?.matches) {
+        // Inline, so it beats the copyClass margin; rest == stop, runway 0.
+        copy.style.marginBottom = Math.max(0, height - stop - copy.offsetHeight) + 'px'
+      } else {
+        copy.style.removeProperty('margin-bottom')
+      }
       // The resting top is derived, not read: a sticky element's offsetTop
       // includes however far it is currently stuck.
       const rest = height - (parseFloat(getComputedStyle(copy).marginBottom) || 0) - copy.offsetHeight
-      const stop = Math.round(Math.max(floor, (height - chrome - copy.offsetHeight) / 2))
       runway = Math.max(0, Math.round(rest - stop))
       section.style.setProperty('--hero-copy-top', stop + 'px')
       section.style.setProperty('--hero-runway', runway + 'px')

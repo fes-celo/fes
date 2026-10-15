@@ -2390,3 +2390,42 @@ writes during the cover. Then bring the dim back as CSS
 it isn't JS in the hero at all. The next isolation test is §81's
 `viewport-fit=cover` (turn `edgeStrip` off), then §79's sticky copy
 itself.
+
+**Result of the test:** the jitter stayed with the dim off as well, so
+neither the drift nor the dim was the cause, and the dim is back
+(`dimMax={0.6}`). The `dimMax` guard in `heroRunway.ts` stays: it costs
+nothing and stops a pointless timeline. What's left is the stick point
+itself, the moment the copy goes from rising to stuck. §83 removes it on
+mobile.
+
+### 83. Mobile homepage hero: the copy rests centred and never moves
+
+**Decided (Marcelo, 2026-10-15):** below `lg` the homepage hero's title and
+lead start centred in the visible screen (the same stop line §79 used,
+`(H − chrome − copy) / 2`, floored at the gutter). They are held there from
+the first pixel of scroll. There is no rise and no runway, and Selected
+projects covers them straight away. Desktop keeps the rise. The opt-in is
+StickyHero's `centered` prop. `heroRunway.ts` gives the copy an inline
+`margin-bottom` that puts its resting top on the stop line, so it is
+stuck from scroll 0 and the runway works out to 0. Only the homepage sets
+the prop. The other five StickyHero pages are unchanged.
+
+**Why:** after the drift (§82) and then the dim were taken out, the copy
+still jittered on an iPhone where it sticks, with no JS writing anything
+in the hero. The hero's background is also `position: sticky` and was
+never reported jittering. The difference is that the background is stuck
+from the start, while the copy switched from moving to stuck mid-scroll.
+Making the copy behave like the background removes that switch.
+Marcelo's suggestion.
+
+**Checked:** in the dev preview at 375×812, the copy's top is 259px at
+scroll 0, 100, 250, 450 and 700, `--hero-runway` is 0, and the dim rises
+(0.07 → 0.52). At 1440×900 nothing changes: runway 308px and no inline
+margin. `npm run build` passes. **Not checked:** an iPhone.
+
+**Reopen if:** it still jitters on device. The copy is then never moving
+relative to the screen, so the cause would be Safari repositioning sticky
+layers in general (the background would show it too), or §81's
+`viewport-fit=cover`. Turning `edgeStrip` off is the next test. Also
+reopen if the other StickyHero pages show the same stick-point jitter:
+they can opt into `centered`.
