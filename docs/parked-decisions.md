@@ -2254,54 +2254,71 @@ in `dist/` because `public/` is edited in Finder.
 stakeholder review. Gate the hook on an env var then, rather than shipping
 it to production again.
 
-### 81. Homepage pilot: a bottom edge strip tints Safari's toolbar to the section behind it
+### 81. Homepage pilot: Safari's toolbar and status bar follow the section behind them
 
 **Decided (Marcelo, 2026-10-15):** after reading Josh Puckett's "Seamless
-Mobile Safari", the homepage gets a bottom-only version of its technique.
-iOS 26 Safari colours its floating toolbar from a solid `position: fixed`
-element at the bottom edge, so `BaseLayout` takes an `edgeStrip` prop that:
+Mobile Safari", the homepage gets its technique. iOS 26 Safari colours its
+floating toolbar from a solid `position: fixed` element at the bottom edge,
+and its status bar from `theme-color`. `BaseLayout` takes an `edgeStrip`
+prop that:
 
 - renders `#edge-strip`, a `pointer-events: none`, `aria-hidden` block,
   `height: max(12px, env(safe-area-inset-bottom))`, as a direct child of
   `<body>` (a GSAP-transformed ancestor would make `fixed` relative to it);
 - adds `viewport-fit=cover` to that page's viewport meta, which the tint
   needs;
-- runs `lib/edgeStrip.ts`, which hit-tests a line just above the strip on
-  every scroll frame and paints it, in order: the `[data-nav-ink]` zone's
-  `data-edge-color`, else the first opaque `background-color` from the
-  nearest `section` / `footer` / zone outwards (stopping short of `<main>`),
-  else the zone's ink (light ink → neutral-950, otherwise canvas).
+- runs `lib/edgeStrip.ts`. On every scroll frame it reads the colour of the
+  section at a line just above the strip and paints the strip with it. It
+  reads the section at the top of the viewport and writes that colour to
+  `theme-color` and to the `<html>` background.
 
-The homepage hero declares `edgeColor="#3125AF"` through `StickyHero`: the
-average of the bottom 4% of `hero-still-mobile.webp`, since a shader and a
-gradient report no computed colour. `--space-gutter` is now
+A point's colour is its section's: the first element at the point inside
+`<main>` or the footer and not in a fixed layer, then `data-edge-color` on
+a marked ancestor (mixed with the hero's live dim-layer opacity), else the
+first opaque `background-color` from the nearest `section`/`footer` up to
+`<body>`. The homepage hero declares `edgeColor="#1A0F66"` through
+`StickyHero`, sampled from an iPhone screenshot of the live shader.
+`--space-gutter` is now
 `max(clamp(…), env(safe-area-inset-left), env(safe-area-inset-right))`
-sitewide; without `viewport-fit=cover` the insets are 0 and nothing changes,
-and with it a phone in landscape keeps every edge clear of the notch.
-
-Left out on purpose: the article's top strip and `theme-color` syncing.
-Safari ignores `theme-color` in ordinary tabs, and the problem reported was
-only at the bottom.
+sitewide. Without `viewport-fit=cover` the insets are 0 and nothing changes.
+With it, a phone in landscape keeps every edge clear of the notch.
 
 **Why:** this is the "reopen if" in §77: the hard edge between the dark hero
 and Safari's light toolbar strip. Matching the toolbar fixes it without
-bringing the white fade back. Resolution starts at the section, not the
-element at the probe, because the first pass let the What we do cards
-(`#262628`) steer the toolbar off the section's `#151617` as each scrolled
-past. Per-frame rather than IntersectionObserver because the invert-zone
-changes colour without crossing anything.
+bringing the white fade back. Per-frame rather than IntersectionObserver
+because the invert-zone changes colour without crossing anything.
 
-**Checked:** in the dev preview at 375×812, at 21 scroll positions down the
-page, the resolved colour matched the section on screen each time, and the
-invert-zone was followed through its flip. `npm run build` passes, and the
-strip and `viewport-fit=cover` are only in `dist/index.html`. **Not checked:**
-a real iPhone. Whether Safari picks up the strip, how it looks with the
-toolbar collapsed and expanded, and landscape with the notch all need iOS 26
-Safari on a device.
+**First device pass (same day) found three bugs, all fixed in the second:**
 
-**Reopen if:** on device the toolbar doesn't follow the strip (remove the
-prop from `index.astro`; nothing else depends on it), the hero's purple
-reads wrong against the live shader (change `edgeColor` in `Hero.astro`), or
-it works and should go to the other `FixedNav` pages (§78). That means
-adding `edgeStrip` to each, plus `edgeColor` on any hero whose background
-isn't a plain colour.
+1. *A white hairline blinked above the hero while scrolling.* The status
+   bar was the static `theme-color` `#151617` over a `#1A0F66` hero, and the
+   light canvas showed through a sub-pixel gap between the two (`#656283`
+   in the screenshot). Fixed by syncing `theme-color` and the html
+   background to the top section, so the gap shows the same colour as both
+   sides. The first pass had left the top alone on the article's word that
+   Safari ignores `theme-color` in tabs. On iOS 26 it does not.
+2. *The strip stayed light over the dark stats.* The Book-a-call bar
+   (ScrollCta) is fixed but rendered inside `<main>`, and the probe hit it.
+   Elements in a `position: fixed` layer are now skipped.
+3. *The strip went blue under the Liliana CTA card, whose section is
+   white.* The card carries its own `data-nav-ink`, and the first pass
+   treated `data-nav-ink` marks as sections. They are the Menu button's
+   ink marks and sit on cards too, so resolution now starts at the nearest
+   `section` and the marks play no part.
+
+The first hero colour, `#3125AF`, was taken from `hero-still-mobile.webp`.
+The live shader is far darker, so a device screenshot is the reference now.
+
+**Checked:** in the dev preview at 375×812: hero at rest (both edges
+`#1a0f66`), hero half covered (top `#191057`, darkening with the dim), the
+dark stats with the Book-a-call bar showing (bottom `#151617`), and the
+Liliana CTA with the card and then the white margin at the probe (both
+`#ffffff`). `npm run build` passes. **Not checked:** a real iPhone after the
+second pass.
+
+**Reopen if:** anything is still off on device after the second pass. The
+agreed fallback (Marcelo, 2026-10-15) is to remove it rather than iterate
+again: drop `edgeStrip` from `index.astro`. `--space-gutter` and the
+`StickyHero` prop are inert without it. If it holds, extend it to the other
+`FixedNav` pages (§78) with `edgeColor` on any hero whose background isn't
+a plain colour.
