@@ -1,6 +1,9 @@
-# Cloudflare Pages headers. Two concerns live here: the security baseline
-# every response carries, and the cache policy for files served under the
-# name they were authored with (nothing hashed).
+# Static-asset headers, read by Cloudflare Workers Static Assets from the
+# root of dist/ (wrangler.jsonc). They apply to files served from dist/, not
+# to responses the Worker itself builds (/api/contact, /go/booking). Two
+# concerns live here: the security baseline every response carries, and the
+# cache policy for files served under the name they were authored with
+# (nothing hashed).
 
 # ---------- Security baseline, every response ----------
 #

@@ -2226,3 +2226,30 @@ email signature can still point at them, and a 301 costs nothing.
 **Reopen if:** Search Console shows other old URLs 404ing after cutover.
 Re-run the same sweep against the live sitemap before WordPress is
 switched off, while it can still be fetched.
+
+### 80. `/styleguide/` is dev-only, the nav prototype is gone, and `.DS_Store` never uploads
+
+**Decided (Marcelo, 2026-10-15), in a pre-launch sweep of the built site:**
+
+- `src/pages/styleguide/nav-experiments.astro` is deleted. It was the
+  side-by-side prototype behind §44's fixed mobile nav; what shipped lives
+  in `src/lib/fixedNav.ts`, and git history keeps the prototype if it is
+  ever wanted again.
+- `/styleguide/type` still renders under `astro dev` but no longer ships.
+  An `astro:build:done` hook in `astro.config.mjs` (`devOnlyPages`) deletes
+  `dist/styleguide/` after the build. It stays in `NOINDEX_PATHS` too, so
+  the sitemap filter holds even if the hook is ever removed.
+- `public/.assetsignore` keeps `.DS_Store` out of the Worker's asset upload.
+  Wrangler reads that file from the root of the asset directory, which is
+  why it lives in `public/` and not at the repo root.
+
+**Why:** `noindex` kept these pages out of search but not out of reach:
+anyone who guessed `/styleguide/type` could open an internal tool on the
+production domain. Removing the built copy is simpler than moving the page
+out of `src/pages/` and injecting the route in dev, and it leaves the path
+the docs give unchanged. `.DS_Store` files list folder contents and were
+in `dist/` because `public/` is edited in Finder.
+
+**Reopen if:** someone needs the type reference on a preview URL for a
+stakeholder review. Gate the hook on an env var then, rather than shipping
+it to production again.

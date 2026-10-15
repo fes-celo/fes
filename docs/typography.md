@@ -29,6 +29,8 @@ a token. Worth flagging when you see it.
 
 ### 2. The reference page — `/styleguide/type`
 
+Dev server only: the build deletes it from `dist/` (parked-decisions §80).
+
 Every step rendered side by side at the current window width, with its live px
 value, what it's for, and — scanned from source, so it can't go stale — every
 file that uses it. Resize the window to see how each step behaves between

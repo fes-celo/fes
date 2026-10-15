@@ -1,0 +1,9 @@
+# Files in dist/ that `wrangler deploy` must not upload as public assets.
+# Wrangler reads this from the root of the asset directory (dist/), which is
+# why it lives in public/ — Astro copies it there. Gitignore syntax; a bare
+# name matches at any depth. The file itself, _headers and _redirects are
+# already excluded by wrangler.
+
+# Finder metadata: public/ is edited on a Mac, and a .DS_Store lists the
+# folder's file names to anyone who requests it.
+.DS_Store
