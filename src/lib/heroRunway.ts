@@ -64,7 +64,10 @@ export function bindStickyHero(): void {
 
     const dimMax = Number(section.dataset.dimMax) || 0
     const drift = Number(section.dataset.drift) || 0
-    const dim = section.querySelector<HTMLElement>('[data-hero-overlay]')
+    // The overlay element alone doesn't start the timeline: without a dimMax
+    // it would still scrub opacity 0 → 0, a style write on every frame of
+    // the cover for nothing (parked-decisions §82).
+    const dim = dimMax ? section.querySelector<HTMLElement>('[data-hero-overlay]') : null
     if ((dim || drift) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       cover = gsap.timeline({
         scrollTrigger: {

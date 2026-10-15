@@ -2370,3 +2370,23 @@ Look at the sticky copy itself against Safari's collapsing toolbar,
 because `--hero-copy-top` is a px value measured once. Also reopen if the
 held copy reads as too static. A drift brought back would have to be CSS
 (`animation-timeline: scroll()`) for the reason above, not a scrub.
+
+**Test, same day: the dim is off too.** With the drift gone, the copy
+still jittered at the stick point on an iPhone. The scrubbed dim was the
+last JS writing on every frame of the cover, and the cover begins at the
+stick point. Safari resolves `position: sticky` on its scrolling thread,
+and a per-frame visual change from the main thread forces a layer sync
+each frame against a scroll position that is already behind. That fits a
+sticky element that jitters only while the dim runs. `Hero.astro` drops
+`dimMax={0.6}`. `heroRunway.ts` now starts the timeline only for a real
+`dimMax`; before, the overlay element alone was enough, and it would have
+scrubbed opacity 0 → 0 every frame. In the dev preview there are now zero
+attribute writes anywhere in the hero from 500px to 900px of scroll, and
+the copy holds at 259px with `transform: none`.
+
+**Read the result as:** jitter gone means the cause was main-thread
+writes during the cover. Then bring the dim back as CSS
+(`animation-timeline: scroll()`), with no GSAP. Jitter still there means
+it isn't JS in the hero at all. The next isolation test is §81's
+`viewport-fit=cover` (turn `edgeStrip` off), then §79's sticky copy
+itself.
