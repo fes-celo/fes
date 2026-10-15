@@ -33,9 +33,16 @@ interface Props {
    * opt back in. The footer no longer takes a rule either way.
    */
   bordered?: boolean
+  /**
+   * Pilot (parked-decisions §81): a fixed strip at the foot of the viewport,
+   * painted the colour of the section behind it, so iOS 26 Safari tints its
+   * floating toolbar to match. Also turns on `viewport-fit=cover`, which the
+   * tint needs; the gutter absorbs the side insets that come with it.
+   */
+  edgeStrip?: boolean
 }
 
-const { title, description, ogImage, noindex, hideHeader = false, bordered = false } = Astro.props
+const { title, description, ogImage, noindex, hideHeader = false, bordered = false, edgeStrip = false } = Astro.props
 
 const ogImageUrl =
   ogImage && typeof ogImage !== 'string'
@@ -65,7 +72,10 @@ const ogImageUrl =
          the page's own entrance rather than a second one competing with it.
          Nothing to emit here; the config does it. */
     }
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content={`width=device-width, initial-scale=1${edgeStrip ? ', viewport-fit=cover' : ''}`}
+    />
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#151617" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -168,6 +178,13 @@ const ogImageUrl =
     }
 
     <MobileMenu />
+
+    {
+      /* A direct child of <body>, never inside <main> or anything GSAP
+         transforms: a transformed ancestor would make `fixed` relative to
+         it, and Safari would no longer read it as sitting at the edge. */
+      edgeStrip && <div id="edge-strip" aria-hidden="true" />
+    }
 
     {
       /* Carries the page background itself rather than inheriting <body>'s:
@@ -413,6 +430,17 @@ const ogImageUrl =
         [data-partner-link]:not(:hover):not(:focus-visible) {
         opacity: 0.4;
       }
+
+      #edge-strip {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: max(12px, env(safe-area-inset-bottom));
+        background: var(--edge-bottom-background, transparent);
+        pointer-events: none;
+        z-index: 40;
+      }
     </style>
 
     <script>
@@ -424,8 +452,10 @@ const ogImageUrl =
       // pair (see the module itself) — imported here so it runs on every
       // page rather than needing every page to remember to import it.
       import { getLenis } from '../lib/lenis'
+      import { setupEdgeStrip } from '../lib/edgeStrip'
 
       let backToTopHandler: (() => void) | null = null
+      let edgeStripCleanup: (() => void) | null = null
 
       function setupBackToTop() {
         const button = document.querySelector<HTMLButtonElement>('[data-back-to-top]')
@@ -540,6 +570,7 @@ const ogImageUrl =
       function init({ restored }: LoadContext) {
         setupBackToTop()
         setupFooterReveal()
+        edgeStripCleanup = setupEdgeStrip()
         if (import.meta.env.DEV) {
           void import('../lib/typeInspector').then((m) => {
             typeInspector = m
@@ -562,6 +593,8 @@ const ogImageUrl =
       function teardown() {
         teardownBackToTop()
         teardownFooterReveal()
+        edgeStripCleanup?.()
+        edgeStripCleanup = null
         typeInspector?.teardownTypeInspector()
       }
 

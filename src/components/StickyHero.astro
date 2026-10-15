@@ -65,6 +65,8 @@ interface Props {
   /** Extra custom properties on the section (the homepage's --hero-chrome). */
   style?: string
   ink?: NavInk
+  /** Solid colour the bottom edge reads as, for BaseLayout's edge strip (lib/edgeStrip.ts). */
+  edgeColor?: string
   /** Homepage only: dim layer opacity at full cover, and the copy's drift. */
   dimMax?: number
   drift?: number
@@ -77,6 +79,7 @@ const {
   copyClass = 'mb-16 lg:mb-[var(--space-gutter)]',
   style,
   ink,
+  edgeColor,
   dimMax,
   drift,
 } = Astro.props
@@ -86,6 +89,7 @@ const {
   data-sticky-hero
   data-unit={unit}
   data-nav-ink={ink}
+  data-edge-color={edgeColor}
   data-dim-max={dimMax}
   data-drift={drift}
   class="sticky-hero relative z-0 flex w-full flex-col"

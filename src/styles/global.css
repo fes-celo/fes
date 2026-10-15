@@ -360,7 +360,15 @@
     below, whose indent is measured from this margin and so now begins
     further left.
   */
-  --space-gutter: clamp(0.75rem, calc(0.3252rem + 1.8123vw), 3.2249rem); /* 12 → 40 */
+  /* The max() only bites under viewport-fit=cover (BaseLayout's
+     `edgeStrip`, parked-decisions §81): a phone in landscape reports the
+     notch as a side inset, and every edge on the site is this gutter.
+     Without cover the insets are 0 and this is the plain clamp. */
+  --space-gutter: max(
+    clamp(0.75rem, calc(0.3252rem + 1.8123vw), 3.2249rem), /* 12 → 40 */
+    env(safe-area-inset-left, 0px),
+    env(safe-area-inset-right, 0px)
+  );
 
   /*
     Column gap between image tiles — every Selected projects grid and

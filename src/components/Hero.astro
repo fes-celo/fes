@@ -86,11 +86,16 @@ import StickyHero from './StickyHero.astro'
      There is no min-height floor any more. It was min(45rem, 100lvh) — never
      a bare 45rem, which parked the bottom-anchored copy past the fold on
      short screens — and with the box now exactly 100lvh it was a no-op.
-     Layout and scroll behaviour live in StickyHero. */
+     Layout and scroll behaviour live in StickyHero.
+
+     edgeColor #3125AF is the average of the bottom 4% of hero-still-mobile
+     (left #3326B4, middle #3125AF, right #2C20A0), the colour the edge strip
+     paints under Safari's toolbar (parked-decisions §81). */
 }
 <StickyHero
   unit="lvh"
   ink="light"
+  edgeColor="#3125AF"
   style="--hero-chrome: calc(100lvh - 100svh)"
   bgStyle="background: radial-gradient(55% 60% at 28% 38%, #4A40F2 0%, transparent 62%), radial-gradient(50% 55% at 78% 62%, #2E0EB2 0%, transparent 68%), linear-gradient(to right, #4A40F2, #0E004D);"
   copyClass="mb-[calc(var(--space-gutter)_+_var(--hero-chrome,0px))]"

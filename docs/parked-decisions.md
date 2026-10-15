@@ -2253,3 +2253,55 @@ in `dist/` because `public/` is edited in Finder.
 **Reopen if:** someone needs the type reference on a preview URL for a
 stakeholder review. Gate the hook on an env var then, rather than shipping
 it to production again.
+
+### 81. Homepage pilot: a bottom edge strip tints Safari's toolbar to the section behind it
+
+**Decided (Marcelo, 2026-10-15):** after reading Josh Puckett's "Seamless
+Mobile Safari", the homepage gets a bottom-only version of its technique.
+iOS 26 Safari colours its floating toolbar from a solid `position: fixed`
+element at the bottom edge, so `BaseLayout` takes an `edgeStrip` prop that:
+
+- renders `#edge-strip`, a `pointer-events: none`, `aria-hidden` block,
+  `height: max(12px, env(safe-area-inset-bottom))`, as a direct child of
+  `<body>` (a GSAP-transformed ancestor would make `fixed` relative to it);
+- adds `viewport-fit=cover` to that page's viewport meta, which the tint
+  needs;
+- runs `lib/edgeStrip.ts`, which hit-tests a line just above the strip on
+  every scroll frame and paints it, in order: the `[data-nav-ink]` zone's
+  `data-edge-color`, else the first opaque `background-color` from the
+  nearest `section` / `footer` / zone outwards (stopping short of `<main>`),
+  else the zone's ink (light ink → neutral-950, otherwise canvas).
+
+The homepage hero declares `edgeColor="#3125AF"` through `StickyHero`: the
+average of the bottom 4% of `hero-still-mobile.webp`, since a shader and a
+gradient report no computed colour. `--space-gutter` is now
+`max(clamp(…), env(safe-area-inset-left), env(safe-area-inset-right))`
+sitewide; without `viewport-fit=cover` the insets are 0 and nothing changes,
+and with it a phone in landscape keeps every edge clear of the notch.
+
+Left out on purpose: the article's top strip and `theme-color` syncing.
+Safari ignores `theme-color` in ordinary tabs, and the problem reported was
+only at the bottom.
+
+**Why:** this is the "reopen if" in §77: the hard edge between the dark hero
+and Safari's light toolbar strip. Matching the toolbar fixes it without
+bringing the white fade back. Resolution starts at the section, not the
+element at the probe, because the first pass let the What we do cards
+(`#262628`) steer the toolbar off the section's `#151617` as each scrolled
+past. Per-frame rather than IntersectionObserver because the invert-zone
+changes colour without crossing anything.
+
+**Checked:** in the dev preview at 375×812, at 21 scroll positions down the
+page, the resolved colour matched the section on screen each time, and the
+invert-zone was followed through its flip. `npm run build` passes, and the
+strip and `viewport-fit=cover` are only in `dist/index.html`. **Not checked:**
+a real iPhone. Whether Safari picks up the strip, how it looks with the
+toolbar collapsed and expanded, and landscape with the notch all need iOS 26
+Safari on a device.
+
+**Reopen if:** on device the toolbar doesn't follow the strip (remove the
+prop from `index.astro`; nothing else depends on it), the hero's purple
+reads wrong against the live shader (change `edgeColor` in `Hero.astro`), or
+it works and should go to the other `FixedNav` pages (§78). That means
+adding `edgeStrip` to each, plus `edgeColor` on any hero whose background
+isn't a plain colour.
