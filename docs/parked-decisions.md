@@ -2267,16 +2267,22 @@ prop that:
   `<body>` (a GSAP-transformed ancestor would make `fixed` relative to it);
 - adds `viewport-fit=cover` to that page's viewport meta, which the tint
   needs;
-- runs `lib/edgeStrip.ts`. On every scroll frame it reads the colour of the
-  section at a line just above the strip and paints the strip with it. It
-  reads the section at the top of the viewport and writes that colour to
-  `theme-color` and to the `<html>` background.
+- runs `lib/edgeStrip.ts`. It measures every `section` in `<main>` up
+  front (document range and colour) on load, on resize and whenever
+  `<main>` changes height. A scroll frame is then plain arithmetic on
+  `scrollY` against that table, with no DOM reads. The section under the
+  bottom edge colours the strip. The section under the top edge colours
+  `theme-color` and the `<html>` background. A colour is written only when
+  a section boundary crosses an edge.
 
-A point's colour is its section's: the first element at the point inside
-`<main>` or the footer and not in a fixed layer, then `data-edge-color` on
-a marked ancestor (mixed with the hero's live dim-layer opacity), else the
-first opaque `background-color` from the nearest `section`/`footer` up to
-`<body>`. The homepage hero declares `edgeColor="#1A0F66"` through
+At a point the section latest in document order wins. That makes it the
+innermost of nested sections, and the one that slides over the sticky
+hero. Below `<main>` is the footer. A section's colour is its
+`data-edge-color`, else the first opaque `background-color` from it up to
+`<body>`. Cards and fixed layers are never sections, so they can't take
+over. The invert-zone's flip is caught by a `background-color`
+`transitionend`, which re-reads the colours and repaints only when one
+actually changed. The homepage hero declares `edgeColor="#1A0F66"` through
 `StickyHero`, sampled from an iPhone screenshot of the live shader.
 `--space-gutter` is now
 `max(clamp(…), env(safe-area-inset-left), env(safe-area-inset-right))`
@@ -2309,14 +2315,27 @@ because the invert-zone changes colour without crossing anything.
 The first hero colour, `#3125AF`, was taken from `hero-still-mobile.webp`.
 The live shader is far darker, so a device screenshot is the reference now.
 
-**Checked:** in the dev preview at 375×812: hero at rest (both edges
-`#1a0f66`), hero half covered (top `#191057`, darkening with the dim), the
-dark stats with the Book-a-call bar showing (bottom `#151617`), and the
-Liliana CTA with the card and then the white margin at the probe (both
-`#ffffff`). `npm run build` passes. **Not checked:** a real iPhone after the
-second pass.
+**Second device pass (same day): the hero's title, lead and top edge
+stuttered on scroll.** The second pass hit-tested (`elementsFromPoint`) and
+read computed styles on every scroll frame. Through the cover it also
+rewrote `theme-color` on every frame, because the top colour was mixed
+with the hero's live dim opacity. The forced style and layout work, and
+Safari repainting its status bar each frame, showed as jumps in the hero.
+The third pass is the cached table above. The dim mix is gone: the top
+stays `#1A0F66` through the whole cover, and only the strip's own
+boundary writes happen.
 
-**Reopen if:** anything is still off on device after the second pass. The
+**Checked:** in the dev preview at 375×812. A sweep from 0 to 1300px
+through the hero makes exactly two writes: the strip turns white at 450px
+when Selected projects arrives, and `theme-color` turns white at 1300px
+when the hero leaves the top. Before, a write came on every frame. The
+other cases: hero at rest (both edges `#1a0f66`), the dark stats with the
+Book-a-call bar showing (bottom `#151617`), the Liliana CTA with the card
+and then the white margin at the probe (both `#ffffff`), and the footer
+(`#ffffff`). `npm run build` passes. **Not checked:** a real iPhone after
+the third pass.
+
+**Reopen if:** anything is still off on device after the third pass. The
 agreed fallback (Marcelo, 2026-10-15) is to remove it rather than iterate
 again: drop `edgeStrip` from `index.astro`. `--space-gutter` and the
 `StickyHero` prop are inert without it. If it holds, extend it to the other

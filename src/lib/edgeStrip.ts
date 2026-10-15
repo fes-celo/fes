@@ -5,147 +5,184 @@
  * page with BaseLayout's `edgeStrip` prop this keeps both on the colour of
  * the section actually behind them:
  *
- * - Bottom: `#edge-strip`, a thin fixed block at the foot of the viewport,
- *   painted the colour of the section at a probe line just above it.
- * - Top: `theme-color` and the `<html>` background, set to the colour of the
- *   section at the top of the viewport. The html background is what shows
- *   through the sub-pixel gap between Safari's status bar and the page while
- *   scrolling; left on the light canvas, it blinked as a white hairline
- *   above the dark hero (first device pass).
+ * - Bottom: `#edge-strip`, a thin fixed block at the foot of the viewport.
+ * - Top: `theme-color` and the `<html>` background. The html background is
+ *   what shows through the sub-pixel gap between Safari's status bar and the
+ *   page while scrolling; left on the light canvas, it blinked as a white
+ *   hairline above the dark hero.
  *
- * The colour of a point is its SECTION's, never the element's own:
+ * NOTHING IS READ FROM THE DOM ON A SCROLL FRAME. The second pass
+ * hit-tested and read computed styles every frame and wrote theme-color
+ * every frame through the hero's dim, and on an iPhone the hero's title,
+ * lead and top edge stuttered as the page scrolled. Now every section's
+ * document range and colour are measured up front (load, resize, any change
+ * in the page's height) and a scroll frame is arithmetic on `scrollY`
+ * against that table. A colour is written only when a section boundary
+ * crosses an edge. Both the top and the bottom stay still through the whole
+ * hero, dim included.
  *
- * 1. Only page content counts: the first element at the point inside
- *    `<main>` or the revealed footer that isn't in a `position: fixed`
- *    layer. The floating Book-a-call bar (ScrollCta) is fixed but rendered
- *    inside `<main>`, and in the first pass it swallowed the probe and left
- *    the strip on its own light grey over the dark stats.
- * 2. `data-edge-color` on the nearest marked ancestor, for a section whose
- *    background is a shader, a gradient or an image (the homepage hero). If
- *    that section has a `[data-hero-overlay]` dim layer, its live opacity is
- *    mixed in, so the colour darkens with the hero as it is covered.
- * 3. Otherwise the first opaque `background-color` from the nearest
- *    `section` or `footer` outwards, up to `<body>`. Starting at the section
- *    is what keeps cards out of it: the Liliana CTA card carries its own
- *    `data-nav-ink`, and in the first pass its blue took over the toolbar
- *    while the section around it is white. `data-nav-ink` marks are for the
- *    Menu button's ink and sit on cards as well as sections, so they play no
- *    part here.
+ * The table holds every `section` in `<main>`. At a point, the one LATEST
+ * in document order wins: that is the innermost of nested sections, and the
+ * section that slides over the sticky hero rather than the hero under it.
+ * Anything below `<main>` is the footer. Cards are not sections, so a
+ * card's own colour never takes over (the Liliana CTA card did, in the
+ * first pass), and fixed layers such as the Book-a-call bar are never in the
+ * table (it held the strip on light grey over the dark stats). A section's
+ * colour is its `data-edge-color` (for a shader, gradient or image
+ * background: the homepage hero), else the first opaque `background-color`
+ * from it up to `<body>`.
  *
- * Resolved on every scroll frame rather than on IO crossings, because the
- * invert-zone changes colour without crossing anything.
+ * The invert-zone changes its sections' backgrounds on a CSS transition
+ * without moving anything, so a `transitionend` re-reads the colours (not
+ * the ranges), once, after the flip has settled.
  */
 
 const PROBE_INSET = 2
-const DIM = [21, 22, 23] // --color-neutral-950, the hero dim layer's colour
 
-type RGB = [number, number, number]
+type Band = { el: HTMLElement; top: number; bottom: number; color: string }
 
 export function setupEdgeStrip() {
   const strip = document.getElementById('edge-strip')
+  const main = document.getElementById('main')
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-  if (!strip) return null
+  if (!strip || !main) return null
 
   const root = document.documentElement
+  const footer = document.querySelector<HTMLElement>('[data-footer-reveal]')
   const originalThemeColor = meta?.content ?? null
+
+  let bands: Band[] = []
+  let mainBottom = 0
+  let footerColor = ''
+  let stripHeight = 12
+  let viewportHeight = window.innerHeight
   let frame = 0
   let currentBottom = ''
   let currentTop = ''
-
-  // Any CSS colour (rgb, color(srgb …), oklab from a color-mix) to RGB, by
-  // letting a 1×1 canvas parse and paint it. Only runs when a colour changes.
-  const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true })
-  function toRGB(color: string): RGB | null {
-    if (!ctx) return null
-    ctx.clearRect(0, 0, 1, 1)
-    ctx.fillStyle = '#000'
-    ctx.fillStyle = color
-    ctx.fillRect(0, 0, 1, 1)
-    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
-    return [r, g, b]
-  }
-  const hex = (rgb: RGB) => '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
 
   function isOpaque(bg: string) {
     return !!bg && bg !== 'transparent' && !/rgba\(.*,\s*0\)$/.test(bg) && !/\/\s*0\)$/.test(bg)
   }
 
-  // Whether an element sits in a fixed layer (the Book-a-call bar, the Menu
-  // button). Cached: it never changes for an element, and the probe sees
-  // the same few elements frame after frame.
-  const fixedCache = new WeakMap<Element, boolean>()
-  function inFixedLayer(el: Element): boolean {
-    const cached = fixedCache.get(el)
-    if (cached !== undefined) return cached
-    const fixed =
-      getComputedStyle(el).position === 'fixed' ||
-      (!!el.parentElement && el.parentElement !== document.body && inFixedLayer(el.parentElement))
-    fixedCache.set(el, fixed)
-    return fixed
+  // Any CSS colour (rgb, color(srgb …), oklab from a color-mix) to #rrggbb,
+  // by letting a 1×1 canvas paint it, so theme-color always gets a value
+  // Safari parses. Measure time only, never on a scroll frame.
+  const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true })
+  function toHex(color: string) {
+    if (!ctx) return color
+    ctx.clearRect(0, 0, 1, 1)
+    ctx.fillStyle = '#000'
+    ctx.fillStyle = color
+    ctx.fillRect(0, 0, 1, 1)
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
+    return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')
   }
 
-  function colorAt(y: number): RGB | null {
-    const hit = document
-      .elementsFromPoint(window.innerWidth / 2, y)
-      .find((el) => el.closest('#main, [data-footer-reveal]') && !inFixedLayer(el))
-    if (!hit) return null
-
-    const marked = hit.closest<HTMLElement>('[data-edge-color]')
-    if (marked) {
-      const base = toRGB(marked.dataset.edgeColor!)
-      const overlay = marked.querySelector<HTMLElement>('[data-hero-overlay]')
-      const o = overlay ? parseFloat(getComputedStyle(overlay).opacity) || 0 : 0
-      return base && (base.map((v, i) => Math.round(v + (DIM[i] - v) * o)) as RGB)
+  function colorOf(el: HTMLElement) {
+    if (el.dataset.edgeColor) return toHex(el.dataset.edgeColor)
+    for (let node: Element | null = el; node; node = node.parentElement) {
+      const bg = getComputedStyle(node).backgroundColor
+      if (isOpaque(bg)) return toHex(bg)
+      if (node === document.body) break
     }
-
-    for (let el: Element | null = hit.closest('section, footer') ?? hit; el; el = el.parentElement) {
-      const bg = getComputedStyle(el).backgroundColor
-      if (isOpaque(bg)) return toRGB(bg)
-      if (el === document.body) break
-    }
-    return null
+    return ''
   }
 
-  function resolve() {
+  /** Re-reads every colour; true when any of them changed. */
+  function readColors() {
+    let changed = false
+    for (const band of bands) {
+      const color = colorOf(band.el)
+      if (color !== band.color) changed = true
+      band.color = color
+    }
+    const next = footer ? colorOf(footer) : ''
+    if (next !== footerColor) changed = true
+    footerColor = next
+    return changed
+  }
+
+  function measure() {
+    const y = window.scrollY
+    bands = [...main!.querySelectorAll<HTMLElement>('section')].map((el) => {
+      const r = el.getBoundingClientRect()
+      return { el, top: r.top + y, bottom: r.bottom + y, color: '' }
+    })
+    mainBottom = main!.getBoundingClientRect().bottom + y
+    stripHeight = strip!.offsetHeight
+    viewportHeight = window.innerHeight
+    readColors()
+  }
+
+  function colorAt(docY: number) {
+    if (docY >= mainBottom) return footerColor
+    for (let i = bands.length - 1; i >= 0; i--) {
+      const band = bands[i]
+      if (docY >= band.top && docY < band.bottom && band.color) return band.color
+    }
+    return ''
+  }
+
+  function paint() {
     frame = 0
+    const y = window.scrollY
 
-    const bottom = colorAt(window.innerHeight - strip!.offsetHeight - PROBE_INSET)
-    if (bottom) {
-      const value = hex(bottom)
-      if (value !== currentBottom) {
-        currentBottom = value
-        root.style.setProperty('--edge-bottom-background', value)
-      }
+    const bottom = colorAt(y + viewportHeight - stripHeight - PROBE_INSET)
+    if (bottom && bottom !== currentBottom) {
+      currentBottom = bottom
+      strip!.style.backgroundColor = bottom
     }
 
-    const top = colorAt(PROBE_INSET)
-    if (top) {
-      const value = hex(top)
-      if (value !== currentTop) {
-        currentTop = value
-        root.style.backgroundColor = value
-        if (meta) meta.content = value
-      }
+    const top = colorAt(y + PROBE_INSET)
+    if (top && top !== currentTop) {
+      currentTop = top
+      root.style.backgroundColor = top
+      if (meta) meta.content = top
     }
   }
 
   function schedule() {
-    if (!frame) frame = requestAnimationFrame(resolve)
+    if (!frame) frame = requestAnimationFrame(paint)
   }
 
-  resolve()
+  function remeasure() {
+    measure()
+    schedule()
+  }
+
+  // Only background transitions, and only a real change repaints: the
+  // entrance animations end transitions all over the page, and re-writing
+  // theme-color with the same value on each was the first version of this.
+  let colorFrame = 0
+  function onTransitionEnd(e: TransitionEvent) {
+    if (e.propertyName !== 'background-color' || colorFrame) return
+    colorFrame = requestAnimationFrame(() => {
+      colorFrame = 0
+      if (!readColors()) return
+      // A colour changed under a still edge: force the next paint to write.
+      currentBottom = currentTop = ''
+      paint()
+    })
+  }
+
+  measure()
+  paint()
   window.addEventListener('scroll', schedule, { passive: true })
-  window.addEventListener('resize', schedule)
-  // The invert-zone flips on a CSS transition after its ScrollTrigger
-  // fires, with no scroll in between; catch the settled colour.
-  document.addEventListener('transitionend', schedule)
+  window.addEventListener('resize', remeasure)
+  document.addEventListener('transitionend', onTransitionEnd)
+  // Late images, the font swap and ScrollTrigger pin spacers all move the
+  // section ranges after first paint.
+  const observer = new ResizeObserver(remeasure)
+  observer.observe(main)
 
   return () => {
     if (frame) cancelAnimationFrame(frame)
+    if (colorFrame) cancelAnimationFrame(colorFrame)
     window.removeEventListener('scroll', schedule)
-    window.removeEventListener('resize', schedule)
-    document.removeEventListener('transitionend', schedule)
-    root.style.removeProperty('--edge-bottom-background')
+    window.removeEventListener('resize', remeasure)
+    document.removeEventListener('transitionend', onTransitionEnd)
+    observer.disconnect()
+    strip.style.removeProperty('background-color')
     root.style.removeProperty('background-color')
     if (meta && originalThemeColor !== null) meta.content = originalThemeColor
   }
