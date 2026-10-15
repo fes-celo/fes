@@ -2190,7 +2190,8 @@ the nav in flow costs nothing.
   `overflow: hidden`, which would make it a scroll container and stop the
   sticky children. Without any clip, AnimatedLogo's video (to x=565 on a
   375px phone) widened the layout viewport and pushed the fixed Menu button
-  off-screen.
+  off-screen. *Superseded by §82:* the clip made the stuck layers jitter on
+  iPhone, and now sits on the nav row instead.
 - **Careers' trail** listens for the pointer on the whole section, because
   the copy and nav are now siblings of its layer, not children.
 - **§25's shader gate** is now the hero's height minus the background's.
@@ -2283,3 +2284,65 @@ cause.
 **Reopen if:** the toolbar tint is wanted again. Then it has to leave the
 hero bare (no strip while the hero is behind the toolbar), and it needs
 the jitter question above answered first.
+
+### 82. The sticky hero's horizontal clip moves off the section, onto the nav row
+
+**Decided (2026-10-15):** `StickyHero.astro` drops `overflow-x: clip` from
+the section and puts it on the nav row (`.sticky-hero__nav`). Nothing
+between the sticky layers (background, copy, the homepage's dim) and the
+page clips any more. The nav row holds AnimatedLogo, whose video is the only
+thing in any of the six heroes that runs past the screen's edge, so the page
+still doesn't scroll sideways. All six StickyHero pages get the change.
+
+**Why:** on an iPhone the homepage copy jittered once it stuck, and so did
+the hero's top edge. That answers §81's open question: the jitter is there
+without `viewport-fit=cover`, so it belongs to §79. §79 is also where the
+clip arrived (`070f763`), in the same commit that first made the copy stick.
+The mechanism is in WebKit's compositor source:
+
+- A clip on one axis leaves the other unbounded. WebKit swaps the unbounded
+  side for a "renderable infinite" rect, ±1,048,576px
+  (`LayoutRect::renderableInfiniteRect()`, used by
+  `RenderLayerCompositor::computeAncestorClippingStack`).
+- Each sticky element is its own composited layer, positioned relative to
+  that clip layer, so its offsets sit around 1,048,576px. Layer geometry is
+  32-bit float, and at that size a float resolves only an eighth of a
+  pixel.
+- Safari's scrolling thread moves a stuck layer on every scroll frame, so
+  the rounding changes frame to frame. That shows as text shimmering in
+  place and a hairline flickering along the background's top edge. Before
+  the stick point the copy rides with the page and nothing repositions it,
+  which is why the jitter began exactly where it sticks.
+- WebKit bug 247130 is this structure: sticky inside `overflow-x: clip`,
+  "jumps up and down by 1-2px", traced to the clip layer's infinite height
+  and fixed in 2022. The renderable rect appears to be that fix. At the old
+  size (±16,777,216px) a float resolves 2px, which matches the report; at
+  today's it resolves 1/8px, smaller but still re-rounded every frame.
+  Developers still report clip ancestors shaking sticky elements on iOS in
+  2025–26, and removing the clip is their workaround.
+
+It also explains §81's three dead ends. Taking out the drift, taking out
+the dim and holding the copy stuck from the first pixel all left the stuck
+layer inside the clip.
+
+**Checked:** in the dev preview at 375×812, all six pages have a
+`scrollWidth` of 375 (no sideways scroll), and no ancestor of the sticky
+copy has a non-visible overflow. On the homepage the copy rises 1:1 from
+504.8px, sticks at 259px from scroll 246 (the runway) and holds there to
+846, with the background's top at 0 throughout. That's unchanged. 1440×900
+doesn't scroll sideways either. `npm run build` passes.
+
+**Not checked:** an iPhone. The diagnosis comes from WebKit's source and
+bug history. This Mac has no Xcode, so there's no iOS Simulator, and
+Chromium doesn't build the clip layer this way, so the preview can't show
+the jitter with or without the fix.
+
+**Reopen if:** it still jitters on device. Then compare a sub-page hero
+(Agency): same StickyHero, no shader. Agency steady and the homepage not
+points at the shader, whose WebGL canvas repaints inside the sticky
+background on every frame until it is covered. Both jittering points at
+sticky in WebKit itself; try `will-change: transform` on the sticky layers
+next. Also reopen if anything in a hero needs a clip. Put it on that
+element, never on the section or above it, and remember the nav row now
+clips sideways (a dropdown that has to overhang the screen edge would be
+cut).

@@ -35,12 +35,19 @@
  * The sticky range of an element is its parent, which is why bg and copy
  * both live in this one tall box rather than in separate wrappers: a wrapper
  * ending early would carry them off-screen instead of letting the page cover
- * them. The section clips with `overflow-x: clip`, never `overflow: hidden`:
- * hidden makes an element a scroll container and sticky children stop
- * sticking, while clip only clips. It's needed — AnimatedLogo's video runs
- * far past the logo's own box (measured: to x=565 on a 375px phone), which
- * the old overflow-hidden section used to swallow; unclipped, it widened
- * the layout viewport and pushed the fixed Menu button off-screen.
+ * them.
+ *
+ * Nothing between the sticky layers and the page may clip: not the section,
+ * not anything above it. `overflow: hidden` makes a scroll container, and
+ * sticky stops sticking. `overflow-x: clip` keeps it sticking but made it
+ * jitter on iPhone (parked-decisions §82). WebKit gives a one-axis clip a
+ * near-unbounded other axis (±1,048,576px), and positions the sticky layers
+ * inside that clip layer in floats. At that size a float only resolves an
+ * eighth of a pixel, re-rounded on every scroll frame. So the clip sits on
+ * the nav row, the one thing that overflows: AnimatedLogo's video runs far
+ * past the logo's own box (measured: to x=565 on a 375px phone), and
+ * unclipped it widened the layout viewport and pushed the fixed Menu button
+ * off-screen. The nav scrolls in flow, so nothing re-rounds it per frame.
  *
  * R and the stop line depend on the copy's own height, which CSS can't
  * read, so lib/heroRunway.ts measures them on load, resize and font load
@@ -94,7 +101,7 @@ const {
   <div data-hero-bg class:list={['sticky-hero__bg sticky top-0 flex-none overflow-hidden', bgClass]} style={bgStyle}>
     <slot name="background" />
   </div>
-  <div data-hero-nav class="relative flex-none px-[var(--space-gutter)] pt-[var(--space-gutter)]">
+  <div data-hero-nav class="sticky-hero__nav relative flex-none px-[var(--space-gutter)] pt-[var(--space-gutter)]">
     <slot name="nav" />
   </div>
   <div data-hero-copy class:list={['sticky-hero__copy flex-none px-[var(--space-gutter)]', copyClass]}>
@@ -109,7 +116,6 @@ const {
     --hero-h: 100vh;
     height: calc(2 * var(--hero-h) + var(--hero-runway, 0px));
     margin-bottom: calc(-1 * var(--hero-h));
-    overflow-x: clip;
   }
   @supports (height: 100dvh) {
     .sticky-hero[data-unit='dvh'] {
@@ -132,6 +138,14 @@ const {
   }
   .sticky-hero :global([data-hero-overlay]) {
     margin-top: calc(-1 * var(--hero-h));
+  }
+
+  /* The section's horizontal clip, moved here off the sticky layers' parent
+     (see the docblock). Clip, not hidden, so the logo video can still run
+     up past the row's top edge. Neither creates a stacking context, so the
+     video's blend still reaches the background. */
+  .sticky-hero__nav {
+    overflow-x: clip;
   }
 
   .sticky-hero__copy {
