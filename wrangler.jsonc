@@ -13,6 +13,18 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
+  // The production domain lives here, not in the dashboard, so every deploy
+  // carries it (docs/parked-decisions.md §83). www is deliberately absent:
+  // it 301s to the apex with a zone Redirect Rule, before it reaches this
+  // Worker.
+  "routes": [
+    { "pattern": "fesagency.pt", "custom_domain": true }
+  ],
+  // Declaring `routes` makes Wrangler switch the workers.dev URL off unless
+  // it is set explicitly. It is the staging URL stakeholders review, so keep
+  // it, and the per-version preview URLs, on.
+  "workers_dev": true,
+  "preview_urls": true,
   "kv_namespaces": [
     // Contact-form lead log (docs/measurement.md § Server-side counts).
     { "binding": "LEADS", "id": "823ad3e3bf31431981837f5b134fef97" }

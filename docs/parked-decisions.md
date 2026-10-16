@@ -2346,3 +2346,43 @@ next. Also reopen if anything in a hero needs a clip. Put it on that
 element, never on the section or above it, and remember the nav row now
 clips sideways (a dropdown that has to overhang the screen edge would be
 cut).
+
+### 83. `fesagency.pt` is a Worker custom domain declared in `wrangler.jsonc`; www redirects at the zone
+
+**Decided (Marcelo, 2026-10-16):** `wrangler.jsonc` gains a `routes` entry,
+`{ "pattern": "fesagency.pt", "custom_domain": true }`, so `npm run deploy`
+attaches the apex to the `fes` Worker. `www.fesagency.pt` is not a custom
+domain. A zone Redirect Rule ("Redirect from WWW to root", over a proxied
+placeholder `www` record) 301s it to the apex, which is where the
+`http://www.` row in `redirect-map.csv` was always meant to go (status.md,
+"needs Cloudflare zone config"). The old apex and `www` A records
+(`37.120.162.145`, the WordPress host) were deleted to make room. `mail`,
+`ftp`, MX and TXT records stay as they were, because email for
+`fesagency.pt`, including `hello@fesagency.pt`, which receives the contact
+form, is hosted on that same server.
+
+**Why in the config and not the dashboard:** the domain is then in the repo
+with the rest of the deploy, with history, and nobody has to find it in
+the dashboard to know how the site is served. A custom domain rather than a
+zone route because Cloudflare then owns the DNS record and the certificate,
+and there's nothing to keep in sync by hand.
+
+**Why www at the zone and not in the Worker:** the redirect then happens
+before the Worker runs. It costs no request, and the Worker keeps to its
+two routes (§54).
+
+**`workers_dev` and `preview_urls` are set to `true` explicitly:** once
+`routes` is declared, Wrangler turns the workers.dev URL off on the next
+deploy unless the config says otherwise. The first deploy with the domain
+did exactly that. `fes.marcelo-a15.workers.dev` is the staging link
+stakeholders review, so both stay on. Its pages carry
+`<link rel="canonical">` to `fesagency.pt`, so search engines don't treat
+it as a duplicate.
+
+**Rollback:** remove the `routes` entry and the custom domain (Workers &
+Pages → `fes` → Settings → Domains & Routes), then re-create
+`A fesagency.pt → 37.120.162.145`, DNS only. The WordPress certificate
+expired on 2026-10-15, so a rollback also needs that renewed.
+
+**Reopen if:** the site moves to another Worker or account, or the domain
+changes.
