@@ -603,6 +603,25 @@ function setupSplitText(reduced: boolean): Cleanup[] {
 let cleanups: Cleanup[] = []
 
 /**
+ * Marks the moment the in-view entrance has painted its first visible frame
+ * (`html[data-entrance="painted"]` + a `motion:entrance` event), for work
+ * that should stay off the main thread until the hero copy is on screen —
+ * the homepage shader's mount (Hero.astro). The in-view tweens start after
+ * their 0.15s delay; two rAFs past that, the first frame with opacity > 0
+ * has been presented. When the entrance is skipped (background tab, past
+ * the safety deadline) there is nothing to wait for. See
+ * docs/parked-decisions.md §85.
+ */
+function signalEntrancePainted() {
+  const signal = () => {
+    document.documentElement.dataset.entrance = 'painted'
+    document.dispatchEvent(new Event('motion:entrance'))
+  }
+  if (entranceWouldFlash()) return signal()
+  gsap.delayedCall(0.15, () => requestAnimationFrame(() => requestAnimationFrame(signal)))
+}
+
+/**
  * Resolves once this document is a real page rather than a speculative one.
  *
  * A prerendered document (astro.config.mjs's `prefetch` +
@@ -647,6 +666,7 @@ export async function initMotion() {
   // then released at once. That single held-then-dumped frame is most of
   // what read as "the page pops" rather than "the page arrives".
   cleanups = [...setupReveals(reduced), ...setupItemReveals(reduced), ...setupSlideRight(reduced)]
+  signalEntrancePainted()
 
   // Split-text does measure: Aeonik is swap-loaded, and line breaks taken
   // against the fallback metrics get baked in permanently (nothing
