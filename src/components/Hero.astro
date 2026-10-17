@@ -405,28 +405,6 @@ import StickyHero from './StickyHero.astro'
     return shapePromise
   }
 
-  // The mount (shader compile + texture upload) is one long task — ~225ms at
-  // Lighthouse's 4x CPU. Run on texture load, it landed before motion.ts had
-  // even armed the hero copy, so the copy (the page's LCP) waited behind it.
-  // The still is the same image, so holding the canvas back until the copy
-  // has painted changes nothing on screen but when the cross-fade happens.
-  // The timeout is only a net in case motion.ts never runs. See
-  // docs/parked-decisions.md §85.
-  function entrancePainted() {
-    if (document.documentElement.dataset.entrance === 'painted') return Promise.resolve()
-    return new Promise<void>((resolve) => {
-      const timer = setTimeout(resolve, 1500)
-      document.addEventListener(
-        'motion:entrance',
-        () => {
-          clearTimeout(timer)
-          resolve()
-        },
-        { once: true },
-      )
-    })
-  }
-
   // The still and the canvas are the same image, so the fade only has to
   // cover decode/compile jitter — long enough not to pop, short enough that
   // the section is never visibly mid-transition. Both directions are used:
@@ -465,7 +443,7 @@ import StickyHero from './StickyHero.astro'
     if (!section) return
 
     const token = generation
-    const [image] = await Promise.all([loadShape(), entrancePainted()])
+    const image = await loadShape()
     if (token !== generation || !container.isConnected) return
 
     mobileQuery = window.matchMedia(MOBILE_QUERY)

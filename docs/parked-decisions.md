@@ -2386,33 +2386,3 @@ expired on 2026-10-15, so a rollback also needs that renewed.
 
 **Reopen if:** the site moves to another Worker or account, or the domain
 changes.
-
-### 85. The homepage shader mounts after the hero copy has painted, and module preloads were tried and dropped
-
-**Decided (2026-10-17, performance campaign step 03):** `Hero.astro` waits
-for both the texture and motion.ts's `motion:entrance` signal
-(`html[data-entrance="painted"]`, set two frames after the in-view
-entrance's 0.15s delay) before it builds the `ShaderMount`, with a 1.5s
-timeout as a net. The still stays up until then. It is the same image, so
-nothing on screen changes except when the cross-fade happens.
-
-**Why:** the hero lead paragraph is the homepage's LCP, and it stays hidden
-(the `data-anim` pre-hide) until `initMotion` runs. The lifecycle runs
-`onPageLoad` callbacks as soon as each module evaluates, so the texture
-landed and the mount (shader compile plus texture upload, a 225ms task at
-Lighthouse's 4x CPU) ran *before* BaseLayout's module had armed the copy.
-Measured, local Lighthouse mobile, 5 runs: home LCP 2.75s → 2.64s (−113ms,
-outside the 95ms spread). The other pages and metrics moved within noise, and
-`perf/visual-check.mjs` stayed within 0.045%.
-
-**Tried and dropped: `<link rel="modulepreload">`.** A post-build step that
-preloaded each page's module graph (26 links on `/`), and then only
-BaseLayout's chain (8 links). Both cut home LCP (−253ms and −143ms) but made
-FCP worse beyond noise on agency, system and the case study (+156 to
-+593ms). The trace showed why: the chunks did arrive ~60ms sooner, but
-compiling them early competed with parsing the 150–175KB HTML. Observed
-DOMContentLoaded and LCP got later, not earlier. The gate is main-thread
-work, not the extra round trip.
-
-**Reopen if:** the shader needs to be visible sooner than the hero copy, or
-the HTML gets much lighter (then re-test modulepreload).
