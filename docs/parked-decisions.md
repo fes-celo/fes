@@ -2429,3 +2429,94 @@ has no snap, as before. Desktop (mouse and trackpad) is unchanged.
 at the problem cards' `mix-blend-mode` grain layer next), or a design
 review wants the press-shrink back on touch (it would need the cards
 composited for the row's lifetime, as the add-on cards now are).
+
+### 87. The Tech Refresh facades get covers fetched at build time and served from `dist/_astro`
+
+**Decided:** the two click-to-load players on `/tech-refresh/` (§55) show
+real artwork again, without loading anything from a third party before the
+click. `src/lib/techRefreshFeed.ts` runs at build time:
+
+- **Podcast:** it reads the show's public RSS feed
+  (`api.riverside.com/hosting/txi05HBN.rss`, the `feedUrl` Apple Podcasts
+  lists for "Tech Refresh") and takes the first `<item>`: title, date,
+  duration and the episode's `<itunes:image>`, falling back to the show's
+  image. The facade looks like a small Spotify card: cover, "Latest
+  episode", title, date · duration, Play. The click still loads the real
+  Spotify show embed, which opens on the same latest episode. The card is
+  `#283880`, the navy of the show's own artwork rather than a brand token,
+  with white type (eyebrow, `h3` title, date · duration under it) and a
+  Spotify-style round play icon. Below a 576px-wide card (`@xl` container
+  query) the cover drops to 96px beside the eyebrow and the title runs the
+  full width underneath, so it never ends up in a 100px-wide column.
+- **Video:** it takes `i.ytimg.com/vi/<id>/maxresdefault.jpg`, or
+  `hqdefault` when there is no HD one. That's whatever thumbnail is set in
+  YouTube Studio, so a custom thumbnail is changed there, not in this repo.
+
+Both URLs go to `<Image inferSize>`. Astro downloads them during the build
+and writes optimised WebP into `dist/_astro`, so the visitor's browser only
+ever talks to this site. `image.remotePatterns` in `astro.config.mjs`
+allows exactly those two hosts.
+
+**One click to play:** the card has its own ▶, so a click that only
+opened the Spotify widget (and then needed its ▶ as well) read as broken.
+The click now loads Spotify's iFrame API
+(`open.spotify.com/embed/iframe-api/v1`), creates the same show embed
+through it, and calls `play()` on `ready`. Checked in Chromium with a real
+click: `ready` → `playback_started`, position advancing. Nothing reaches
+Spotify before the click, and the site's `document.cookie` is still empty
+after it. Where autoplay is refused (iOS Safari wants the tap inside the
+iframe; not tested on a device) the widget is just left open, which is
+the old two-click state. If the API script fails or takes more than 8s,
+the plain iframe is used.
+
+Because the card now looks like the site's own player, it says where it
+plays: "Plays on Spotify" sits next to the ▶, inside the card, and the
+cookie line stays underneath. The click only counts as the visitor asking
+for Spotify's player (§55) if they can see it's Spotify before they click.
+Checked after playback started: the site's own cookies, localStorage and
+sessionStorage were all still empty, so Spotify's script in the page
+stored nothing on this origin.
+
+**Sized in rem, not px:** the card is `h-[22rem]` (352px at the normal root
+size), and the Spotify player is created at `height: '100%'` of the same
+box. Past 1440 the root font size zooms the whole page up to 1.4×
+(`global.css`), so a fixed 352px card overflowed its own rem-sized cover,
+title and ▶ (the ▶ row dropped out under the cookie line). At 2560×1440 the
+card and the player after the click are both 493px.
+
+**Spotify's preview limit, found while testing:** for a visitor who isn't
+logged into Spotify in that browser, the embed marks the episode
+"Preview" and plays 60 seconds (`duration: 60000` in its
+`playback_update`). That's Spotify's rule for its embed, and it applied to
+the two-click version too. The full episode is one click away through
+"Listen all episodes". If that becomes the problem, the fix is to play the
+feed's MP3 in our own player (full episode for everyone, counted in
+Riverside, not Spotify), which was option 2 when this was decided.
+
+**Why not hotlink the images:** it sets no cookies, but every page view
+would send the visitor's IP to Riverside or Google before any click. That's
+the legal grey zone of the 2022 Munich Google Fonts ruling, and §55's whole
+point is that nothing third-party happens before the visitor asks.
+
+**Why not a custom image per episode:** that's a manual job every two
+weeks. The feed already has the episode art.
+
+**Failure mode:** every fetch has a 10s timeout and a HEAD check on the
+image. On any failure the build logs a `[tech-refresh]` warning and renders
+the plain tinted facade from before. A feed outage never fails a deploy.
+
+**Freshness, proposed and not built:** the cover is only as fresh as the
+last build, and deploys are run by hand (`npm run deploy`). Episodes come
+out every other Friday at 08:00 UTC. The proposal is a scheduled rebuild
+every Friday at ~09:00 UTC, through a GitHub Actions workflow on
+`fes-celo/fes` (`schedule:` cron → `npm ci && npm run deploy`, with a
+`CLOUDFLARE_API_TOKEN` secret), or the same cron through Cloudflare Workers
+Builds. **Precondition:** a scheduled deploy builds what is committed on
+`main`. While the deployed site is built from an uncommitted working tree,
+an automatic deploy would roll production back to the last commit. So it
+waits until deploys come from `main`.
+
+**Reopen if:** the podcast moves host (the feed URL changes; Apple's
+lookup `itunes.apple.com/lookup?id=1776582960` gives the new one), the
+embed becomes an episode instead of the show, or the Spotify embed starts
+showing something other than the latest episode.

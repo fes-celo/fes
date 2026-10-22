@@ -15,6 +15,13 @@
  * to ask for. The click on the facade is the visitor's own request for the
  * player, and the line under each one says whose it is. YouTube goes through
  * youtube-nocookie.com, which holds its cookies until playback starts.
+ *
+ * The facades carry covers fetched at build time (§87): the latest podcast
+ * episode from the show's RSS feed, and the video's own YouTube thumbnail,
+ * both downloaded into dist/_astro by <Image>. A deploy refreshes them; if a
+ * fetch fails the facade falls back to the plain tinted box. The podcast
+ * card's click also starts playback through Spotify's iFrame API, so its ▶
+ * is one click, not two (see the script below).
  */
 import { Image } from 'astro:assets'
 import BaseLayout from '../../layouts/BaseLayout.astro'
@@ -25,9 +32,12 @@ import SectionLabel from '../../components/SectionLabel.astro'
 import { navItems, isNavActive } from '../../lib/nav'
 import heroLight from '../../assets/hero/hero-light.jpg'
 import Logo from '../../components/Logo.astro'
+import { getLatestEpisode, getYouTubeThumbnail } from '../../lib/techRefreshFeed'
 
 const YOUTUBE_VIDEO_ID = 'LpGxyG6kEHQ'
 const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
+
+const [episode, youtubeThumbnail] = await Promise.all([getLatestEpisode(), getYouTubeThumbnail(YOUTUBE_VIDEO_ID)])
 ---
 
 <BaseLayout
@@ -103,19 +113,62 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
             Listen all episodes
           </a>
         </div>
-        <div class="flex w-full flex-col gap-3">
+        <div class="@container flex w-full flex-col gap-3">
           <button
             type="button"
-            class="group flex h-[352px] w-full items-center justify-center rounded-[12px] bg-accent-tint"
+            class:list={[
+              // 22rem, not 352px: past 1440 the root font size zooms the whole
+              // page (global.css), and a px card would overflow its rem contents.
+              'group h-[22rem] w-full rounded-[12px]',
+              // #283880 is the navy of the show's own artwork, so the card
+              // reads as one piece with the cover (§87). Not a brand token.
+              episode
+                ? 'grid grid-cols-[6rem_1fr] grid-rows-[auto_1fr_auto] gap-x-4 gap-y-5 bg-[#283880] p-5 text-left @xl:grid-cols-[19rem_1fr] @xl:gap-x-6 @xl:gap-y-3 @xl:p-6'
+                : 'flex items-center justify-center bg-accent-tint',
+            ]}
             data-embed-facade
             data-embed-src={`https://open.spotify.com/embed/show/${SPOTIFY_SHOW_ID}`}
+            data-spotify-uri={`spotify:show:${SPOTIFY_SHOW_ID}`}
             data-embed-title="Tech Refresh Podcast on Spotify"
             data-embed-allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            data-embed-class="h-[352px] w-full rounded-[12px]"
+            data-embed-class="h-[22rem] w-full rounded-[12px]"
           >
-            <span class="flex size-[6.25rem] items-center justify-center rounded-full bg-neutral-100 text-body text-neutral-950 transition-transform duration-200 group-hover:scale-105">
-              Play
-            </span>
+            {
+              episode ? (
+                <>
+                  <Image
+                    src={episode.image}
+                    inferSize
+                    alt=""
+                    widths={[192, 320, 640]}
+                    sizes="(min-width: 640px) 304px, 96px"
+                    class="size-24 rounded-[8px] object-cover @xl:row-span-3 @xl:size-[19rem]"
+                  />
+                  <span class="self-center text-eyebrow uppercase text-white/70 @xl:self-start">Latest episode</span>
+                  <span class="col-span-2 flex flex-col gap-2 self-start @xl:col-span-1 @xl:col-start-2">
+                    <span class="line-clamp-4 text-h3 text-balance text-white @xl:line-clamp-5">{episode.title}</span>
+                    <span class="text-meta text-white/70">
+                      <time datetime={episode.isoDate}>{episode.date}</time>
+                      {episode.duration && ` · ${episode.duration}`}
+                    </span>
+                  </span>
+                  <span class="col-span-2 flex items-center justify-between gap-4 @xl:col-span-1 @xl:col-start-2">
+                    <span class="text-body-sm text-white/70">Plays on Spotify</span>
+                    <span class="flex size-14 shrink-0 items-center justify-center rounded-full bg-white text-[#283880] transition-transform duration-200 group-hover:scale-105">
+                      <!-- Optically centred: the triangle's box sits ~1 unit right of
+                           centre (6.5–19.4 in a 24 box), so its visual mass lands mid-circle. -->
+                      <svg viewBox="0 0 24 24" class="size-6" fill="currentColor" aria-hidden="true">
+                        <path d="M6.5 5.14v13.72a1 1 0 0 0 1.52.85l10.9-6.86a1 1 0 0 0 0-1.7L8.02 4.29A1 1 0 0 0 6.5 5.14Z" />
+                      </svg>
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <span class="flex size-[6.25rem] items-center justify-center rounded-full bg-neutral-100 text-body text-neutral-950 transition-transform duration-200 group-hover:scale-105">
+                  Play
+                </span>
+              )
+            }
             <span class="sr-only">Load the Tech Refresh Podcast player from Spotify</span>
           </button>
           <p class="text-body-sm text-ink-muted">
@@ -133,14 +186,26 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
         <div class="flex w-full flex-col gap-3">
           <button
             type="button"
-            class="group flex aspect-video w-full items-center justify-center rounded-[var(--radius-card)] bg-accent-tint"
+            class="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-[var(--radius-card)] bg-accent-tint"
             data-embed-facade
             data-embed-src={`https://www.youtube-nocookie.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0`}
             data-embed-title="Tech Refresh - Video Series Teaser"
             data-embed-allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             data-embed-class="aspect-video w-full rounded-[var(--radius-card)]"
           >
-            <span class="flex size-[6.25rem] items-center justify-center rounded-full bg-neutral-100 text-body text-neutral-950 transition-transform duration-200 group-hover:scale-105">
+            {
+              youtubeThumbnail && (
+                <Image
+                  src={youtubeThumbnail}
+                  inferSize
+                  alt=""
+                  widths={[640, 960, 1280]}
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  class="absolute inset-0 size-full object-cover"
+                />
+              )
+            }
+            <span class="relative flex size-[6.25rem] items-center justify-center rounded-full bg-neutral-100 text-body text-neutral-950 transition-transform duration-200 group-hover:scale-105">
               Play
             </span>
             <span class="sr-only">Play the Tech Refresh video series teaser from YouTube</span>
@@ -173,7 +238,84 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
 <script>
   // Click-to-load: the third-party iframe (and its cookies) only exists once
   // the visitor asks for the player. See the docblock and §55.
+  //
+  // The podcast card looks like a player with its own ▶, so its click goes
+  // through Spotify's iFrame API and starts playback as soon as the widget is
+  // ready: one click, not two (§87). Where the browser refuses to autoplay
+  // (iOS Safari wants the tap inside the iframe) the widget is simply left
+  // open, which is where a plain click-to-load would have left it. If the API
+  // script can't load, the plain iframe is used instead.
   import { onPageLoad } from '../../lib/lifecycle'
+
+  interface SpotifyEmbedController {
+    iframeElement?: HTMLIFrameElement
+    addListener(event: 'ready', fn: () => void): void
+    play(): void
+  }
+  interface SpotifyIFrameAPI {
+    createController(
+      element: HTMLElement,
+      options: { uri: string; width?: string | number; height?: string | number },
+      callback: (controller: SpotifyEmbedController) => void,
+    ): void
+  }
+  type SpotifyWindow = Window & { onSpotifyIframeApiReady?: (api: SpotifyIFrameAPI) => void }
+
+  const SPOTIFY_IFRAME_API = 'https://open.spotify.com/embed/iframe-api/v1'
+  let spotifyApi: Promise<SpotifyIFrameAPI> | null = null
+
+  function loadSpotifyApi(): Promise<SpotifyIFrameAPI> {
+    spotifyApi ??= new Promise<SpotifyIFrameAPI>((resolve, reject) => {
+      ;(window as SpotifyWindow).onSpotifyIframeApiReady = resolve
+      const script = document.createElement('script')
+      script.src = SPOTIFY_IFRAME_API
+      script.async = true
+      script.onerror = reject
+      document.head.append(script)
+      setTimeout(() => reject(new Error('Spotify iFrame API timed out')), 8000)
+    }).catch((error) => {
+      spotifyApi = null
+      throw error
+    })
+    return spotifyApi
+  }
+
+  function plainIframe(facade: HTMLElement): HTMLIFrameElement {
+    const { embedSrc, embedTitle, embedAllow, embedClass } = facade.dataset
+    const iframe = document.createElement('iframe')
+    iframe.src = embedSrc ?? ''
+    iframe.title = embedTitle ?? ''
+    iframe.allow = embedAllow ?? ''
+    iframe.allowFullscreen = true
+    iframe.className = embedClass ?? ''
+    return iframe
+  }
+
+  async function loadSpotify(facade: HTMLElement, uri: string) {
+    const { embedTitle, embedClass } = facade.dataset
+    // createController replaces the element it's given, so it gets an inner
+    // slot and the rounded, sized box stays ours.
+    const box = document.createElement('div')
+    box.className = `${embedClass ?? ''} overflow-hidden`
+    const slot = document.createElement('div')
+    box.append(slot)
+    facade.replaceWith(box)
+    try {
+      const api = await loadSpotifyApi()
+      api.createController(slot, { uri, width: '100%', height: '100%' }, (controller) => {
+        const iframe = controller.iframeElement
+        if (iframe) {
+          iframe.title = embedTitle ?? ''
+          iframe.focus()
+        }
+        controller.addListener('ready', () => controller.play())
+      })
+    } catch {
+      const iframe = plainIframe(facade)
+      box.replaceWith(iframe)
+      iframe.focus()
+    }
+  }
 
   onPageLoad(({ restored }) => {
     // A bfcache restore keeps the listeners (and any loaded player) as left.
@@ -182,14 +324,10 @@ const SPOTIFY_SHOW_ID = '2lcqtft2WniXHrHs9WInDW'
       facade.addEventListener(
         'click',
         () => {
-          const { embedSrc, embedTitle, embedAllow, embedClass } = facade.dataset
+          const { embedSrc, spotifyUri } = facade.dataset
+          if (spotifyUri) return void loadSpotify(facade, spotifyUri)
           if (!embedSrc) return
-          const iframe = document.createElement('iframe')
-          iframe.src = embedSrc
-          iframe.title = embedTitle ?? ''
-          iframe.allow = embedAllow ?? ''
-          iframe.allowFullscreen = true
-          iframe.className = embedClass ?? ''
+          const iframe = plainIframe(facade)
           facade.replaceWith(iframe)
           iframe.focus()
         },

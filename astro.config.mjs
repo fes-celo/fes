@@ -66,6 +66,15 @@ export default defineConfig({
   experimental: {
     clientPrerender: true,
   },
+  // Remote images <Image> may download at build time and serve from
+  // dist/_astro: the Tech Refresh covers (src/lib/techRefreshFeed.ts, §87).
+  // Self-hosted, so no visitor request reaches these hosts before a click.
+  image: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'hosting-media.riverside.com' },
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+    ],
+  },
   build: {
     // Every stylesheet inlined into its page. The site's CSS is one ~50KB
     // Tailwind bundle plus a ~8KB per-page chunk on the Systems pages; as
