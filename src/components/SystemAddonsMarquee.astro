@@ -96,6 +96,14 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
     padding: var(--space-card-p);
     border-radius: var(--radius-control);
     background-color: var(--color-azure-50);
+
+    /* Kept on its own compositor layer for good. horizontalLoop moves each
+       card with a chain of GSAP tweens, and GSAP's default `force3D: 'auto'`
+       writes a 3D transform while a tween runs and a 2D one when it ends,
+       so every wrap and every settled snap promoted the card to a layer and
+       dropped it again. On Android each drop re-rasterised the card, which
+       showed as a flicker while swiping. Parked-decisions §85. */
+    will-change: transform;
   }
 
   /* Same width as SystemProblemCards' pinned card, so both card rows on the
@@ -226,7 +234,12 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
       // createDragCarousel's own bail-out; the drag itself still works.
       if (reducedMotion) return
       const cards = Array.from(track.querySelectorAll<HTMLElement>('.addons__card'))
-      const onPress = () => pressCards(cards, true)
+      // Mouse and pen only: on touch the press-scale ran on every swipe
+      // (and every vertical page scroll that began on the strip), and was
+      // part of the Android flicker. Parked-decisions §85.
+      const onPress = (event: PointerEvent) => {
+        if (event.pointerType !== 'touch') pressCards(cards, true)
+      }
       const onRelease = () => pressCards(cards, false)
       // Release listeners on `window`, not the track — see
       // SystemAddonsCarousel's identical note: a drag can end outside the

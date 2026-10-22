@@ -101,6 +101,14 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
     padding: var(--space-card-p);
     border-radius: var(--radius-control);
     background-color: var(--color-neutral-900);
+
+    /* Kept on its own compositor layer for good. horizontalLoop moves each
+       card with a chain of GSAP tweens, and GSAP's default `force3D: 'auto'`
+       writes a 3D transform while a tween runs and a 2D one when it ends,
+       so every wrap and every settled snap promoted the card to a layer and
+       dropped it again. On Android each drop re-rasterised the card, which
+       showed as a flicker while swiping. Parked-decisions §85. */
+    will-change: transform;
   }
 
   @media (min-width: 1024px) {
@@ -199,7 +207,12 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
       // still works either way.
       if (!reducedMotion) {
         const cards = Array.from(track.querySelectorAll<HTMLElement>('.addons-carousel__card'))
-        const onPress = () => pressCards(cards, true)
+        // Mouse and pen only: on touch the press-scale ran on every swipe
+      // (and every vertical page scroll that began on the strip), and was
+      // part of the Android flicker. Parked-decisions §85.
+      const onPress = (event: PointerEvent) => {
+        if (event.pointerType !== 'touch') pressCards(cards, true)
+      }
         const onRelease = () => pressCards(cards, false)
         // Release listeners on `window`, not the track: once a drag starts,
         // GSAP's Draggable tracks the pointer via document-level listeners
@@ -223,11 +236,27 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 
       let timer = 0
       let hovering = false
+      let lastInteraction = 0
 
+      // Hover and focus never happen on a phone, so on touch this used to
+      // advance mid-swipe: `next` tweened the timeline the finger was
+      // dragging, and the strip stuck and shook under it. A tick now waits
+      // out any press, throw or trackpad swipe, then a full HOLD_S after it,
+      // so the strip doesn't lurch forward the moment it settles.
+      // Parked-decisions §85.
       function tick() {
         if (hovering) return
+        if (loop!.isInteracting()) {
+          lastInteraction = performance.now()
+          return
+        }
+        if (performance.now() - lastInteraction < HOLD_S * 1000) return
         loop!.next(ADVANCE)
       }
+      const onTrackPress = () => {
+        lastInteraction = performance.now()
+      }
+      track.addEventListener('pointerdown', onTrackPress)
 
       timer = window.setInterval(tick, HOLD_S * 1000)
 
@@ -247,6 +276,7 @@ const cells = Array.from({ length: repeat }).flatMap((_, set) =>
 
       cleanups.push(() => {
         window.clearInterval(timer)
+        track.removeEventListener('pointerdown', onTrackPress)
         track.removeEventListener('mouseenter', onEnter)
         track.removeEventListener('mouseleave', onLeave)
         track.removeEventListener('focusin', onEnter)

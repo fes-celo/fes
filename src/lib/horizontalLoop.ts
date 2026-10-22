@@ -46,6 +46,13 @@ export interface HorizontalLoop {
    * seam. Adapted from GSAP's own horizontalLoop helper's `toIndex`.
    */
   next: (vars?: gsap.TweenVars) => gsap.core.Tween
+  /**
+   * True while a finger or pointer is down on the strip, while a release is
+   * still throwing, and while a trackpad swipe hasn't settled. Autoplay
+   * checks this before calling `next`: a `next` fired mid-gesture tweens
+   * the same timeline the drag is writing to, and the two fight.
+   */
+  isInteracting: () => boolean
   destroy: () => void
 }
 
@@ -69,6 +76,7 @@ export function horizontalLoop(
   let timeWrap: (value: number) => number = (v) => v
   let proxy: HTMLDivElement | undefined
   let draggable: Draggable | undefined
+  let wheelActive = false
   let cleanupWheel: (() => void) | undefined
 
   const tl = gsap.timeline({
@@ -229,7 +237,6 @@ export function horizontalLoop(
     // move left" direction (already corrected for macOS "natural scrolling"),
     // which is the same direction a mouse-drag to the left produces above —
     // so the two gestures can share one `ratio`.
-    let wheelActive = false
     let wheelWasPlaying = false
     let wheelSettleTimer = 0
 
@@ -318,6 +325,7 @@ export function horizontalLoop(
   return {
     timeline: tl,
     next,
+    isInteracting: () => Boolean(draggable?.isPressed || draggable?.isThrowing || wheelActive),
     destroy() {
       window.removeEventListener('resize', onResize)
       cleanupWheel?.()

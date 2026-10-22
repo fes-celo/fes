@@ -2386,3 +2386,46 @@ expired on 2026-10-15, so a rollback also needs that renewed.
 
 **Reopen if:** the site moves to another Worker or account, or the domain
 changes.
+
+### 85. Touch devices scroll the drag rows natively; the add-on loop cards stay composited
+
+**Decided (2026-10-20, Android flicker on horizontal rows):** on a
+touch-first device (`(hover: none) and (pointer: coarse)`),
+`createDragCarousel` no longer attaches GSAP Draggable. The rows that use it
+(the Agency team row, Systems "Sound familiar?", the homepage and Careers
+testimonials) scroll with the browser's own touch scrolling, momentum and
+scroll-snap. The add-on loops (`SystemAddonsMarquee`,
+`SystemAddonsCarousel`) keep their Draggable, because they move by
+transform and have no native scroll. Their cards now carry
+`will-change: transform`, and their press-scale ignores touch pointers.
+
+**Why:** with Draggable attached, a horizontal swipe on these rows ran on
+the main thread. Draggable set `touch-action: pan-y` and wrote `scrollLeft`
+on every touchmove. On top of that, `pressCards` scaled every card on press
+and back on release, and GSAP's `force3D: 'auto'` promotes an element to
+its own layer while a tween runs and drops it when the tween ends. The
+add-on loops do the same at every wrap and every settled snap. On Android
+each drop re-rasterises the card, which showed as a flicker during the
+swipe. Native scrolling runs on the compositor and doesn't have this
+problem.
+
+**Follow-up the same day (the symptom was stutter, not redraw):** the
+reported effect was cards sticking, shaking and scrolling unevenly under
+the finger, not cards vanishing. The native-scroll change above covers
+that for the drag rows. The dark-page add-ons strip
+(`SystemAddonsCarousel`) had a second cause. Its autoplay paused only on
+`mouseenter` and `focusin`, which never fire on a phone, so the 3.2s
+advance could land mid-swipe. `next()` then tweened the same timeline the
+drag was writing to, and the two fought. `horizontalLoop` now exposes
+`isInteracting()` (pressed, throwing, or a trackpad swipe settling).
+Autoplay skips a tick while it is true, then waits a full hold after the
+last interaction.
+
+**What touch users lose:** the press-shrink on the cards and GSAP's snap
+feel. Native snap still lands the rows that declare it, and the team row
+has no snap, as before. Desktop (mouse and trackpad) is unchanged.
+
+**Reopen if:** the flicker persists on Android after this ships (then look
+at the problem cards' `mix-blend-mode` grain layer next), or a design
+review wants the press-shrink back on touch (it would need the cards
+composited for the row's lifetime, as the add-on cards now are).

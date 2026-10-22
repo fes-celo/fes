@@ -219,8 +219,22 @@ function attach(Draggable: typeof DraggableType, track: HTMLElement, opts: { car
   }
 }
 
+/**
+ * Touch-first devices keep the row's own native scroll and never get the
+ * Draggable. On a phone the finger already scrolls an `overflow-x: auto`
+ * row natively, on the compositor, with the browser's own momentum and
+ * scroll-snap. Attaching Draggable there swapped that for `touch-action:
+ * pan-y` plus a `scrollLeft` write per touchmove on the main thread, and
+ * the press-scale tween promoted every card to its own layer on press and
+ * dropped it again on release. On Android that read as the row flickering
+ * while it was swiped (reported 2026-10-20 on the Agency team row and the
+ * Systems "Sound familiar?" row). See parked-decisions §85.
+ */
+const TOUCH_FIRST = '(hover: none) and (pointer: coarse)'
+
 export function createDragCarousel(track: HTMLElement, opts: { cardSelector: string }): (() => void) | null {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return null
+  if (window.matchMedia(TOUCH_FIRST).matches) return null
 
   let cancelled = false
   let detach: (() => void) | null = null
